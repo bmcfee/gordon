@@ -1,0 +1,135 @@
+#! /bin/sh
+#
+# /etc/init.d/TG_PROJECT
+#   and its symbolic link
+# /(usr/)sbin/rcTG_PROJECT
+# 
+### BEGIN INIT INFO
+# Provides:          TG_PROJECT
+# Required-Start:    $syslog $remote_fs apache2
+# Should-Start: $time ypbind sendmail
+# Required-Stop:     $syslog $remote_fs
+# Should-Stop: $time ypbind sendmail 
+# Default-Start:     3 5
+# Default-Stop:      0 1 2 6
+# Short-Description: TG_PROJECT daemon 
+# Description:       Start TG_PROJECT 
+### END INIT INFO
+
+TG_PROJECT="gordonweb"
+
+#Here we presume that user gordonweb is launching the webserver and has homedirectory in /local/home/gordonweb
+
+BASEDIR=/local/home/gordonweb
+PIDFILE=$BASEDIR/gordonweb.pid
+TG_PROJECT_BIN=$BASEDIR/hg/Gordon/gordon/web/start-gordonweb.py
+TG_PROJECT_CONFIG=$BASEDIR/hg/Gordon/gordon/web/active.cfg
+
+# Check for missing binaries (stale symlinks should not happen)
+# Note: Special treatment of stop for LSB conformance
+test -x $TG_PROJECT_BIN || { echo "$TG_PROJECT_BIN not installed"; 
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 5; fi; }
+
+# Check for existence of needed config file and read it
+test -r $TG_PROJECT_CONFIG || { echo "$TG_PROJECT_CONFIG not existing";
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 6; fi; }
+
+# Return values acc. to LSB for all commands but status:
+# 0	  - success
+# 1       - generic or unspecified error
+# 2       - invalid or excess argument(s)
+# 3       - unimplemented feature (e.g. "reload")
+# 4       - user had insufficient privileges
+# 5       - program is not installed
+# 6       - program is not configured
+# 7       - program is not running
+# 8--199  - reserved (8--99 LSB, 100--149 distrib, 150--199 appl)
+# 
+# Note that starting an already running service, stopping
+# or restarting a not-running service are considered a success 
+
+start_tg_project() {
+    $TG_PROJECT_BIN $TG_PROJECT_CONFIG &
+    RETVAL=$?
+    echo $! > $PIDFILE
+    return $RETVAL
+}
+
+case "$1" in
+    start)
+	echo -n "Starting $TG_PROJECT "
+	## Start daemon with startproc(8). If this fails
+	## the return value is set appropriately by startproc.
+
+	start_tg_project      
+	RETVAL=$?
+
+	if [ $RETVAL -eq 0 ]; then
+		log_success_msg
+	else 
+		log_failure_msg
+	fi
+
+	;;
+    stop)
+	echo -n "Shutting down $TG_PROJECT "
+	## Stop daemon with killproc(8) and if this fails
+	## killproc sets the return value according to LSB.
+
+	killproc -p $PIDFILE python $TG_PROJECT_BIN
+	RETVAL=$?
+
+	if [ $RETVAL -eq 0 ]; then
+		log_success_msg
+	else 
+		log_failure_msg
+	fi
+
+	;;
+    restart)
+	## Stop the service and regardless of whether it was
+	## running or not, start it again.
+	$0 stop
+	$0 start
+	RETVAL=$?
+
+	if [ $RETVAL -eq 0 ]; then
+		log_success_msg
+	else 
+		log_failure_msg
+	fi
+
+	;;
+    status)
+	echo -n "Checking for service $TG_PROJECT "
+	## Check status with checkproc(8), if process is running
+	## checkproc will return with exit status 0.
+
+	# Return value is slightly different for the status command:
+	# 0 - service up and running
+	# 1 - service dead, but /var/run/  pid  file exists
+	# 2 - service dead, but /var/lock/ lock file exists
+	# 3 - service not running (unused)
+	# 4 - service status unknown :-(
+	# 5--199 reserved (5--99 LSB, 100--149 distro, 150--199 appl.)
+	
+	# NOTE: checkproc returns LSB compliant status values.
+
+	checkproc -p $PIDFILE python $TG_PROJECT_BIN
+	RETVAL=$?
+
+	if [ $RETVAL -eq 0 ]; then
+		log_success_msg
+	else 
+		log_failure_msg
+	fi
+
+	;;
+    *)
+	echo "Usage: $0 {start|stop|status|restart}"
+	exit 1
+	;;
+esac
+exit 1

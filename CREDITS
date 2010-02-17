@@ -1,0 +1,15 @@
+The code for this server was written by Douglas Eck, is open source,
+and was originally built as a front end for the music collection used
+at University of Montreal for the Search Inside the Music project at
+Sun Labs, Boston.
+
+Contributors:
+
+Douglas Eck
+ - "The whole shebang" as Ron Weiss politely put it.  More explicitly: initial implementation of this system as part of Search Inside the Music (SITM).
+
+Michael Mandel 
+ - playdar resolver
+
+Ron Weiss
+ - documentation and cleanup in preparation for initial open source release

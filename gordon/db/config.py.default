@@ -1,0 +1,15 @@
+"""Local configuration for gordon database."""
+
+# Local path to audio/feature data
+DEF_GORDON_DIR=
+
+# Path of the Gordon dir on the web server (no NFS!)
+DEF_GORDON_DIR_ON_WEBSERVER=
+
+# Database configuration
+#DEF_DBHOST='localhost'
+DEF_DBHOST=
+DEF_DBNAME='gordon_db'
+DEF_DBUSER='gordon'
+DEF_DBPASS=
+DEF_DBSUPERUSER=

@@ -1,0 +1,13 @@
+syntax: glob
+*~
+*.wav
+.DS_Store
+*.o
+*.dylib*
+*.pyc
+build/*
+*egg-info/*
+dist/*
+gordon/web/dev.cfg
+gordon/web/prod.cfg
+gordon/db/config.py

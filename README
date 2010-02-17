@@ -1,0 +1,69 @@
+Gordon
+------
+
+Gordon is a database management system for working with large audio
+collections.  For the most part it is intended for research.  Gordon
+includes a database backend, web server and python API.  Gordon will
+automatically import music collections into the database and try to
+resolve tracks, albums and artists to the MusicBrainz service.
+
+Gordon is named after the character Rob Gordon from the Nick Hornby
+book High Fidelity.  This was also a movie with John Cusack playing
+Gordon (and Jack Black playing Barry, another great character).
+
+Gordon is licensed under the GNU GPL. See the file COPYING for
+details.
+
+Please keep in mind that the database schema and API are still
+evolving (a little bit), so don't be shocked if you upgrade and find
+that things are a bit broken.  That said, this is being released to
+let the broader community help build a more robust system, so please
+contribute!
+
+Commits will^H^H^H^Hmight^H^H^H^H^Hprobably won't be rewarded with a
+free LP (generously provided by Doug) to help you populate your
+collection.
+
+See the instructions in INSTALL to get started.
+
+
+Usage
+-----
+
+Once everything is set up, and some songs have been added to the
+database, a typical use case for Gordon would go something like this:
+
+In [1]: import gordon
+model.py: intialized external connection to gordon database on mirfiles.smusic.nyu.edu
+gordon_db.py: using gordon directory /share/gordon
+
+In [2]: tracks = gordon.Track.query.filter_by(artist='Charlie Parker')
+
+In [3]: print 'Found %d tracks' % tracks.count()
+Found 594 tracks
+
+In [4]: tracks[0].title
+Out[6]: u"7th April, 1951- They can't take That away from Me"
+
+In [5]: print tracks[0]
+<Track 1 7th April, 1951- They can't take That away from Me by Charlie Parker from At Birdland Volume 2 Disc 2>
+
+In [6]: # Gordon makes it easy to grab the audio:
+
+In [7]: x, fs, svals = tracks[0].audio()
+
+In [8]: # So running an experiment goes something like this:
+
+In [9]: for track in tracks:
+  ....:     print "Messing around with %s" % track
+  ....:     x, fs, svals = track.audio()
+  ....:     # Run your favorite MIR algorithm on x...
+
+You can construct queries on Tracks, Artists, or Albums.  See the
+corresponding objects in gordon.db.model for details.
+
+Queries are constructed using SQLAlchemy, so you might want to have a
+look at its documentation (http://www.sqlalchemy.org/docs/) to learn
+more.
+
+

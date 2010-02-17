@@ -1,0 +1,32 @@
+Cruft to clean up (in no particular order):
+ - Get rid of as many "from x import *" as possible, especially in the
+   main gordon namespace (db/gordon_db.py)
+
+ - Replace prints with logging
+
+ - Remove specific references to mp3s and eyeD3 outside of
+   gordon/io/mp3_eyeD3.py
+   - ffmpeg can read way more audio formats
+   - eventually we will move away from eyeD3 to TagPy/TagLib to get
+     support for metadata embedded in other file formats
+
+ - Clean up feature support
+
+ - Look again at the database. Specifically, what do we store in a Track? (there are some extra fields I think)
+   and also how do we handle 
+      : deletes of all tracks in an album 
+      : tracks having no album
+      : storing original path (right now it's relative to SITM_DEF_DIR)
+      : zsecs versus secs (zsecs is the number of seconds with leading and trailing zeros removed);
+        it makes more sense to either drop this completely or to store leading_zeros and trailing_zeros
+	as well.  However it *is* useful because you can, e.g., limit your queries to tracks having at least 
+        15sec of non-zero data. 
+      : hashing a specific MP3 so as to not to import it twice. 
+
+ - Write unit tests (!!)
+
+ - Get rid of SQLAlchemy "Session.mapper deprecation" warnings
+
+ - Fix bugs in audio_intake.py
+   - doesn't exit gracefully when it can't write tags, so the tracks
+     are added to the database, but the mp3s are never copied

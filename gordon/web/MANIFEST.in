@@ -1,0 +1,6 @@
+include start-gordonweb.py
+include *.cfg
+include gordonweb/config/*.cfg
+recursive-include gordonweb/templates *.html
+recursive-include gordonweb/templates *.kid
+recursive-include gordonweb/static *

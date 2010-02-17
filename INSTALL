@@ -1,0 +1,80 @@
+Prerequisites
+-------------
+1. Install the dependencies:
+   ffmpeg: http://ffmpeg.org/
+   SQLAlchemy: http://www.sqlalchemy.org/
+   PostgreSQL: http://www.postgresql.org/
+   NumPy: http://numpy.scipy.org/
+   PyGreSQL: http://www.pygresql.org/ (Is this still necessary?)
+   eyeD3: http://eyed3.nicfit.net/ (this will eventually be replaced by TagLib and TagPy:
+                                    http://mathema.tician.de/software/tagpy)
+
+   Optional packages (required for the webapp):
+   TurboGears 1.1: http://www.turbogears.org/ 
+   psycopg: http://initd.org/
+   
+   On Debian (and probably Ubuntu), you can get all of these
+   dependencies by running:
+   apt-get install postgresql ffmpeg python-sqlalchemy python-pygresql \
+                   python-numpy python-eyed3 python-tagpy
+
+   And for the (optional) web app:
+   apt-get install python-psycopg2 python-tgmochikit python-setuptools
+
+   apt-get install python-turbogears python-pastescript \
+                  python-formencode python-elementtree
+
+   Note that the version of turbogears in current Debian stable is too
+   old, so you will need to use apt-pinning (see
+   http://wiki.debian.org/AptPreferences) to get a more recent version
+   from testing by changing "apt-get install" to "apt-get install -t testing"
+   in the previous command.
+
+   You will also have to install TGFastData
+   (http://pypi.python.org/pypi/TGFastData):
+    easy_install TGFastData
+       
+
+2. Create the database and set up a user to manage the database by
+   running following commands as the postgres super user (probably
+   'postgres'):
+   createdb gordon_db
+   createuser gordon -P
+
+
+Gordon setup
+------------
+1. Copy gordon/db/config.py.default to gordon/db/config.py and fill in
+   the details of your local configuration.
+
+2. Run gordon/db/gordon_initialize.py to build the database tables.
+
+3. Run gordon/db/audio_intake.py to import music into the database.
+
+4. Create a local copy of the musicbrainz database using
+   gordon/db/mbrainz_import.py 
+
+   This involves checking out the mb_server SVN repository, filling in
+   some configuration details, then downloading a few gigabytes of the
+   musicbrainz database dump and loading it into your local postgres
+   database.  Follow the instructions in the script.  The process is
+   mostly automated.
+
+5. Resolve metadata against musicbrainz using
+   gordon/db/mbrainz_resolver.py
+
+
+Web app setup (optional)
+------------------------
+1. Run gordon/web/gordonweb/initialize_db.py to initialize the webapp
+   database tables.
+
+2. Copy gordon/web/dev.cfg.default to gordon/web/dev.cfg
+   Copy gordon/web/app.cfg.default to gordon/web/app.cfg
+   Edit both configuration files to reflect settings in gordon/config.py
+
+3. Run gordon/web/start-gordonweb.py gordon/web/dev.cfg to start it up.
+   Once everything works, you can start using gordon/web/app.cfg for a
+   faster server.
+
+4. Open a web browser and go to town!
