@@ -21,8 +21,8 @@
 <table>
 <tr>    <th>Task</th> <th>Description</th> </tr>
 <tr>
-	<td><a href="/resolve_viewalbums">View Resolved Albums</a> </td> 
-	<td>View unresolved albums with current predicted MusicBrainz resolution</td>
+	<td><a href="/resolve_viewalbums">View Recommended Album Resolutions</a> </td> 
+	<td>View current predicted MusicBrainz resolutions for unresolved albums</td>
 
 </tr>
 

@@ -365,11 +365,11 @@ mbrecommend_datagrid = PaginateDataGrid(
     PaginateDataGrid.Column('gordon_album',     'gordon_album',     'GordonAlbum',options=dict(sortable=True)),
     PaginateDataGrid.Column('mb_artist',     'mb_artist',     'MBArtist',options=dict(sortable=True)),
     PaginateDataGrid.Column('gordon_artist',     'gordon_artist',     'GordonArtist',options=dict(sortable=True)),
-    PaginateDataGrid.Column('conf',         lambda row:'%2.3f' % row.conf,         'Conf',options=dict(sortable=True)),
-    PaginateDataGrid.Column('conf_artist',  lambda row:'%2.3f' % row.conf_artist,  'Artist Conf',options=dict(sortable=True)),
-    PaginateDataGrid.Column('conf_album',   lambda row:'%2.3f' % row.conf_album,   'Album Conf',options=dict(sortable=True)),
-    PaginateDataGrid.Column('conf_track',   lambda row:'%2.3f' % row.conf_track,   'Track Conf',options=dict(sortable=True)),
-    PaginateDataGrid.Column('conf_time',    lambda row:'%2.3f' % row.conf_time,    'Time Conf',options=dict(sortable=True)),
+    PaginateDataGrid.Column('conf',         lambda row:'%2.3f' % row.conf,         'Overall Conf',options=dict(reverse_order=True,sortable=True)),
+    PaginateDataGrid.Column('conf_artist',  lambda row:'%2.3f' % row.conf_artist,  'Artist Conf',options=dict(reverse_order=True,sortable=True)),
+    PaginateDataGrid.Column('conf_album',   lambda row:'%2.3f' % row.conf_album,   'Album Conf',options=dict(reverse_order=True,sortable=True)),
+    PaginateDataGrid.Column('conf_track',   lambda row:'%2.3f' % row.conf_track,   'Track Conf',options=dict(reverse_order=True,sortable=True)),
+    PaginateDataGrid.Column('conf_time',    lambda row:'%2.3f' % row.conf_time,    'Time Conf',options=dict(reverse_order=True,sortable=True)),
     PaginateDataGrid.Column('selector',     get_mbrec_checkbox, 'Accept'),
     ])
 

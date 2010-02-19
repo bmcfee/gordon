@@ -771,8 +771,12 @@ class Root(controllers.RootController):
             st= 'Resolved musicbrainz album id %s against internal album id %s' % (mb_id,id)
 
         flash(st)
-        referrer=request.headers.get("Referer", "/")
-        redirect(referrer)
+
+
+        #now go back to our review page
+        redirect("/resolve_viewalbums")
+        #referrer=request.headers.get("Referer", "/")
+        #redirect(referrer)
 
 
     @expose()
@@ -802,8 +806,16 @@ class Root(controllers.RootController):
     def resolve_setalbumstatus(self,id,status="weird",sort_order='conf') :
         #set the status of an album. 
         id = int(id)
-        if gordon_model.AlbumStats.query.filter_by(album=id,status=status).count()==0 :
-            gordon_model.AlbumStats(album=id,status=status)
+        album=gordon_model.Album.query.get(id)
+        if gordon_model.AlbumStatus.query.filter_by(album=album,status=status).count()==0 :
+            gordon_model.AlbumStatus(album=album,status=status)
+
+
+        #TODO: this next line will not ever return recommendations for albums marked with *any* AlbumStatus
+        #it should probably be to only ignore those which are from a fixed list of AlbumStatus codewords.  Anyway this warrants
+        #discussion. . . 
+
+        #here we pull up the next album in the list. Is that what we want to do?
         mbrecommend = gordon_model.Mbalbum_recommend.query.filter(gordon_model.Mbalbum_recommend.album.has(gordon_model.Album.mb_id=='')).filter(gordon_model.Mbalbum_recommend.album.has(~gordon_model.Album.status.any())).order_by('%s DESC' % sort_order)
         print 'Redirecting to',str(mbrecommend[0].album_id)
         redirect("/resolve_viewalbum/%s" % str(mbrecommend[0].album_id))
@@ -853,7 +865,7 @@ class Root(controllers.RootController):
             if status==False :
                 flash('Unable to merge tracks for album %s' % id)
                 redirect('/resolve_viewalbums')
-        mbrecommend_mb_id_url=widgets.get_mb_id_url(mbrecommend.mb_id)
+        mbrecommend_mb_id_url=widgets.get_album_mb_id_url(mbrecommend.mb_id)
         mb_album=mbrecommend.mb_album
         submit_form = TableForm(
             fields=[TextField(name='mb_id',default=mbrecommend.mb_id,label='Recommended MB_ID',attrs=dict(size='38'))],
@@ -865,13 +877,12 @@ class Root(controllers.RootController):
 
 
     @expose(template="gordonweb.templates.resolve_viewalbums")
-    @paginate('mbrecommend', default_order='conf_time',limit=20)
+    @paginate('mbrecommend', default_order='-conf',limit=20)
     def resolve_viewalbums(self) :
         #get recommendations for un-mbrid albums with no status messages
         #here we assume that any status is a bad one. But this could be softened  by changing the any part of the query
         mbrecommend = gordon_model.Mbalbum_recommend.query.filter(gordon_model.Mbalbum_recommend.album.has(or_(gordon_model.Album.mb_id=='',gordon_model.Album.mb_id==None))).filter(gordon_model.Mbalbum_recommend.album.has(~gordon_model.Album.status.any()))
-        sort_order=cherrypy.request.params.get('mbrecommend_tgp_order','conf_time')
-        return dict(mbrecommend=mbrecommend, mbrecommend_list=mbrecommend_datagrid, sort_order=sort_order)
+        return dict(mbrecommend=mbrecommend, mbrecommend_list=mbrecommend_datagrid)
     
 
 

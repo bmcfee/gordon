@@ -64,9 +64,9 @@ class GordonResolver(object) :
             self.resolve_album(a.id,mbart=mbart,mbart_lc_list=mbart_lc_list)
             ctr+=1
 
-    def resolve_album(self,rid,mbart='',mbart_lc_list='') :
+    def resolve_album(self,id,mbart='',mbart_lc_list='') :
         """Resolves a single album in Gordon database against MusicBrainz database. Returns closes music brainz album and writes that info to our database"""
-        (win_album,win_mb_id,(conf,conf_album,conf_artist,conf_track,conf_time),reorder_dict)=self._closest_mb_album(rid,mbart=mbart,mbart_lc_list=mbart_lc_list)
+        (win_album,win_mb_id,(conf,conf_album,conf_artist,conf_track,conf_time),reorder_dict)=self._closest_mb_album(id,mbart=mbart,mbart_lc_list=mbart_lc_list)
 
 
         #turn reorder dictionary to string
@@ -74,13 +74,13 @@ class GordonResolver(object) :
         #get other values
 
         try :
-            gordon_album=Album.query.get(rid).name
-            gordon_artist=Album.query.get(rid).artists[0].name
+            gordon_album=Album.query.get(id).name
+            gordon_artist=Album.query.get(id).artists[0].name
         except:
             print 'Temporary patch here to get around failure for a track missing an artist. TODO: fixme'
             return ''
 
-        recs=Mbalbum_recommend.query.filter_by(album_id=rid)
+        recs=Mbalbum_recommend.query.filter_by(album_id=id)
         for r in recs :
             session.delete(r)
         commit()
@@ -92,17 +92,18 @@ class GordonResolver(object) :
             #print 'Not writing record. no winner'
         else :
             print 'Winner is',win_mb_id,'with',conf,'album=',conf_album,'artist=',conf_artist,'track=',conf_track,'time=',conf_time
-            [album,id,artist]=self.dbmb.query("""SELECT album.name, album.id, artist.name
+            #HERE
+            [album,mbrid,artist]=self.dbmb.query("""SELECT album.name, album.id, artist.name
             FROM album,artist WHERE album.gid='%s' AND artist.id=album.artist""" % win_mb_id).getresult()[0]
             mb_album=album.decode('utf-8')
             mb_artist=artist.decode('utf-8')
-            x=Mbalbum_recommend(album_id=rid,mb_id=win_mb_id,gordon_artist=gordon_artist,gordon_album=gordon_album,
+            x=Mbalbum_recommend(album_id=id,mb_id=win_mb_id,gordon_artist=gordon_artist,gordon_album=gordon_album,
                                 mb_artist=mb_artist,mb_album=mb_album,conf=conf,
                                 conf_album=conf_album,conf_artist=conf_artist,
                                 conf_track=conf_track,conf_time=conf_time,trackorder=reorder_str)
-            x.album=Album.query.get(rid)
+            x.album=Album.query.get(id)
             commit()
-            y=Album.query.get(rid)
+            y=Album.query.get(id)
             y.recommend.append(x)
             print 'Wrote value',x
             commit()
@@ -671,6 +672,9 @@ class GordonResolver(object) :
             album_terms[ridx]= self._get_string_match(album.lower(),mbalbum.lower(),smatcher)
             #get track info for potential match
 
+
+            print 'Selected',mbalbum,mb_id,mbrid
+
             if trackcount > 0 :
                 q="""SELECT T.name, T.length, A.name, AJ.sequence FROM track as T INNER JOIN albumjoin as
                 AJ ON T.id = AJ.track INNER JOIN artist as A ON T.artist = A.id WHERE AJ.album = %i ORDER BY AJ.sequence""" % mbrid
@@ -705,9 +709,10 @@ class GordonResolver(object) :
 
                 #for t1,t2 in zip(times/1000.,mbtimes/1000.) :
                 #    print 't1sec=%4.4f t2sec=%4.4f diff=%4.4f prob=%4.4f' % (t1,t2,abs(t1-t2), exp(-((t1-t2)**2)/tt_std))
-                print '%s probabilty %4.4f' % (mb_id,time_term)
-           
-
+                print '  time %s probabilty %4.4f' % (mb_id,time_term)
+                for t1,t2 in zip(times,mbtimes) :
+                    print t1,t2,t1-t2
+                
 
 #we go song by song and take average match over songs for title and artist
 
@@ -850,7 +855,7 @@ class GordonResolver(object) :
         reorder_dict=reorder_dicts[win_idx]
         (win_album,win_mb_id,ignore)=mbalbumresult[win_idx]
         vals = map(float,(mix_term,album_term,artist_term,track_term,time_term))
-        return (win_album,win_mb_idy,vals,reorder_dict)
+        return (win_album,win_mb_id,vals,reorder_dict)
 
 
     def _get_string_match(self,word1,word2,s=-1) :

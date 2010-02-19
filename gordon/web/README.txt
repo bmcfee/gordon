@@ -16,3 +16,6 @@ easy_install RuleDispatch
 
 In principle; 
 easy_install TurboGears should do everything.  It may be worthwhile going to TurboGears2 for this reason.
+
+
+Two init.d scripts are provided

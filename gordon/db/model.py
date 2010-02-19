@@ -402,7 +402,7 @@ mapper(Album,album,
        properties={'artists':relation(Artist,secondary=album_artist),   
                    'tracks':relation(Track,secondary=album_track,order_by=Track.tracknum, cascade='all,delete'), #removed delete-orphan
                    'recommend':relation(Mbalbum_recommend, backref='album',cascade='all,delete,delete-orphan'),
-                   'status':relation(AlbumStatus,backref='album',             cascade='all,delete,delete-orphan')
+                   'status':relation(AlbumStatus,backref='album',cascade='all,delete,delete-orphan')
                    }
        )
 

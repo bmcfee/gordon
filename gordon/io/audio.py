@@ -134,9 +134,8 @@ class AudioFile(object):
                 except :
                     pass
 
-        if (self.fs_file is None) or (self.chans is None) :
- 
-            raise ValueError("Unable to read fs_file=%s or chans=%s from file. Cannot recover from this" % (str(self.fs_file),str(self.chans)))
+        if (self.fs_file is None) or (self.chans is None) : 
+            raise ValueError("Unable to read fs_file=%s or chans=%s from file. Cannot recover from this\n\n%s" % (str(self.fs_file),str(self.chans),data))
 
         if self.secs is None :
             #this is a bit of a hack. For certain file types, ffmpeg does not give file length in seconds

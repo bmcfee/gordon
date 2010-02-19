@@ -22,7 +22,7 @@ TG_PROJECT="gordonweb"
 
 BASEDIR=/local/home/gordonweb
 PIDFILE=$BASEDIR/gordonweb.pid
-TG_PROJECT_BIN=$BASEDIR/hg/Gordon/gordon/web/start-gordonweb.py
+yTG_PROJECT_BIN=$BASEDIR/hg/Gordon/gordon/web/start-gordonweb.py
 TG_PROJECT_CONFIG=$BASEDIR/hg/Gordon/gordon/web/active.cfg
 
 # Check for missing binaries (stale symlinks should not happen)
