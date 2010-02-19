@@ -201,7 +201,7 @@ def get_track_url_for_tracknum(row) :
 
 def get_track_url_for_title(row) :
     link = ET.Element('a',href='/track/%s' % row.id)
-    link.text = str(row.title)
+    link.text = row.title
     return link
 
 def get_track_artist_url(row) :
