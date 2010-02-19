@@ -115,12 +115,12 @@ Index('album_trackcount_idx', album.c.trackcount, unique=False)
 Index('album_pkey', album.c.id, unique=True)
 
 
-album_stats =  Table('album_stats', metadata,
+album_status =  Table('album_status', metadata,
                      Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
                      Column(u'album_id', Integer(), ForeignKey('album.id'),nullable=False),
                      Column(u'status', String(length=None), primary_key=False),
                      )
-Index('album_stats_pkey', album_stats.c.id, unique=True)
+Index('album_status_pkey', album_status.c.id, unique=True)
 
 album_track =  Table('album_track', metadata,
                      Column(u'album_id', Integer(), ForeignKey('album.id'), nullable=False),
@@ -347,8 +347,10 @@ class ArtistTrack(object) :
 class AlbumArtist(object) :
     pass
 
-class AlbumStats(object) :
-    pass
+class AlbumStatus(object) :
+    def __str__(self) :
+        st='<AlbumStatus id=%i album_id=%i status=%s>' % (self.id, self.album_id,self.status)
+        return st
 
 class Mbartist_resolve(object) :
     pass
@@ -400,6 +402,7 @@ mapper(Album,album,
        properties={'artists':relation(Artist,secondary=album_artist),   
                    'tracks':relation(Track,secondary=album_track,order_by=Track.tracknum, cascade='all,delete'), #removed delete-orphan
                    'recommend':relation(Mbalbum_recommend, backref='album',cascade='all,delete,delete-orphan'),
+                   'status':relation(AlbumStatus,backref='album',             cascade='all,delete,delete-orphan')
                    }
        )
 
@@ -410,7 +413,7 @@ mapper(Artist,artist,
        )
 
 
-mapper(AlbumStats,album_stats)
+mapper(AlbumStatus,album_status)
 
 mapper(Mbartist_resolve,mbartist_resolve)
 

@@ -317,7 +317,7 @@ class GordonResolver(object) :
         """verify that tagged albums still have same info as found in musicbrainz.     
            when mode=='auto' will automatically make changes for anything wiht stringmatch threshold > thresh
            whem mode=='prompt' will *ALSO* do same auto updates but will prompt for user for changes
-        when force==True we set all albums marked 'verified' in AlbumStats to be marked 'unverified'
+        when force==True we set all albums marked 'verified' in AlbumStatus to be marked 'unverified'
         calling with default params should be reasonably safe...
         the best way to use this function is to call it once with mode='auto' and force=True 
         this will clear out the verified recoreds (all records will evaluate) and will update all of the easy stuff and then
@@ -325,7 +325,7 @@ class GordonResolver(object) :
         """
         if force :
             #when we force we mark all records as unverified
-            for asat in AlbumStats.query() :
+            for asat in AlbumStatus.query() :
                 if asat.status=='mb_verified' :
                     asat.status='mb_unverified'
             commit()
@@ -341,7 +341,7 @@ class GordonResolver(object) :
         for r in recs :
 
             #check to see if album is verified already 
-            asat = AlbumStats.query.filter_by(album_id=r.id).filter_by(status='mb_verified') 
+            asat = AlbumStatus.query.filter_by(album_id=r.id).filter_by(status='mb_verified') 
             if asat.count()>0 :
                 #print 'Skipping mb_verified album',r
                 continue
@@ -437,13 +437,13 @@ class GordonResolver(object) :
 
                 if verified: 
                     #if we've in fact verified our unverified record, write it to disk
-                    asat = AlbumStats.query.filter_by(album_id=r.id).filter_by(status='mb_unverified')
+                    asat = AlbumStatus.query.filter_by(album_id=r.id).filter_by(status='mb_unverified')
                     if asat.count()>=1 :
                         asat[0].status='mb_verified'
                         for i in range(1,asat.count()) :
                             session.delete(asat[i])
                     else :
-                        new_rec= AlbumStats(album_id=r.id,status='mb_verified')
+                        new_rec= AlbumStatus(album_id=r.id,status='mb_verified')
                     print "Marking",r.id,"as mb_verified"
                     commit()
 
@@ -739,7 +739,7 @@ class GordonResolver(object) :
 
                 reorder_dict=dict()
                 reorder_idxs=[]
-                #q=AlbumStats.query.filter_by(album_id = rid)
+                #q=AlbumStatus.query.filter_by(album_id = rid)
                 #if q.count()==1 :
 
                 
