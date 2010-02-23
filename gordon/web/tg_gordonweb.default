@@ -4,6 +4,12 @@
 #   and its symbolic link
 # /(usr/)sbin/rcTG_PROJECT
 # 
+# This script is designed for setting up Gordon as a service on Fedora
+# but may also be useful for other Linux/Unix variants
+# notice that you need to copy dev.cfg or prod.cfg to be active.cfg (or use a symlink)
+# 
+# In Redhat this woudld be copied to /etc/init.d/tg_gordonweb and then installed using chkconfig --add tg_gordonweb
+#
 ### BEGIN INIT INFO
 # Provides:          TG_PROJECT
 # Required-Start:    $syslog $remote_fs apache2
