@@ -11,7 +11,7 @@ Prerequisites
 
    Optional packages (required for the webapp):
    TurboGears 1.1: http://www.turbogears.org/ 
-   psycopg: http://initd.org/
+!   psycopg: http://initd.org/ - THIS IS ACTUALLY NEEDED TO INSTALL SQL Alchemy ...
    
    On Debian (and probably Ubuntu), you can get all of these
    dependencies by running:
