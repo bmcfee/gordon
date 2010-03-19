@@ -13,4 +13,3 @@ gordon/web/prod.cfg
 gordon/web/active.cfg
 gordon/web/tg_gordonweb
 gordon/db/config.py
-glob:gordon-dev.kpf
