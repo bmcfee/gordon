@@ -7,7 +7,7 @@ import platform
                   
 #INSTALL or offer to install non-easy_install software
 
-#eyeD3 is necessary for working with mp3s
+#eyeD3 is necessary for working with mp3s #todo change this
 try :
     import eyeD3
 except :
