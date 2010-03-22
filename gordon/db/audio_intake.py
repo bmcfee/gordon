@@ -20,12 +20,24 @@
 """Functions for importing music to Gordon database"""
 
 import pg
+#jorgeorpinel: for windows:
+#import numpy.distutils.fcompiler.pg
+
 from numpy import *
 from model import *
 from sqlalchemy import *
+
 import gordon.io.mp3_eyeD3 as id3 
+#jorgeorpinel: for windows:
+#from gordon.io import mp3_eyeD3 as id3
+
 import time,difflib,shutil,os,heapq,string,datetime,stat,copy,sys,random
+
 from sqlalchemy.databases.postgres import PGArray
+#jorgeorpinel: for my windows which never finds python paths/packages (plus im using more recent vesions of everything)
+#from sqlalchemy.databases import postgres
+#PGArray = postgres.PGArray
+
 from collections import defaultdict
 import traceback
 

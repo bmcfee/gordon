@@ -19,7 +19,12 @@
 
 from sqlalchemy import Table, Column, ForeignKey, String, Unicode, Integer, DateTime,MetaData,PassiveDefault,text,Index,Text,Float,ForeignKeyConstraint,SmallInteger,Boolean
 from sqlalchemy.orm import relation,dynamic_loader,backref,column_property,deferred,sessionmaker,MapperExtension
+
 from sqlalchemy.databases.postgres import PGArray
+#jorgeorpinel: for my windows which never finds python paths/packages (plus im using more recent vesions of everything)
+#from sqlalchemy.databases import postgres
+#PGArray = postgres.PGArray
+
 import os, glob
 import config
 from gordon.io import AudioFile
