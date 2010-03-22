@@ -35,7 +35,7 @@ setup(name="Gordon",
       packages=find_packages(exclude='tests'),
       long_description="""This is the Gordon Music Management System.""",
       #classifiers=["Development Status :: 3 - Alpha",
-                    ]
+      #              ],
       test_suite = "nose.collector",     
       scripts=[ 'gordon/db/audio_intake.py',
                 'gordon/db/mbrainz_import.py',
