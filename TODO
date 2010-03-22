@@ -8,8 +8,8 @@ Cruft to clean up (in no particular order):
    gordon/io/mp3_eyeD3.py
 DONE?   - ffmpeg can read way more audio formats
    - MEANS TO IMPORT META-DATA OF ALL AUDIO FORMATS, EVEN WAV/AIFF
-   - eventually we will move away from eyeD3 to TagPy/TagLib to get
-     support for metadata embedded in other file formats
+   - eventually we will move away from eyeD3 to TagPy/TagLib (no Windows impl.)
+     to get support for metadata embedded in other file formats
  
  - Meanst to add synched annotations related to the audio
 
