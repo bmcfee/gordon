@@ -202,7 +202,7 @@ class GordonResolver(object) :
 
         for t in oldtracks:
             if oldalbum.name <> t.album :
-                print 'Album name not the same in all tracks for album %s' % deaccent_unicode(oldalbum_name)
+                print 'Album name not the same in all tracks for album %s' % deaccent_unicode(oldalbum.name)
                 print 'Please fix...'
                 return
 

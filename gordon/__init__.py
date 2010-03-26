@@ -37,4 +37,3 @@ gordon.web : TurboGears web interface to the database
 __version__ = ""
 
 from db import *
-
