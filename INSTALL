@@ -5,7 +5,7 @@ Prerequisites
    SQLAlchemy: http://www.sqlalchemy.org/
    PostgreSQL: http://www.postgresql.org/
    NumPy: http://numpy.scipy.org/
-   PyGreSQL: http://www.pygresql.org/ (Is this still necessary?)
+   PyGreSQL: http://www.pygresql.org/ (Needed for interfacing with musicbrainz)
    eyeD3: http://eyed3.nicfit.net/ (this will eventually be replaced by TagLib and TagPy:
                                     http://mathema.tician.de/software/tagpy)
 
