@@ -23,7 +23,7 @@ Prerequisites
    apt-get install python-psycopg2 python-tgmochikit python-setuptools
 
    apt-get install python-turbogears python-pastescript \
-                  python-formencode python-elementtree
+                   python-formencode python-elementtree python-turbokid
 
    Note that the version of turbogears in current Debian stable is too
    old, so you will need to use apt-pinning (see
