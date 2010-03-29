@@ -112,7 +112,7 @@ class GordonResolver(object) :
 
 
     def automatic_update_all_albums(self,conf=.8, conf_time=.95) :
-        """"Automatically updates Gordon data for albums meeting safe criteria (conf, conf_time)"""
+        """Automatically updates Gordon data for albums meeting safe criteria (conf, conf_time)"""
         autoupdates = Mbalbum_recommend.query.filter(Mbalbum_recommend.album.has(or_(Album.mb_id=='',Album.mb_id==None)))
         autoupdates = autoupdates.filter(Mbalbum_recommend.album.has(~Album.status.any()))
         autoupdates = autoupdates.filter(Mbalbum_recommend.conf_time>conf_time).filter(Mbalbum_recommend.conf>conf).order_by("conf desc")
@@ -126,7 +126,7 @@ class GordonResolver(object) :
 
 
 
-    def update_album(self,id,mb_id=-1,use_recommended_track_order=False,doit=True) :
+    def update_album(self,rid,mb_id=-1,use_recommended_track_order=False,doit=True) :
         """
         Updates an album from MusicBrainz database
         1) writes mb_id to album table
@@ -135,19 +135,14 @@ class GordonResolver(object) :
         4) fix track names
         5) all of this is done using recommended track order from mbalbum_recommend
         """
-
-    
-
         #if mb_id is not provided, presumes that album's stored mb_id is the one. This allows us to refresh from new mb db
         if mb_id==-1 :
-            mb_id=Album.query.get(id).mb_id
-
-
+            mb_id=Album.query.get(rid).mb_id
 
         #collect all the data we need to update album
         result = self.dbmb.query("SELECT R.id, R.name, AM.asin  FROM album as R, albummeta as AM WHERE R.gid = '%s' AND  AM.id = R.id" % mb_id).getresult()
         if not len(result)==1 :
-            print 'update_album cannot processes id',id,'mb_id',mb_id,'Mb_Id not found in mb database'
+            print 'update_album cannot processes id',rid,'mb_id',mb_id,'Mb_Id not found in mb database'
             return
         else :
             new_mbrid=result[0][0]
@@ -177,12 +172,12 @@ class GordonResolver(object) :
         newtr.sort()
 
         #get existing tracks from our database
-        oldalbum = Album.query.get(id)
+        oldalbum = Album.query.get(rid)
         oldtracks = oldalbum.tracks
 
 
         #reorder the tracks via recommened ordering. This needs to be cleaned up
-        res= Mbalbum_recommend.query().filter_by(album_id=id)
+        res= Mbalbum_recommend.query().filter_by(album_id=rid)
         if res.count()==1 and res[0].trackorder<>None :
 
             trackorder = eval(res[0].trackorder)
@@ -196,7 +191,7 @@ class GordonResolver(object) :
                 print 'reorder by ',trackorder
 
 
-        #print "Working on id",id,deaccent_unicode(oldalbum.name).ljust(40)
+        #print "Working on id",rid,deaccent_unicode(oldalbum.name).ljust(40)
         #for a in oldalbum.artists :
         #    print 'Artist=',a.name
 
