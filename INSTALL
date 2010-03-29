@@ -61,6 +61,12 @@ Gordon setup
    database.  Follow the instructions in the script.  The process is
    mostly automated.
 
+   mb_server depends on a number of perl modules that you may have to
+   install.  On Ubuntu 9.10, you can install them by running:
+
+   apt-get install libdbd-pg-perl libdbi-perl libstring-shellquote-perl \
+                   liblwp-useragent-determined-perl
+
 5. Resolve metadata against musicbrainz using
    gordon/db/mbrainz_resolver.py
 
