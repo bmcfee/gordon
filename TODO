@@ -1,16 +1,19 @@
 Cruft to clean up (in no particular order):
- - Get rid of as many "from x import *" as possible, especially in the
+
+issued - Get rid of as many "from x import *" as possible, especially in the
    main gordon namespace (db/gordon_db.py)
 
  - Replace prints with logging
 
- - Remove specific references to mp3s and eyeD3 outside of
-   gordon/io/mp3_eyeD3.py
-   - ffmpeg can read way more audio formats
-   - eventually we will move away from eyeD3 to TagPy/TagLib to get
-     support for metadata embedded in other file formats
+ - Remove specific references to mp3s and eyeD3 outside of gordon/io/mp3_eyeD3.py
+DONE?   - ffmpeg can read way more audio formats
+issued   - MEANS TO IMPORT META-DATA OF ALL AUDIO FORMATS, EVEN WAV/AIFF
+   - eventually we will move away from eyeD3 to TagPy/TagLib (no Windows implementation?)
+     to get support for metadata embedded in other file formats
+ 
+ - Means to add synched *annotations* related to the audio
 
- - Clean up feature support
+ - Clean up audio *features* extraction
 
  - Look again at the database. Specifically, what do we store in a Track? (there are some extra fields I think)
    and also how do we handle 
@@ -23,10 +26,14 @@ Cruft to clean up (in no particular order):
         15sec of non-zero data. 
       : hashing a specific MP3 so as to not to import it twice. 
 
- - Write unit tests (!!)
+ - Write unit tests (!!) ... seriously?
 
- - Get rid of SQLAlchemy "Session.mapper deprecation" warnings
+issued - Fix bugs in audio_intake.py
+issued - doesn't exit gracefully when it can't write tags, so the tracks
+   are added to the database, but the mp3s are never copied
 
- - Fix bugs in audio_intake.py
-   - doesn't exit gracefully when it can't write tags, so the tracks
-     are added to the database, but the mp3s are never copied
+   - upload a windows installation guide (no web app)
+   - upload a Gordon functionality map?
+   - publish dependencies versions with which Gordon is known to work
+     both linux and windows installations
+     

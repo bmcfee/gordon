@@ -17,11 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with Gordon.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Main Gordon namespace
+'''
+Main Gordon namespace
 
 Includes the database model and a set of utility functions for
 validating the contents of the database, removing duplicates, etc.
-"""
+'''
 
 from numpy import *
 from gordon.io.mp3_eyeD3 import * 
@@ -38,11 +39,14 @@ from gordon.io import AudioFile
 
 print 'gordon_db.py: using gordon directory',DEF_GORDON_DIR
 
+
+
 #------------------
 #Helper functions
 #-------------------            
 #we have some values cached (album.trackcount, artist.trackcount) 
 #after we do our cascading deletes we need to update those things....
+
 
 def reassign_artist(oldid,newid) :
     """Reassigns all tracks and albums from oldid to newid then
@@ -146,7 +150,6 @@ def command_with_output(cmd):
     err = child.close()
     return data
 
-
 def postgres_column_to_str(col) :
     #transforms postgres column tos tring
     
@@ -161,9 +164,11 @@ def postgres_column_to_str(col) :
     st = st.replace('\n','')
     return st
 
+
 #Found on a newsgroup
 #Fredrik Lundh fredrik at pythonware.com
 #Fri Mar 24 20:37:03 CET 2006
+
 import sys
 import unicodedata
 CHAR_REPLACEMENT = {
@@ -177,6 +182,7 @@ CHAR_REPLACEMENT = {
     0xf8: u"oe", # LATIN SMALL LETTER O WITH STROKE
     0xfe: u"th", # LATIN SMALL LETTER THORN
     }
+
 class unaccented_map(dict):
     def mapchar(self, key):
         ch = self.get(key)
@@ -314,12 +320,14 @@ def read_string_list(fnIn) :
     fid.close()
     return l
 
-#END Helper functions
 
+#END Helper functions
 
 #------------------------
 #Functions for working with features
 #------------------------
+
+
 
 #we really want to call just this one! 
 def update_all(tid=-1,gordonDir=DEF_GORDON_DIR,force=False) :
@@ -612,7 +620,6 @@ def update_album_trackcounts() :
             session.flush()
             print 'Processed album',ctr
     session.flush()
-
 
 def delete_duplicate_mb_albums(gordonDir=DEF_GORDON_DIR) :
     """Identify and delete duplicate albums.

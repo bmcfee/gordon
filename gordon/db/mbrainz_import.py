@@ -30,6 +30,8 @@ import gordon_db
 
 def logged_on_dbhost() :
     """returns true if we are logged in on local dbhost"""
+    if config.DEF_DBHOST.lower() == 'localhost':
+        return True
     import socket
     return socket.getfqdn()==socket.getfqdn(config.DEF_DBHOST)
 
