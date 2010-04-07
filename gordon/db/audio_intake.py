@@ -20,13 +20,11 @@
 '''Functions for importing music to Gordon database'''
 
 import os, datetime, stat, sys#, time, heapq, difflib, shutil, string, copy, random #jorgeorpinel: unused
-
 #from numpy.distutils.fcompiler import pg #before import pg #jorgeorpinel: more specific import path
-
 #from sqlalchemy.databases.postgres import PGArray #jorgeorpinel: unused
+from csv import reader
 
 from model import add, commit, Album, Artist, Track
-
 from gordon_db import get_tidfilename, make_subdirs_and_copy
 from gordon.io import mp3_eyeD3 as id3
 from gordon.io import AudioFile
@@ -147,38 +145,40 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
     pass # for stupid Eclipse correct folding after comments
 
 
-def _prompt_aname(albumDir, id3_dicts, albums, cwd) :
+def _prompt_aname(albumDir, tags_dicts, albums, cwd) :
     '''Used to prompt to choose an album if files in a directory have more than 1 (indicated by their tags)'''
-    print albumDir, 'Multiple albums found'
+    print albumDir + ':', 'Multiple albums found'
     print 'SONGS---'
-    for dct in id3_dicts.values() :
-        print ' %i %s album=%s track=%s' % (dct['tracknum'], dct['album'], dct['artist'], dct['title'])
+    for dct in tags_dicts.values() :
+        print ' %i album=%s artist=%s title=%s' % (dct['tracknum'], dct['album'], dct['artist'], dct['title'])
 
     #let user select which album name to use
     print 'ALBUM NAMES---'
-    ctr = 1
-    for artist in albums :
-        print ctr, artist
-        ctr += 1
+    a = 1
+    for album in albums :
+        print a, '"' + album + '"'
+        a += 1
     while True :
         ans = raw_input('Choose one (0=do not import -1=Type album name>')
         try :
             val = int(ans)
             if val == 0 :
                 os.chdir(cwd)
-                return -1 # --------------------------------------------- return -1
+                return False # ------------------------------------------ return False
             elif val > 0 and val <= len(albums) :
                 album_name = albums[val - 1]
-                print 'Using', album_name
+                print 'Using "' + album_name + '"'
                 break
             elif val == -1 :
                 ans = raw_input('Type name> ')
-                ans2 = raw_input('Use %s ? (y/n)> ' % ans)
+                ans2 = raw_input('Use "%s" ? (y/n)> ' % ans)
                 if ans2 == 'y' :
                     album_name = ans
                     break
         except :
             pass #stay in loop
+    
+    return album_name # ------------------------------------------------- return album_name 
 
 def _get_id3_dict(mp3) :
     '''Returns title, artist, album, tracknum & compilation ID3 tags from <mp3> file arg.'''
@@ -191,10 +191,35 @@ def _get_id3_dict(mp3) :
         id3_dict['tracknum'] = int(tracknum)
     except :
         id3_dict['tracknum'] = 0
-        #before we didn't do this  . . . pass
-
     id3_dict['compilation'] = compilation
     return id3_dict
+
+def _read_csv_tags(cwd, csv):
+    '''Reads a csv text file with tags for WAV files
+    
+    filename, title, artist, album, tracknum, compilation
+    per line'''
+    
+    tags = dict()
+    
+    try:
+        csvfile = reader(open(os.path.join(cwd, csv)))
+        for line in csvfile:
+            if len(line) < 6 : continue
+            if line[0][0] == '#' : continue
+            
+            #save title, artist, album, tracknum, compilation in tags[<file name>]
+            tags[line[0]] = dict()
+            tags[line[0]]['title']  = line[1]
+            tags[line[0]]['artist'] = line[2]
+            tags[line[0]]['album']  = line[3]
+            try: tags[line[0]]['tracknum'] = int(line[4])
+            except: tags[line[0]]['tracknum'] = 0
+            tags[line[0]]['compilation'] = line[5]
+    except IOError:
+        print 'audio_intake.py: Error: Couldn\'t open "' + csv + '"'
+
+    return tags
 
 def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, prompt_aname = False, fast_import = False):
     '''Add a directory with audio files
@@ -204,24 +229,41 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     '''
     print 'Adding album', albumDir # debug -------------------------------------
     
-    id3_dicts = dict()
+    tags_dicts = dict()
     albums = set()
     artists = set()
     
     cwd = os.getcwd()
     os.chdir(albumDir)
     for filename in os.listdir('.') :
-        if not os.path.isdir(os.path.join(cwd, filename)) : #jorgeorpnel: before if nor filename.startswith('.') :
-            print '\tChecking', '"'+filename+'"...', # debug ------------------
+        if not os.path.isdir(os.path.join(cwd, filename)) :
+            print '\tChecking', '"' + filename + '"...', # debug --------------
+            csvtags = False
             if filename.lower().endswith('.mp3') : # gets ID3 tags from mp3s
                 id3tags = _get_id3_dict(filename)
-                print 'MP3 ID3 tags read', id3tags # debug --------------------
-                id3_dicts[filename] = id3tags
+                print 'is MP3 w/ ID3 tags', id3tags # debug -------------------
+                tags_dicts[filename] = id3tags
                 albums.add(id3tags['album'])
                 artists.add(id3tags['artist'])
-            else : print 'not an MP3' # debug ---------------------------------
-        
-        #todo: work with non-mp3 audio files/tags!
+            elif filename.lower().endswith('.wav') : #todo: have a list of supported formats
+                if not csvtags : csvtags = _read_csv_tags(os.getcwd(), 'tags.csv')
+                print 'is WAV', # debug ---------------------------------------
+                try:
+                    if csvtags[filename] : print 'w/ CSV tags', csvtags[filename] # debug
+                    tags_dicts[filename] = csvtags[filename]
+                except: #make empty tags on the fly
+                    print '... nothing found in tags.csv' # debug -------------
+                    tags_dicts[filename] = dict()
+                    tags_dicts[filename]['title'] = filename
+                    tags_dicts[filename]['artist'] = ''
+                    tags_dicts[filename]['album'] = ''
+                    tags_dicts[filename]['tracknum'] = 0
+                    tags_dicts[filename]['compilation'] = ''
+                albums.add(tags_dicts[filename]['album'])
+                artists.add(tags_dicts[filename]['artist'])
+            else : print 'not a supported audio file format' # debug ----------
+            
+        #todo: work with other non-mp3 audio files/tags!
     
     albums = list(albums)
     
@@ -234,7 +276,8 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     if len(artists) <> 1 :  # if more than 1 artist found in ID3 tags
         if prompt_aname :
             # prompt user to choose an album
-            if _prompt_aname(albumDir, id3_dicts, albums, cwd) == -1 :    return # why? see _prompt_aname()
+            album_name = _prompt_aname(albumDir, tags_dicts, albums, cwd)
+            if album_name == False : return # why? see _prompt_aname() -- return
         else :
             os.chdir(cwd)
             print ' Not adding', len(albums),'album names in album', albumDir, albums #debug
@@ -243,8 +286,8 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
         album_name = albums[0]
     
     #add our album to Album table
-    print ' Adding album with', len(id3_dicts), 'recordings' #debug
-    albumrec = Album(name = album_name, trackcount = len(id3_dicts), a='1') #jorgeorpinel: a='1' ?
+    print ' Adding album with', len(tags_dicts), 'recordings' #debug
+    albumrec = Album(name = album_name, trackcount = len(tags_dicts), a='1') #jorgeorpinel: a='1' ?
 
     #if we have an *exact* string match we will use the existing artist
     artist_dict = dict()
@@ -264,10 +307,10 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     commit() #commit these changes #jorgeorpinel: hold it... shouldn't it commit until the very end?
 
     #now add our tracks to album
-    for mp3 in id3_dicts.keys() :
-        id3_dict = id3_dicts[mp3]
-        add_mp3(mp3 = mp3, gordonDir = gordonDir, id3_dict = id3_dict, artist = artist_dict[id3_dict['artist']], album = albumrec, source = source, fast_import = fast_import)
-        print '\tAdded', '"'+mp3+'"' # debug ----------------------------------
+    for file in tags_dicts.keys() :
+        id3_dict = tags_dicts[file]
+        add_mp3(mp3 = file, gordonDir = gordonDir, id3_dict = id3_dict, artist = artist_dict[id3_dict['artist']], album = albumrec, source = source, fast_import = fast_import)
+        print '\tAdded', '"' + file + '"' # debug ----------------------------------
 
     #now update our track counts
 #    print artist_dict
@@ -319,6 +362,10 @@ def add_collection(collectionDir, source = str(datetime.date.today()), prompt_in
 
     #now go do it again prompting to import albums which have more than one name per directory
     if prompt_incompletes :
+#        os.chdir(collectionDir)
+        if not iTunesDir and doit :
+            add_album('.', gordonDir = gordonDir, source = source, prompt_aname = True, fast_import = fast_import)
+
         for root, dirs, files in os.walk('.') :
             if iTunesDir and len(root.split(os.sep)) <> 2 :
                 continue
@@ -361,12 +408,11 @@ if __name__ == '__main__':
     try :
         if sys.argv[3] == 0: doit = False
         else: doit = True
-    except Exception as ex :
+    except Exception, ex :
         print ' * No <doit> (3rd) argument given. Thats 0K (Pass no args for script usage)'
     doit = True if doit is None else doit   #jorgeorpinel: just trying Python's ternary opperator :p
 
     print 'audio_intake.py: using <source>', '"'+source+'",', '<dir>', eval("'"+dir+"'")
-    #sys.exit(0)
-    add_collection(collectionDir = dir, source = source, doit = doit, fast_import = False)
+    add_collection(collectionDir = dir, source = source, prompt_incompletes = True, doit = doit, fast_import = False)
 
 
