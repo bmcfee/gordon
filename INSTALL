@@ -5,7 +5,7 @@ Prerequisites
    SQLAlchemy: http://www.sqlalchemy.org/
    PostgreSQL: http://www.postgresql.org/
    NumPy: http://numpy.scipy.org/
-   PyGreSQL: http://www.pygresql.org/ (Is this still necessary?)
+   PyGreSQL: http://www.pygresql.org/ (Needed for interfacing with musicbrainz)
    eyeD3: http://eyed3.nicfit.net/ (this will eventually be replaced by TagLib and TagPy:
                                     http://mathema.tician.de/software/tagpy)
 
@@ -23,7 +23,7 @@ Prerequisites
    apt-get install python-psycopg2 python-tgmochikit python-setuptools
 
    apt-get install python-turbogears python-pastescript \
-                  python-formencode python-elementtree
+                   python-formencode python-elementtree python-turbokid
 
    Note that the version of turbogears in current Debian stable is too
    old, so you will need to use apt-pinning (see
@@ -60,6 +60,12 @@ Gordon setup
    musicbrainz database dump and loading it into your local postgres
    database.  Follow the instructions in the script.  The process is
    mostly automated.
+
+   mb_server depends on a number of perl modules that you may have to
+   install.  On Ubuntu 9.10, you can install them by running:
+
+   apt-get install libdbd-pg-perl libdbi-perl libstring-shellquote-perl \
+                   liblwp-useragent-determined-perl
 
 5. Resolve metadata against musicbrainz using
    gordon/db/mbrainz_resolver.py

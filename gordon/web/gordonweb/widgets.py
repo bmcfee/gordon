@@ -472,7 +472,7 @@ def download(tracks, album='', randomize=0, host=-1)  :
     bn = os.path.basename(tempdir)
 
     #FOR MAKING TARBALLS
-    comptyp='tar'
+    comptyp='zip'
     if len(tracks)>1:
         if comptyp=='zip' :
             outfn='%s/gordon_download_%s.zip' % (tardir,bn)    
