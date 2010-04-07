@@ -17,13 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with Gordon.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Support for resolving albums in the Gordon database agains MusicBrainz"""
+'''Support for resolving albums in the Gordon database agains MusicBrainz'''
 
-import pg
 from numpy import *
+import pg
 from model import *
 from sqlalchemy import *
-import time,shutil,os,heapq,string,datetime,stat,copy,sys,glob,random
+import heapq,time,shutil,os,string,datetime,stat,copy,sys,glob,random # unused
 from sqlalchemy.databases.postgres import PGArray
 from collections import defaultdict
 import traceback
@@ -916,7 +916,6 @@ class GordonResolver(object) :
 
 
 
-
 def die_with_usage() :
     print 'Resolves Gordon database albums to MusicBrainz'
     print 'gordon_resolver.py <operation>'
@@ -934,8 +933,7 @@ def die_with_usage() :
     print 'It is faster to be logged into %s' % DEF_DBHOST
     sys.exit(0) 
 
-
-
+pass
 ##----MAIN ----
 if __name__=='__main__' :
     if len(sys.argv)<2 :

@@ -209,7 +209,7 @@ def execute_raw_sql(sql, transactional = False) : #todo: transactional unused
     result = raw_session.execute(sql)
     return result
 
-def add(object):
+def add() :
     '''add object to session'''
     session.add(object)
     
