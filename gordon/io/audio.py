@@ -201,9 +201,9 @@ class AudioFile(object):
         if self.filetypes.count(stub)==0:
             raise ValueError('Cannot read file of type %s' % stub)
 
-        #ffmpeg turns out to be not so accurate with respect to timing. So we are not trying to do 
-        #tstart_sec in ffmpeg but rather in 
-        #tstart_sec is where we start in seconds, tlen_sec is how many seconds to read in
+        # ffmpeg turns out to be not so accurate with respect to timing. So we 
+        # are not trying to do tstart_sec in ffmpeg but rather in tstart_sec is 
+        # where we start in seconds, tlen_sec is how many seconds to read in
         bypass_ffmpeg_times=False
         timing=''
         ffmpeg_time_offset=.05
@@ -215,7 +215,7 @@ class AudioFile(object):
                     raise ValueError('tstart_sec %4.4f must be greater than .05 or else there will be slight alignment errors' % self.tstart_sec)
                 timing='%s -ss %4.6f' % (timing,self.tstart_sec-ffmpeg_time_offset)
             if self.tlen_sec is not None:
-                timing='%s -t %4.6f' % (timing,self.tlen_sec+ffmpeg_time_offset)
+                timing='%s -t %4.6f' % (timing, self.tlen_sec + ffmpeg_time_offset)
 
         #resample if necessary
         if self.fs_target<>-1 and (self.fs_target <> self.fs_file) :
@@ -225,8 +225,9 @@ class AudioFile(object):
             downsamp=''
             self.fs=self.fs_file    #we trust the sampling rate stored in the file
 
-        #here is our command. #todo: text file /dev/null is never used, doesn't even work on windows
+        #here is our command.
 #        cmd = 'ffmpeg -i %s %s %s -f s16le 2>/dev/null -' % (self._slashify(self.fn),downsamp,timing)
+        #jorgeorpinel: is this really necesary? it needs permissions on the original file's dir:
         cmd = 'ffmpeg -i "%s" %s %s -f s16le 2>/dev/null -' % (self.fn, downsamp, timing) #jorgeorpinel: lets 2blequote instead (Windows)
         #jorgeorpinel: NOTE - /dev/null in Windows simply make ffmpeg say "The system cannot find the path specified." to stderr
         data=self._command_with_output(cmd)

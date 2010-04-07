@@ -1,0 +1,18 @@
+Project plan
+
+- Current work on audio_intake.py : APR 5-12 WEEK
+
+ * read text file to extract wav/aiff - this means work wavs with ffmpeg
+ * extract tags from all taggy formats
+
+1 Immediate future : projected APR 23
+
+ * support multiple collections with the same audio files
+
+2 Late spring : projected MAY 21ish
+
+ * implement/clean-up _feature_ extraction
+
+3 Summer I : projected 2?th of JUNE
+
+ * implement _annotation_ file association to tracks

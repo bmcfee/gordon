@@ -13,8 +13,6 @@ issued   - MEANS TO IMPORT META-DATA OF ALL AUDIO FORMATS, EVEN WAV/AIFF
  
  - Means to add synched *annotations* related to the audio
 
- - Clean up audio *features* extraction
-
  - Look again at the database. Specifically, what do we store in a Track? (there are some extra fields I think)
    and also how do we handle 
       : deletes of all tracks in an album 

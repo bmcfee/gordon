@@ -72,6 +72,8 @@ except :    # this will set up a scoped session using native sqlalchemy (no turb
             return sqla_mapper(cls, *arg, **kw)
         return mapper
     mapper = session_mapper(Session)
+
+#todo: test database connection!
     
 #jorgeorpinel: this would be all we needed with a Base class definition (below)
 #    from sqlalchemy.orm import mapper as sqla_mapper
@@ -209,7 +211,7 @@ def execute_raw_sql(sql, transactional = False) : #todo: transactional unused
     result = raw_session.execute(sql)
     return result
 
-def add() :
+def add(object) :
     '''add object to session'''
     session.add(object)
     
