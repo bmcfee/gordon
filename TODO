@@ -26,14 +26,13 @@ issued   - MEANS TO IMPORT META-DATA OF ALL AUDIO FORMATS, EVEN WAV/AIFF
         15sec of non-zero data. 
       : hashing a specific MP3 so as to not to import it twice. 
 
- - Write unit tests (!!) ... seriously?
+ - Write unit tests (!!)
 
 issued - Fix bugs in audio_intake.py
 issued - doesn't exit gracefully when it can't write tags, so the tracks
-   are added to the database, but the mp3s are never copied
+         are added to the database, but the mp3s are never copied :
 
-   - upload a windows installation guide (no web app)
-   - upload a Gordon functionality map?
-   - publish dependencies versions with which Gordon is known to work
-     both linux and windows installations
+ - upload a windows installation guide (no web app)
+ - publish dependencies versions with which Gordon is known to work
+   both linux and windows installations
      

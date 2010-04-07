@@ -46,7 +46,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
          album  -- The album for this track. An instance of Album. None if not present
          fast_import -- If true, do not calculate strip_zero length. Defaults to False
     '''
-    (path, filename) = os.path.split(mp3) #todo: path unused (but filename very used)
+    (path, filename) = os.path.split(mp3)
     print '\tAdding mp3 file "%s" of "%s" album by %s' % (filename, album, artist) # debug
     
     # validations
@@ -98,6 +98,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
                   bytes = bytes)
 
     add(track)
+    #todo: should match it first and prompt for rewrite or repeat
     commit() #to get our track id we need to write this record
     print '\tWrote track record', track.id, 'to database' # debug -------------
 
@@ -105,64 +106,46 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
         track.secs = -1
         track.zsecs = -1
     else :
-        #todo: untested code for checking secs and zsecs (DSE Feb 5, 2010)
+        #FIXME: untested code for checking secs and zsecs (DSE Feb 5, 2010)
         a = AudioFile(filename)
         [track.secs, track.zsecs] = a.get_secs_zsecs()
 
-    track.path = get_tidfilename(track.id)
+    track.path = u"%s" % get_tidfilename(track.id)
 
-
-    #This is a bit confusing. For backwards compat
+    #This is a bit confusing. For backwards compat #todo: clean up DB relationships
     if artist:
+        print '\tAttaching artist', artist # debug ----------------------------
         track.artist = artist.name
         track.artists.append(artist)
 
     if album:
-#        print 'Attaching album',album #debug
+        print '\tAttaching album', album # debug ------------------------------
         track.album = album.name
         track.albums.append(album)
 
-    commit()
-#    print 'Committed album and artist additions to track' #debug
+    commit() # save (again) the track record (this time)
+    print '\t* Wrote album and artist additions to track into database' # debug
 
-    #copy the file
+    #copy the file to the Gordon instal audio/feature data directory
     tgt = os.path.join(gordonDir, 'audio', 'main', track.path)
     make_subdirs_and_copy(filename, tgt)
-    #print 'Copied mp3',filename,'to',tgt
+    print '\tCopied mp3 "' + filename + '" to', tgt # debug ---------------------
 
     #stamp the file
     id3.id3v2_putval(tgt, 'tid', 'T%i' % track.id)
 
     #we update id3 tags in mp3 if necessary
     if track.otitle <> track.title or track.oartist <> track.artist or track.oalbum <> track.album or track.otracknum <> track.tracknum :
-        #print 'Updating id3 tags in',track.path
-        print 'Trying to update_mp3_from_db '+track.id, os.path.join(gordonDir, 'audio', 'main') #debug
-        #from gordon.db.mbrainz_resolver.GordonResolver import update_mp3_from_db #jorgeorpinel
-        #update_mp3_from_db(track.id, audioDir = os.path.join(gordonDir, 'audio', 'main'), doit = True)
-        #todo: up here is where the script writes to the mp3 files, should try|except for file access crashes
+        print '\tTrying to update_mp3_from_db ' + track.id, os.path.join(gordonDir, 'audio', 'main') #debug
+        #todo: writes to the copied mp3 files, should try|except for file access crashes:
+#        from gordon.db.mbrainz_resolver.GordonResolver import update_mp3_from_db
+#        update_mp3_from_db(track.id, audioDir = os.path.join(gordonDir, 'audio', 'main'), doit = True)
 
     #if not fast_import :
-        #print 'Calculating features for track',track.id
-        #update_features(track.id)
-    pass # for Eclipse correct folding after comments
+#        print '\tCalculating features for track',track.id # debug
+#        update_features(track.id) #jorgeorpinel: what is this?
+    pass # for stupid Eclipse correct folding after comments
 
-
-
-def _get_id3_dict(mp3) :
-    '''Returns title, artist, album, tracknum & compilation ID3 tags from <mp3> file arg.'''
-    id3_dict = dict()
-    (title, artist, album, tracknum, compilation) = id3.id3v2_getval(mp3, ('title', 'artist', 'album', 'tracknum', 'compilation'))
-    id3_dict['title'] = title
-    id3_dict['artist'] = artist
-    id3_dict['album'] = album
-    try :
-        id3_dict['tracknum'] = int(tracknum)
-    except :
-        id3_dict['tracknum'] = 0
-        #before we didn't do this  . . . pass
-
-    id3_dict['compilation'] = compilation
-    return id3_dict
 
 def _prompt_aname(albumDir, id3_dicts, albums, cwd) :
     '''Used to prompt to choose an album if files in a directory have more than 1 (indicated by their tags)'''
@@ -196,6 +179,22 @@ def _prompt_aname(albumDir, id3_dicts, albums, cwd) :
                     break
         except :
             pass #stay in loop
+
+def _get_id3_dict(mp3) :
+    '''Returns title, artist, album, tracknum & compilation ID3 tags from <mp3> file arg.'''
+    id3_dict = dict()
+    (title, artist, album, tracknum, compilation) = id3.id3v2_getval(mp3, ('title', 'artist', 'album', 'tracknum', 'compilation'))
+    id3_dict['title'] = title
+    id3_dict['artist'] = artist
+    id3_dict['album'] = album
+    try :
+        id3_dict['tracknum'] = int(tracknum)
+    except :
+        id3_dict['tracknum'] = 0
+        #before we didn't do this  . . . pass
+
+    id3_dict['compilation'] = compilation
+    return id3_dict
 
 def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, prompt_aname = False, fast_import = False):
     '''Add a directory with audio files
@@ -262,8 +261,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
         #add artist to album (album_artist table)
         albumrec.artists.append(artist_dict[artist])
 
-    #commit these changes #jorgeorpinel: holdn't it commit until the very end?
-    commit()
+    commit() #commit these changes #jorgeorpinel: hold it... shouldn't it commit until the very end?
 
     #now add our tracks to album
     for mp3 in id3_dicts.keys() :
@@ -272,15 +270,15 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
         print '\tAdded', '"'+mp3+'"' # debug ----------------------------------
 
     #now update our track counts
-    print artist_dict
+#    print artist_dict
     for aname, artist in artist_dict.iteritems() :
-        #print 'Updating trackcount for',artist
         artist.update_trackcount()
+        print ' Updated trackcount for', artist # debug
     albumrec.update_trackcount()
+    print ' Updated trackcount for', albumrec # debug
     commit()
 
     os.chdir(cwd)
-
 
 
 def add_collection(collectionDir, source = str(datetime.date.today()), prompt_incompletes = False, doit = False, iTunesDir = False, gordonDir = DEF_GORDON_DIR, fast_import = False):
@@ -308,7 +306,7 @@ def add_collection(collectionDir, source = str(datetime.date.today()), prompt_in
             print 'Proccessed', '.'
 
     for root, dirs, files in os.walk('.') :
-        if iTunesDir and len(root.split('/')) <> 2 :
+        if iTunesDir and len(root.split(os.sep)) <> 2 :
             print 'iTunesDir skipping (artists) directories under root', root
             continue
 
@@ -322,7 +320,7 @@ def add_collection(collectionDir, source = str(datetime.date.today()), prompt_in
     #now go do it again prompting to import albums which have more than one name per directory
     if prompt_incompletes :
         for root, dirs, files in os.walk('.') :
-            if iTunesDir and len(root.split('/')) <> 2 :
+            if iTunesDir and len(root.split(os.sep)) <> 2 :
                 continue
             
             for dir in dirs:
@@ -334,7 +332,8 @@ def add_collection(collectionDir, source = str(datetime.date.today()), prompt_in
 #        print 'Removing any empty directories. This command will fail if none of the directories are empty. No worries'
 #        os.system('find . -depth -type dir -empty -print0 | xargs -0 rmdir')
 #    os.chdir(cwd)
-    pass
+    print 'audio_intake.py: Finished!'
+    pass # stupid Eclipse
 
 
 

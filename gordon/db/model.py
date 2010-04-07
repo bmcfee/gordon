@@ -203,11 +203,10 @@ Index('track_title_idx', track.c.title, unique = False)
 
 
 def execute_raw_sql(sql, transactional = False) : #todo: transactional unused
-    """executes raw sql query and returns result. Can get all results as tuples using result.fetchall()"""
+    '''executes raw sql query and returns result. Can get all results as tuples using result.fetchall()'''
     Session = sessionmaker()
     raw_session = Session(bind = engine) #,transactional=transactional)  #part of current transaction...
     result = raw_session.execute(sql)
-    #can then do result.fetchall()
     return result
 
 def add(object):
@@ -226,15 +225,20 @@ def commit() :
 def flush() :
     """flush transaction"""
     session.flush()
-    
-    
-    
-def get_shortfile(tid, featurestub = '') :
-    fn = '%s/%s' % (get_filedir(tid), 'T%s.mp3' % tid)
-    if featurestub <> '' :
-        fn = '%s.%s' % (fn, featurestub)
-    return fn
 
+    
+   
+   
+   
+pass
+#jorgeorpinel: unnecessary with complete declarative extensions at mapper definition (up)
+#class Base(object): #jorgeorpinel: to have the automatic __init__() function in the SQL Alchemy mapped classes (see http://www.sqlalchemy.org/trac/wiki/UsageRecipes/SessionAwareMapper)
+#    def __init__(self, **kw):
+#        for k, v in kw.iteritems():
+#            setattr(self, k, v)
+#        session.add(self) #jorgeorpinel: this should work! according to http://www.sqlalchemy.org/trac/wiki/UsageRecipes/SessionAwareMapper
+ 
+ 
 def get_filedir(tid) :
     dr = ''
     if type(tid) == str or type(tid) == unicode :
@@ -254,13 +258,11 @@ def get_filedir(tid) :
 
     return dr
 
-
-#jorgeorpinel: unnecessary with complete declarative extensions at mapper definition (up)
-#class Base(object): #jorgeorpinel: to have the automatic __init__() function in the SQL Alchemy mapped classes (see http://www.sqlalchemy.org/trac/wiki/UsageRecipes/SessionAwareMapper)
-#    def __init__(self, **kw):
-#        for k, v in kw.iteritems():
-#            setattr(self, k, v)
-#        session.add(self) #jorgeorpinel: this should work! according to http://www.sqlalchemy.org/trac/wiki/UsageRecipes/SessionAwareMapper
+def get_shortfile(tid, featurestub = '') :
+    fn = '%s/%s' % (get_filedir(tid), 'T%s.mp3' % tid)
+    if featurestub <> '' :
+        fn = '%s.%s' % (fn, featurestub)
+    return fn
 
 class Track(object) :
     def __str__(self) :
@@ -311,23 +313,41 @@ class Track(object) :
             if a.trackcount :
                 a.trackcount -= 1
 
-#        #todo: what is S supposed to be ?
+        #jorgeorpinel: what is S supposed to be ? ill import from gordon_db :
+        from gordon_db import get_tidfilename as get_tidfilename, get_tiddirectory, make_subdirs_and_move
         #move the corresponding MP3 and features to GORDON_DIR/audio/offline
-        srcMp3Path = os.path.join(gordonDir, 'audio', 'main', S.get_tidfilename(tid))
-        dstMp3Path = os.path.join(gordonDir, 'audio', 'offline', S.get_tidfilename(tid))
+#        srcMp3Path = os.path.join(gordonDir, 'audio', 'main', S.get_tidfilename(tid))
+#        dstMp3Path = os.path.join(gordonDir, 'audio', 'offline', S.get_tidfilename(tid))
+        srcMp3Path = os.path.join(gordonDir, 'audio', 'main', get_tidfilename(tid))
+        dstMp3Path = os.path.join(gordonDir, 'audio', 'offline', get_tidfilename(tid))
         if os.path.exists(srcMp3Path) :
-            S.make_subdirs_and_move(srcMp3Path, dstMp3Path)
+#            S.make_subdirs_and_move(srcMp3Path, dstMp3Path)
+            make_subdirs_and_move(srcMp3Path, dstMp3Path)
             print 'Moved', srcMp3Path, 'to', dstMp3Path
 
         #move corresponding features to GORDON_DIR/data/features_offline
-        srcFeatPath = os.path.join(gordonDir, 'data', 'features', S.get_tiddirectory(tid))
-        dstFeatPath = os.path.join(gordonDir, 'data', 'features_offline', S.get_tiddirectory(tid))
+#        srcFeatPath = os.path.join(gordonDir, 'data', 'features', S.get_tiddirectory(tid))
+#        dstFeatPath = os.path.join(gordonDir, 'data', 'features_offline', S.get_tiddirectory(tid))
+        srcFeatPath = os.path.join(gordonDir, 'data', 'features', get_tiddirectory(tid))
+        dstFeatPath = os.path.join(gordonDir, 'data', 'features_offline', get_tiddirectory(tid))
         featFiles = glob.glob('%s/T%i.*' % (srcFeatPath, tid))
         for srcF in featFiles :
             (pth, fl) = os.path.split(srcF)
             dstF = os.path.join(dstFeatPath, fl)
-            S.make_subdirs_and_move(srcF, dstF)
+#            S.make_subdirs_and_move(srcF, dstF)
+            make_subdirs_and_move(srcF, dstF)
             print 'Moved', srcF, 'to', dstF
+
+#jorgeorpinel: for psycopg (used by SQL Alchemy) to know hot to adapt (use in SQL queries) the numpy.float64 type
+#              ...here since this is first used with track data (running audio_intake.py)
+#              found @ http://initd.org/psycopg/docs/advanced.html#adapting-new-python-types-to-sql-syntax
+from psycopg2.extensions import register_adapter, AsIs
+import numpy
+def addapt_numpy_float64(numpy_float64):
+#    print " * psycopg addapting numpy.float64 to", AsIs(numpy_float64) # debug
+    return AsIs(numpy_float64)
+register_adapter(numpy.float64, addapt_numpy_float64)
+
 
 class Artist(object) :
     def __str__(self) :
@@ -344,6 +364,7 @@ class Artist(object) :
         tc = session.query(ArtistTrack).filter(ArtistTrack.artist_id == self.id).count()
         if self.trackcount <> tc :
             self.trackcount = tc
+
 
 class Album(object) :
     def __str__(self) :
@@ -380,22 +401,28 @@ class Album(object) :
             print "Updating track count to", tc
             self.trackcount = tc
 
+
 class AlbumTrack(object) :
     pass
+
 
 class ArtistTrack(object) :
     pass
 
+
 class AlbumArtist(object) :
     pass
+
 
 class AlbumStatus(object) :
     def __str__(self) :
         st = '<AlbumStatus id=%i album_id=%i status=%s>' % (self.id, self.album_id, self.status)
         return st
 
+
 class Mbartist_resolve(object) :
     pass
+
 
 class Mbalbum_recommend(object) :
     def __str__(self) :

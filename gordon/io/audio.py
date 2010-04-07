@@ -16,21 +16,21 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Gordon.  If not, see <http://www.gnu.org/licenses/>.
+'''ffmpeg wrapper for reading audio files'''
 
-"""ffmpeg wrapper for reading audio files"""
-
-import os, sys, tempfile, string ,time
-#from numpy import *
+import os, sys, string#,tempfile, time #jorgeorpinel: unused
+#from numpy import * #jorgeorpinel: unused
 import numpy 
-import tempfile
+#import tempfile #jorgeorpinel: unused
+
 
 
 class AudioFile(object):
     """Represents audio file.  This class is a wrapper for ffmpeg.  It supports reading and writing audio files.
     Reading can be done at native sampling rate or at a target rate. You can also read random chunk of file using tstart_sec and tlen_sec. 
     Finally leading and trailing zeros can be stripped from the file """
-    stripvals=['none','both','leading','trailing']
-    filetypes=['.wav','.aiff','.m4a','.mp3','.au','.flac']
+    stripvals=['none', 'both', 'leading', 'trailing']
+    filetypes=['.wav', '.aiff', '.m4a', '.mp3', '.au', '.flac'] #todo: apply them, add more
     
     def __init__(self,fn, mono=False,tlast=-1,tstart_sec=None,tlen_sec=None,fs_target=-1, stripzeros='none',stripzeros_lim=0.0001):
         """Represents an audio file
@@ -57,7 +57,6 @@ class AudioFile(object):
         self.tlen_sec=tlen_sec           #number of seconds to read from file
         if tlast <>-1 :
             raise ValueError("tlast is deprecated. Replace with tstart_sec and tlen_sec")
-            
         
         self.fs_target=fs_target         #target sampling rate for our waveform
         self.fs=None                     #sampling rate of our waveform
@@ -98,7 +97,8 @@ class AudioFile(object):
             raise ValueError('Cannot read stats for file of type %s' % stub)
 
         #read mp3 using ffmpeg
-        cmd = 'ffmpeg -i %s 2>&1' %  self._slashify(self.fn)
+#        cmd = 'ffmpeg -i %s 2>&1' %  self._slashify(self.fn)
+        cmd = 'ffmpeg -i "%s" 2>&1' % self.fn #jorgeorpinel: lets just double-quote self.fn (Windiws)
         #here we read in fs_file, chan, secs using the output from ffmpeg -i
         #when pyffmpeg next version comes out we should be able to replace this
         #in the meantime, lets hope fftmpeg never changes its text output. . . .
@@ -168,8 +168,6 @@ class AudioFile(object):
         if not os.path.exists(self.fn) :
             raise IOError ('File %s not found' %self.fn )
         
-
-
         #get defaults from our class if they are not passed in here
         #this strategy allows us to call read multiple times for same instance and get 
         #different sampling rates, etc
@@ -188,10 +186,8 @@ class AudioFile(object):
         if stripzeros_lim is not None :
             self.stripzeros_lim=stripzeros_lim
 
-
         #get stats
         self.read_stats()  #get stats (read_stats controls to make sure we don't inefficently read stats twice)
-
 
         #this is our hash
         hash=self.fn+'fs_target='+str(self.fs_target)+'%mono='+str(self.mono)+'%tstart_sec='+str(self.tstart_sec)
@@ -201,14 +197,9 @@ class AudioFile(object):
             #we have already read this
             return (self.x,self.fs,self.svals)
 
-
-    
-
         (ignore,stub)=os.path.splitext(self.fn.lower())
         if self.filetypes.count(stub)==0:
             raise ValueError('Cannot read file of type %s' % stub)
-
-
 
         #ffmpeg turns out to be not so accurate with respect to timing. So we are not trying to do 
         #tstart_sec in ffmpeg but rather in 
@@ -226,7 +217,6 @@ class AudioFile(object):
             if self.tlen_sec is not None:
                 timing='%s -t %4.6f' % (timing,self.tlen_sec+ffmpeg_time_offset)
 
-        
         #resample if necessary
         if self.fs_target<>-1 and (self.fs_target <> self.fs_file) :
             downsamp=' -ar %i' % self.fs_target
@@ -235,9 +225,10 @@ class AudioFile(object):
             downsamp=''
             self.fs=self.fs_file    #we trust the sampling rate stored in the file
 
-
-        #here is our command.
-        cmd = 'ffmpeg -i %s %s %s -f s16le 2>/dev/null -' % (self._slashify(self.fn),downsamp,timing)
+        #here is our command. #todo: text file /dev/null is never used, doesn't even work on windows
+#        cmd = 'ffmpeg -i %s %s %s -f s16le 2>/dev/null -' % (self._slashify(self.fn),downsamp,timing)
+        cmd = 'ffmpeg -i "%s" %s %s -f s16le 2>/dev/null -' % (self.fn, downsamp, timing) #jorgeorpinel: lets 2blequote instead (Windows)
+        #jorgeorpinel: NOTE - /dev/null in Windows simply make ffmpeg say "The system cannot find the path specified." to stderr
         data=self._command_with_output(cmd)
         data=numpy.fromstring(data,'short')
         #print 'data.shape',data.shape,cmd
@@ -316,6 +307,7 @@ class AudioFile(object):
 
         print 'Shape of signal',self.x.shape,'secs',self.secs,'fs',self.fs
         pylab.show()
+        
     def _strip_zeros(self,x) :
         """strips zeros from front and or end of x depending on value self.stripzeros"""
         if self.stripvals.count(self.stripzeros)<>1 :
@@ -383,7 +375,7 @@ class AudioFile(object):
         svals[1]=trailing_samples
         return (x,svals)
 
-    def _slashify(self,fname) :
+    def _slashify(self,fname) : #todo: this is not being used now
         """slashify filename to be safe for calling os.popen(cmd)"""
         s_fname=string.replace(fname," ","\ ")
         s_fname=string.replace(s_fname,"\'","\\'")
@@ -398,23 +390,23 @@ class AudioFile(object):
         s_fname=string.replace(s_fname,"-","\-")
         return s_fname
 
-    def _command_with_output(self,cmd):
+    def _command_with_output(self, cmd):
         """Runs command on system and returns output"""
         import subprocess
         if not type(cmd) == unicode :
-            cmd = unicode(cmd,'utf-8')
-        #print 'Running cmd',cmd,'from',os.getcwd()
+#            cmd = unicode(cmd, 'utf-8') #jorgeorpinel: this may cause UnicodeDecodeError
+            cmd = '%s' % cmd
+        print "audio.py: Running cmd '"+cmd+"' from", os.getcwd() # debug -------
         child = subprocess.Popen(cmd, shell=True, bufsize=-1, stdout=subprocess.PIPE).stdout
-        dat = child.read()
+        dat = child.read() # dat has the cmd line output
 #        if len(dat)<100 :
         #print dat[0:40] 
         #data = child.read()
         err = child.close()
         if err<>None :
             print 'Error',err,'in running command',cmd
-        return dat
+        return dat # stdout command output ------------------------------ return dat
 
-    
     def __str__(self) :
         if self.fs is None:
             self.read_stats()

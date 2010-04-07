@@ -276,7 +276,7 @@ class GordonResolver(object) :
         flush()
 
 
-    def update_mp3_from_db(self,tid,doit=False) :
+    def update_mp3_from_db(self,tid,doit=False) : #todo: extend to non ID3 tags
         """Updates mp3 id3 data based on data from the database"""
 
 

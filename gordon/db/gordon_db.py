@@ -24,20 +24,22 @@ Includes the database model and a set of utility functions for
 validating the contents of the database, removing duplicates, etc.
 '''
 
-from numpy import *
-from gordon.io.mp3_eyeD3 import * 
-import time,difflib,shutil,os,heapq,string,datetime,stat,copy,sys,glob,random
-from collections import defaultdict
 import traceback
+import time, string, sys, shutil#,difflib,os,heapq,datetime,stat,copy,glob,random
+#from collections import defaultdict
+from numpy import array, argmax
+
+from sqlalchemy import func, select
 
 from model import *
-from sqlalchemy import *
-
 from config import *
-from gordon.io import AudioFile
 
+from gordon.io.mp3_eyeD3 import * 
+#from gordon.io import AudioFile
 
 print 'gordon_db.py: using gordon directory',DEF_GORDON_DIR
+
+
 
 
 
@@ -165,11 +167,12 @@ def postgres_column_to_str(col) :
     return st
 
 
+pass
 #Found on a newsgroup
 #Fredrik Lundh fredrik at pythonware.com
 #Fri Mar 24 20:37:03 CET 2006
 
-import sys
+#import sys
 import unicodedata
 CHAR_REPLACEMENT = {
     0xc6: u"AE", # LATIN CAPITAL LETTER AE
@@ -203,12 +206,12 @@ class unaccented_map(dict):
     else:
         __getitem__ = mapchar
 
-def _set_perms(path, perm, groupName=None) :
-    os.system("chmod %d %s" % (perm, path))
+def _set_perms(path, perm, groupName=None) : #jorgeorpinel: no effect on Windows
+    os.system('chmod %d "%s"' % (perm, path))  #todo: check out cacls cmd.exe (Win) command later?
     #if os.system("chmod %d %s" % (perm, path))>0 :
     #    print "Error executing chmod %d on %s" % (perm, path)
     if groupName:
-        os.system("chgrp %s %s" % (groupName, path))
+        os.system('chgrp %s "%s"' % (groupName, path))
         #if os.system("chgrp %s %s" % (groupName, path))>0 :
         #    print "Error changing group of %s to %s" % (path, groupName)
 
@@ -216,23 +219,23 @@ def make_subdirs_and_move(src,tgt) :
     make_subdirs(tgt)
     shutil.move(src,tgt)
 
-def make_subdirs_and_copy(src,tgt) :    
+def make_subdirs_and_copy(src, tgt) :    
     make_subdirs(tgt)
-    shutil.copy(src,tgt)
+    shutil.copy(src, tgt)
     _set_perms(tgt, 664)
 
-def make_subdirs(tgt) :    
+def make_subdirs(tgt) :
     """Make target directory.
 
-    If necessary, also set permissions for any subdir we make!
-    """
-    subdir=''
-    parts=os.path.abspath(tgt).split('/')
-    for p in parts[1:len(parts)-1] :
-        subdir='%s/%s' % (subdir,p)
+    If necessary, also set permissions for any subdir we make!"""
+    parts = os.path.abspath(tgt).split(os.sep)
+    subdir = '' if os.name <> 'nt' else parts[0] #jorgeorpinel: part[0] is the drive letter in Windows
+    for part in parts[1:len(parts)-1] :
+        subdir = subdir + os.sep + part
         if not os.path.isdir(subdir) :
+            print 'gordon_db.py: creating dir', subdir # debug ----------------
             os.mkdir(subdir)
-            _set_perms(subdir, 775)
+            _set_perms(subdir, 775) #jorgeorpinel: this has no effect on Windows
 
 def get_albumcover_filename(aid) :
     return '%s/A%s_cover.jpg' % (get_tiddirectory(aid),str(aid))
@@ -260,8 +263,8 @@ def get_full_mp3filename(tid,gordonDir=DEF_GORDON_DIR) :
     """
     return os.path.join(gordonDir,'audio','main',get_tidfilename(tid))
 
-def get_tidfilename(tid,featurestub='') :
-    fn = '%s/%s' % (get_tiddirectory(tid),'T%s.mp3' % tid)
+def get_tidfilename(tid, featurestub='') :
+    fn = os.path.join(get_tiddirectory(tid), 'T%s.mp3' % tid)
     if featurestub<>'' :
         fn = '%s.%s' % (fn,featurestub)
     return fn
@@ -835,7 +838,7 @@ def slashify(fname) :
     s_fname=string.replace(s_fname,"&","\&")
     s_fname=string.replace(s_fname,";","\;")
     s_fname=string.replace(s_fname,"$","\$")
-    s_fname=string.replace(s_fname,"/","\/")
+    s_fname=string.replace(s_fname,"/","\/") # linux specific
     s_fname=string.replace(s_fname,",","\,")
     s_fname=string.replace(s_fname,"-","\-")
     return s_fname
