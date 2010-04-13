@@ -549,7 +549,7 @@ def check_orphans_new(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
                     continue
                 try :
                     Track.query.get(tid)
-                except SQLObjectNotFound :
+                except LookupError :
                     print 'Deleting orphan',f
                     os.unlink(os.path.join(root,f))
 
@@ -575,7 +575,7 @@ def check_orphans(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
                         continue
                     try :
                         Track.query.get(tid)
-                    except SQLObjectNotFound :
+                    except LookupError :
                         print 'Orphan',f
                         make_subdirs_and_move(os.path.join(root,f),os.path.join(gordonDir,'audio','offline',root,f))
     if doFeatures :
@@ -592,7 +592,7 @@ def check_orphans(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
                     continue
                 try :
                     Track.query.get(tid)
-                except SQLObjectNotFound :
+                except LookupError :
                     print 'Deleting orphan',f
                     os.unlink(os.path.join(root,f))
 
@@ -755,6 +755,7 @@ def gordon_validate(gordonDir=DEF_GORDON_DIR,updateCounts=True,checkMissingMp3s=
 
 def get_albumcover_urltxt(asin) :
     #here we might be able to recover url from local cache
+    #todo: what is gordon_db? what is row?
     albumcover_path=gordon_db.get_full_albumcovername(row.id)        
     if os.path.exists(albumcover_path) :
         return '/cover/A%i.jpg' % row.id
