@@ -19,13 +19,11 @@
 
 """Set up a local copy of the MusicBrainz database"""
 
-import os
-import pg
-import sys
-import socket
+import os, pg, sys, socket
 
-import config
 import gordon_db
+import config
+
 
 
 def logged_on_dbhost() :
@@ -76,7 +74,6 @@ def do_import() :
     os.system(cmd)
     os.chdir(currdir)
     
-
 def do_svn() :
     """Gets fresh svn repo to DEF_GORDON_DIR/mbrainz/svn/mb_server from the appropriate branch (NOT TRUNK!)"""
     print 'TODO'
@@ -108,7 +105,6 @@ def do_svn() :
         print 'Most should be in lib/DBDefs.pm.default lib/DBDefs.pm'
         sys.exit(0)
     os.chdir(currdir)
-
 
 def do_ftp(site='ftp://ftp.musicbrainz.org/pub/musicbrainz/data/fullexport',force=False) :
     """Imports fresh database files to DEF_GORDON_DIR/mbrainz/mbdump/latest"""
@@ -168,6 +164,8 @@ def mbrainz_import():
     do_import()
     do_perms()
 
+
+
 def die_with_usage() :
     print 'This program rebuilds the musicbrainz databases.'
     print 'It loads the dumps to %s/mbrainz/mbdump/latest' % config.DEF_GORDON_DIR
@@ -182,9 +180,6 @@ def die_with_usage() :
     print 'mbrainz_import.py go'
     sys.exit(0) 
 
-
-
-##----MAIN ----
 if __name__=='__main__' :
     if len(sys.argv)<2 :
         die_with_usage()

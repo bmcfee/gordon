@@ -1,21 +1,21 @@
 Prerequisites
 -------------
 1. Install the dependencies:
-   ffmpeg: http://ffmpeg.org/
-   SQLAlchemy: http://www.sqlalchemy.org/
-   PostgreSQL: http://www.postgresql.org/
-   NumPy: http://numpy.scipy.org/
-   PyGreSQL: http://www.pygresql.org/ (Needed for interfacing with musicbrainz)
-   eyeD3: http://eyed3.nicfit.net/ (this will eventually be replaced by TagLib and TagPy:
-                                    http://mathema.tician.de/software/tagpy)
+   ffmpeg binaries (set in PATH) from http://ffmpeg.org/
+   Python (2.6 is the last version used by the developers) from http://python.org/ plus:
+   SQLAlchemy (0.6beta1) from http://www.sqlalchemy.org/
+   PostgreSQL from http://www.postgresql.org/
+   NumPy from http://numpy.scipy.org/
+   PyGreSQL from http://www.pygresql.org/ (Needed for interfacing with musicbrainz)
+   eyeD3 from http://eyed3.nicfit.net/ (this will eventually be replaced by TagLib and TagPy)
 
-   Optional packages (required for the webapp):
+   Packages required for the webapp (optional):
    TurboGears 1.1: http://www.turbogears.org/ 
-   psycopg: http://initd.org/ * psycopg2 is actually needed to install SQL Alchemy,
-                                    however it should be included in sqlalchemy pkg.
+   psycopg: http://initd.org/ * psycopg2 is actually needed for SQL Alchemy,
+                              however it should be included in the sqlalchemy pkg.
    
-   On Debian (and probably Ubuntu), you can get all of these
-   dependencies by running:
+   -----------------------------------------------------------------------------
+   On Debian (and probably Ubuntu), you can get all of these dependencies by running:
    apt-get install postgresql ffmpeg python-sqlalchemy python-pygresql \
                    python-numpy python-eyed3 python-tagpy
 
@@ -67,8 +67,7 @@ Gordon setup
    apt-get install libdbd-pg-perl libdbi-perl libstring-shellquote-perl \
                    liblwp-useragent-determined-perl
 
-5. Resolve metadata against musicbrainz using
-   gordon/db/mbrainz_resolver.py
+5. Resolve metadata against musicbrainz using gordon/db/mbrainz_resolver.py
 
 
 Web app setup (optional)

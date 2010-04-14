@@ -167,8 +167,8 @@ def id3v2_getval_sub(tag,tagstr) :
 def id3v2_putval(mp3,tagstr,txt='') :
     tag=eyeD3.Tag()
     tag.link(mp3)
-    tag.update(eyeD3.ID3_V2_4)
-    tag.header.setVersion(eyeD3.ID3_V2_4)
+    tag.update(eyeD3.ID3_V2_4) # writes on file
+    tag.header.setVersion(eyeD3.ID3_V2_4) # writes on file
     try :
         tag.setTextEncoding(eyeD3.UTF_8_ENCODING)
     except TypeError :

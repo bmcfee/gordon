@@ -151,7 +151,7 @@ class AudioFile(object):
     def read(self, fs_target=None, mono=None, tstart_sec=None, tlen_sec=None, stripzeros=None, stripzeros_lim=None, tlast=None,force=False):
         """Reads file and returns:
         [x, fs, svals]
-                data:  the data as a numpy array. Stereo will have 2 columns.
+                   x:  the data as a numpy array. Stereo will have 2 columns.
                   fs:  the sampling rate of our waveform (not necessarily the native sampling rate of file)
                svals:  [st,en] number of samples stripped from start and end of signal 
 

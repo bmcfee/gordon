@@ -209,10 +209,6 @@ def execute_raw_sql(sql, transactional = False) : #todo: transactional unused
     result = raw_session.execute(sql)
     #can then do result.fetchall()
     return result
-
-def add(object) :
-    '''add object to session'''
-    session.add(object)
     
 def commit() :
     """commit transaction (used when transactional=True)
@@ -226,6 +222,14 @@ def commit() :
 def flush() :
     """flush transaction"""
     session.flush()
+
+def add(object) :
+    '''add object to session'''
+    session.add(object)
+
+def query(*entities, **kwargs):
+    '''Share new SQL Alchemy Session.query()'''
+    return session.query(*entities, **kwargs)
 
 
 

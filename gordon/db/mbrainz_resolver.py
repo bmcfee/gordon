@@ -24,7 +24,7 @@ import pg
 from model import *
 from sqlalchemy import *
 import heapq,time,shutil,os,string,datetime,stat,copy,sys,glob,random # unused
-from sqlalchemy.databases.postgres import PGArray
+#from sqlalchemy.databases.postgres import PGArray # try from sqlalchemy.dialects.postgresql.base import PGArray
 from collections import defaultdict
 import traceback
 
@@ -282,31 +282,32 @@ class GordonResolver(object) :
         trk = Track.query.get(tid)
         d_fields=(trk.title,trk.artist,trk.album,trk.tracknum,trk.compilation)
 
+
         #get tags from mp3
-        fullpath=get_full_mp3filename(tid)
-
         
+        fullpath=get_full_mp3filename(tid)
         if not os.path.exists(fullpath) :
-            print 'Cannot update mp3 tags in',fullpath,'because file does not exist'
-        else :
-            m_fields  = id3v2_getval(fullpath,fieldnames)
-            #for (idx,m) in enumerate(m_fields) :
-            #    if type(m)==unicode :
-            #        m_fields[idx]=unicode(m.encode('utf-8'),'utf-8')
-            #        print 'type is now',type(m_fields[idx])
+            print 'ERROR: Cannot update mp3 tags in',fullpath,'because file does not exist'
+            return False
+        
+        m_fields  = id3v2_getval(fullpath,fieldnames)
+        #for (idx,m) in enumerate(m_fields) :
+        #    if type(m)==unicode :
+        #        m_fields[idx]=unicode(m.encode('utf-8'),'utf-8')
+        #        print 'type is now',type(m_fields[idx])
 
 
-            #compare
-            #print type(trk.title),'is title type'
-            for i in range(len(fieldnames)) :
-                #only write to id3 if there is a change to be made
+        #compare
+        #print type(trk.title),'is title type'
+        for i in range(len(fieldnames)) :
+            #only write to id3 if there is a change to be made
 
-                if not m_fields[i]==d_fields[i] :
-                    if doit :
-                        id3v2_putval(fullpath,fieldnames[i],d_fields[i])
-                    else :
-                        print m_fields[i],d_fields[i]
-                        print 'Would modifiy file',tid,'field', fieldnames[i]
+            if not m_fields[i]==d_fields[i] :
+                if doit :
+                    id3v2_putval(fullpath,fieldnames[i],d_fields[i])
+                else :
+                    print m_fields[i],d_fields[i]
+                    print 'Would modifiy file',tid,'field', fieldnames[i]
 
 
     def validate_album_data(self,rid=-1, mode='auto', thresh=.79, force=True):

@@ -20,7 +20,7 @@
 '''Functions for importing music to Gordon database'''
 
 import os, datetime, stat, sys#, time, heapq, difflib, shutil, string, copy, random #jorgeorpinel: unused
-#from numpy.distutils.fcompiler import pg #before import pg #jorgeorpinel: more specific import path
+#import pg
 #from sqlalchemy.databases.postgres import PGArray #jorgeorpinel: unused
 from csv import reader
 
@@ -47,6 +47,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
     (path, filename) = os.path.split(mp3)
     if DEBUG: print '\tAdding mp3 file "%s" of "%s" album by %s' % (filename, album, artist), '- add_mp3()' # debug
     
+    
     # validations
     
     if len(id3_dict) == 0 :
@@ -54,8 +55,9 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
         print '\tERROR: Cannot add "%s" because it is not part of an album' % filename
         return -1 # didn't add ------------------------------------------ return
     if not os.path.isfile(mp3) :
-        print '\tSkipping %s because it is not a file' % filename # should be validated before the call to this function
+        if DEBUG: print '\tSkipping %s because it is not a file' % filename # debug
         return -1 # not a file ------------------------------------------ return
+
 
     # required data
     
@@ -63,7 +65,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
 #    try: #get track length
 #        eyed3_secs = int(id3.mp3_gettime(mp3)) #from mp3_eyed3 #jorgeorpinel: eyed3_secs unused 
 #    except :
-#        print 'Could not read time from mp3', mp3
+#        print '\tERROR: Could not read time from mp3', mp3
 #        eyed3_secs = -1
 
     #we get odd filenames that cannot be easily encoded.  This seems to come 
@@ -76,6 +78,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
             fn_recoded = filename.decode('latin1')
         except :
             fn_recoded = 'unknown'
+
 
     # prepare data
     
@@ -95,8 +98,10 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
                   source = source,
                   bytes = bytes)
 
+
+    # add data
+    
     add(track)
-    #todo: should match it first and prompt for rewrite or repeat
     commit() #to get our track id we need to write this record
     if DEBUG: print '\tWrote track record', track.id, 'to database' # debug ---
 
@@ -105,6 +110,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
         track.zsecs = -1
     else :
         #FIXME: untested code for checking secs and zsecs (DSE Feb 5, 2010)
+        #jorgeorpinel: well, it seems to work for mp3 files
         a = AudioFile(filename)
         [track.secs, track.zsecs] = a.get_secs_zsecs()
 
@@ -112,37 +118,134 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
 
     #This is a bit confusing. For backwards compat #todo: clean up DB relationships
     if artist:
-        if DEBUG: print '\tAttaching artist', artist # debug ------------------
+        if DEBUG: print '\Linking to artist', artist # debug ------------------
         track.artist = artist.name
         track.artists.append(artist)
 
     if album:
-        if DEBUG: print '\tAttaching album', album # debug --------------------
+        if DEBUG: print '\Linking to album', album # debug --------------------
         track.album = album.name
         track.albums.append(album)
 
     commit() # save (again) the track record (this time)
     if DEBUG: print '\t* Wrote album and artist additions to track into database' # debug
 
+
     #copy the file to the Gordon instal audio/feature data directory
+    
     tgt = os.path.join(gordonDir, 'audio', 'main', track.path)
     make_subdirs_and_copy(filename, tgt)
     if DEBUG: print '\tCopied mp3 "' + filename + '" to', tgt # debug ---------
 
-    #stamp the file
-    id3.id3v2_putval(tgt, 'tid', 'T%i' % track.id)
+    #stamp the file ("TID n" as an ID3v2 commment)
+    id3.id3v2_putval(tgt, 'tid', 'T%i' % track.id) # writes on new audio file (the copy)
 
-    #we update id3 tags in mp3 if necessary
+    #we update id3 tags in mp3 if necessary (from local MusicBrainz DB, when no info found)
     if track.otitle <> track.title or track.oartist <> track.artist or track.oalbum <> track.album or track.otracknum <> track.tracknum :
-        print '\tTrying to update_mp3_from_db ' + track.id, os.path.join(gordonDir, 'audio', 'main') #debug
-        #todo: writes to the copied mp3 files, should try|except for file access crashes:
-#        from gordon.db.mbrainz_resolver.GordonResolver import update_mp3_from_db
-#        update_mp3_from_db(track.id, audioDir = os.path.join(gordonDir, 'audio', 'main'), doit = True)
+        #todo: install musicbrainz_db pgdb first!
+        if DEBUG: print '\t(NOT) Trying to update_mp3_from_db', track.id, os.path.join(gordonDir, 'audio', 'main') # debug
+#        from gordon.db.mbrainz_resolver import GordonResolver
+#        gordonResolver = GordonResolver()
+#        try:
+#            if not gordonResolver.update_mp3_from_db(track.id, audioDir = os.path.join(gordonDir, 'audio', 'main'), doit = True) :
+#                pass # if file not found ...
+#        except Exception: # except for file access crashes?
+#            pass
 
     #if not fast_import :
 #        if DEBUG: print '\tCalculating features for track',track.id # debug ---
 #        update_features(track.id) #jorgeorpinel: what is this?
     pass # for stupid Eclipse correct folding after comments
+
+def add_wav(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, tag_dict = dict(), artist = None, album = None, fast_import = False) :
+    '''Add wav with filename <wav> to database
+         source -- audio files data source
+         gordonDir -- main Gordon directory
+         tag_dict -- dictionary of key,val tag pairs - See add_album(...).
+         artist -- The artist for this track. An instance of Artist. None if not present
+         album  -- The album for this track. An instance of Album. None if not present
+         fast_import -- If true, do not calculate strip_zero length. Defaults to False
+    '''
+    (path, filename) = os.path.split(wav)
+    if DEBUG: print '\tAdding wav file "%s" of "%s" album by %s' % (filename, album, artist), '- add_wav()' # debug
+    
+    
+    # validations
+    
+    if len(tag_dict) == 0 :
+        #todo: currently cannot add singleton files. Need an album which is defined in tag_dict
+        print '\tERROR: Cannot add "%s" because it is not part of an album' % filename
+        return -1 # didn't add ------------------------------------------ return
+    if not os.path.isfile(wav) :
+        if DEBUG: print '\tSkipping %s because it is not a file' % filename # debug
+        return -1 # not a file ------------------------------------------ return
+
+
+    # required data
+    
+    bytes = os.stat(wav)[stat.ST_SIZE]
+
+    # reencode name to latin1
+    try:
+        fn_recoded = filename.decode('utf-8')
+    except :
+        try : fn_recoded = filename.decode('latin1')
+        except : fn_recoded = 'unknown'
+
+
+    # prepare data
+    
+    if tag_dict['compilation'] not in [True, False, 'True', 'False'] :
+        tag_dict['compilation'] = False
+
+    track = Track(title = tag_dict['title'],
+                  artist = tag_dict['artist'],
+                  album = tag_dict['album'],
+                  tracknum = tag_dict['tracknum'],
+                  compilation = tag_dict['compilation'],
+                  otitle = tag_dict['title'],
+                  oartist = tag_dict['artist'],
+                  oalbum = tag_dict['album'],
+                  otracknum = tag_dict['tracknum'],
+                  ofilename = fn_recoded,
+                  source = source,
+                  bytes = bytes)
+
+
+    # add data
+    
+    add(track) # needed to get a track id
+    commit() #to get our track id we need to write this record
+    if DEBUG: print '\tWrote track record', track.id, 'to database' # debug ---
+
+    if fast_import :
+        track.secs = -1
+        track.zsecs = -1
+    else :
+        a = AudioFile(filename)
+        [track.secs, track.zsecs] = a.get_secs_zsecs()
+
+    track.path = u'%s' % get_tidfilename(track.id, 'wav') # creates path to insert in track
+
+    # links track to artist & album in DB
+    if artist:
+        if DEBUG: print '\tAttaching artist', artist # debug ------------------
+        track.artist = artist.name
+        track.artists.append(artist)
+    if album:
+        if DEBUG: print '\tAttaching album', album # debug --------------------
+        track.album = album.name
+        track.albums.append(album)
+
+    commit() # save (again) the track record (this time having the track id)
+    if DEBUG: print '\t* Wrote album and artist additions to track into database' # debug
+
+
+    #copy the file to the Gordon instal audio/feature data directory
+    
+    tgt = os.path.join(gordonDir, 'audio', 'main', track.path)
+    make_subdirs_and_copy(filename, tgt)
+    if DEBUG: print '\tCopied wav "' + filename + '" to', tgt # debug ---------
 
 
 def _prompt_aname(albumDir, tags_dicts, albums, cwd) :
@@ -227,7 +330,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
         * we can't just add each track individually. We have to make Artist ids for all artists
         * we will presume that 2 songs by same artist string are indeed same artist
     '''
-    if DEBUG: print ' Adding album', albumDir, '- add_album()' # debug --------------------------
+    if DEBUG: print ' Adding album', albumDir, '- add_album()' # debug --------
     
     tags_dicts = dict()
     albums = set()
@@ -235,6 +338,8 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     
     cwd = os.getcwd()
     os.chdir(albumDir)
+    addfunction = False
+    #todo: have a list of supported formats and check the actual MIME type, not only the extension
     for filename in os.listdir('.') :
         if not os.path.isdir(os.path.join(cwd, filename)) :
             if DEBUG: print '\tChecking', '"' + filename + '"...', # debug ----
@@ -245,7 +350,8 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
                 tags_dicts[filename] = id3tags
                 albums.add(id3tags['album'])
                 artists.add(id3tags['artist'])
-            elif filename.lower().endswith('.wav') : #todo: have a list of supported formats
+                addfunction = 'add_mp3'
+            elif filename.lower().endswith('.wav') :
                 if not csvtags : csvtags = _read_csv_tags(os.getcwd(), 'tags.csv')
                 if DEBUG: print 'is WAV', # debug -----------------------------
                 try:
@@ -261,6 +367,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
                     tags_dicts[filename]['compilation'] = ''
                 albums.add(tags_dicts[filename]['album'])
                 artists.add(tags_dicts[filename]['artist'])
+                addfunction = 'add_wav'
             elif DEBUG: print 'not a supported audio file format' # debug -----
             
         #todo: work with other non-mp3 audio files/tags!
@@ -308,8 +415,9 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
 
     #now add our tracks to album
     for file in tags_dicts.keys() :
-        id3_dict = tags_dicts[file]
-        add_mp3(mp3 = file, gordonDir = gordonDir, id3_dict = id3_dict, artist = artist_dict[id3_dict['artist']], album = albumrec, source = source, fast_import = fast_import)
+        tag_dict = tags_dicts[file] #@UnusedVariable becaue it is used at the following eval() call:
+        # calls add_mp3(), add_wav(), or other
+        eval(addfunction+"(file, source, gordonDir, tag_dict, artist_dict[tag_dict['artist']], albumrec, fast_import)")
         if DEBUG: print '\tAdded', '"' + file + '"' # debug -------------------
 
     #now update our track counts

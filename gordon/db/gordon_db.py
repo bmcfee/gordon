@@ -206,8 +206,9 @@ class unaccented_map(dict):
     else:
         __getitem__ = mapchar
 
-def _set_perms(path, perm, groupName=None) : #jorgeorpinel: no effect on Windows
-    os.system('chmod %d "%s"' % (perm, path))  #todo: check out cacls cmd.exe (Win) command later?
+def _set_perms(path, perm, groupName=None) :
+    if os.name == 'nt': return #jorgeorpinel: may render file unreadable on Windows ... check out cacls cmd.exe (any need?)
+    os.system('chmod %d "%s"' % (perm, path))
     #if os.system("chmod %d %s" % (perm, path))>0 :
     #    print "Error executing chmod %d on %s" % (perm, path)
     if groupName:
@@ -263,10 +264,21 @@ def get_full_mp3filename(tid,gordonDir=DEF_GORDON_DIR) :
     """
     return os.path.join(gordonDir,'audio','main',get_tidfilename(tid))
 
-def get_tidfilename(tid, featurestub='') :
-    fn = os.path.join(get_tiddirectory(tid), 'T%s.mp3' % tid)
-    if featurestub<>'' :
-        fn = '%s.%s' % (fn,featurestub)
+def get_tidfilename(tid, ext='mp3', featurestub='') :
+    '''Gets the path to the track with <tid> filename from audio/main in gordonDir
+    If the record doesn't exist yet or doesn't have 'path' attribute, one is created
+    <ext> is the expected audio file extension
+    <featurestub> seems to be intended for feature file extentions further to .mp3 or .wav, etc'''
+    from model import query as squery
+    
+    fn = squery(Track.path).filter_by(id=tid).first()
+    if fn is None or fn[0] == '': # creates the path with the expected file ext:
+        fn = os.path.join(get_tiddirectory(tid), 'T%s.%s' % (tid, ext))
+    else:   # retrieves the path from DB (ignoring <ext>)
+        fn = fn[0]
+    
+    if featurestub <> '' : #jorgeorpinel: unused as of now
+        fn = '%s.%s' % (fn, featurestub)
     return fn
 
 def get_tiddirectory(tid) :
