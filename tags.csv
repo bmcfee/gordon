@@ -1,4 +1,4 @@
-﻿# Gordon CSV tag file example - for WAV files in album when using audio_intake.py
+# Gordon CSV tag file example - for WAV files in album when using audio_intake.py
 # Place file in album's dir. Python styled comments are respected. White lines are ignored.
 
 # csv file line structure:
