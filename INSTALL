@@ -2,8 +2,8 @@ Prerequisites
 -------------
 1. Install the dependencies:
    ffmpeg binaries (set in PATH) from http://ffmpeg.org/
-   Python (2.6 is the last version used by the developers) from http://python.org/ plus:
-   SQLAlchemy (0.6beta1) from http://www.sqlalchemy.org/
+   Python (2.5 is the last tested version) from http://python.org/ plus:
+   SQLAlchemy (0.5) from http://www.sqlalchemy.org/
    PostgreSQL from http://www.postgresql.org/
    NumPy from http://numpy.scipy.org/
    PyGreSQL from http://www.pygresql.org/ (Needed for interfacing with musicbrainz)

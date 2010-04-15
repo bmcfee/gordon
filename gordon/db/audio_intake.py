@@ -17,7 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with Gordon.  If not, see <http://www.gnu.org/licenses/>.
 
-'''Functions for importing music to Gordon database'''
+'''Functions for importing music to Gordon database
+
+script usage:
+python audio_intake source dir [doit]
+<source> is a name for the collection
+<dir> is the collection physical location to browse
+<doit> is an optional parameter; if False, no actual import takes place, only verbose would-dos'''
 
 import os, datetime, stat, sys#, time, heapq, difflib, shutil, string, copy, random #jorgeorpinel: unused
 #import pg
@@ -432,20 +438,30 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     os.chdir(cwd)
 
 
-def add_collection(collectionDir, source = str(datetime.date.today()), prompt_incompletes = False, doit = False, iTunesDir = False, gordonDir = DEF_GORDON_DIR, fast_import = False):
+def add_collection(location, source = str(datetime.date.today()), prompt_incompletes = False, doit = False, iTunesDir = False, gordonDir = DEF_GORDON_DIR, fast_import = False):
     """recursively adds mp3s from a directory tree.
     treats all files in same directory as being in same album!
      
     Only imports if all songs actually have same album name. 
     With flag prompt_incompletes will prompt for incomplete albums as well
 
-    When iTunesDir==True, add only directories of the form <collectionDir>/<artist>/<album>
+    When iTunesDir==True, add only directories of the form <location>/<artist>/<album>
     This does *not* import all songs in the tree but only those two plys deep...
+#    TODO:
+#    However, if <location> is a .csv file, its treated as a tag (meta-data) file
+#    pointing at a group of audiofiles in arbitrary disc locations which form a
+#    potential album; in this case <iTunesDir> is ignored.
 
     Use doit=True to actually commit the addition of songs
     """
-    #When fast_import=True
-    os.chdir(collectionDir)
+    
+#    #todo: if location sent is a tags.csv file
+#    if os.path.isfile(location) and location.lower().endswith('.csv'):
+#        add_album(location, source, gordonDir, prompt_incompletes, fast_import)
+#        print 'audio_intake.py: Finished! (import from csv file)'
+#        return # -------------------------------------------------------- return
+    
+    os.chdir(location)
     if DEBUG: print 'Looking for a collection in', os.sep + '. - add_collection()' # debug
 
     #handle root as a potential album
@@ -482,7 +498,7 @@ def add_collection(collectionDir, source = str(datetime.date.today()), prompt_in
 def _die_with_usage() :
     print 'This program imports a directory into the database'
     print 'Usage: '
-    print 'audio_intake <source> <dir>'
+    print 'audio_intake <source> <dir> [doit]'
     print 'Arguments: '
     print '  <source> is the string stored to the database for source e.g. DougDec22'
     print '  <dir> is the directory to be imported'
@@ -507,5 +523,5 @@ if __name__ == '__main__':
 
     print 'audio_intake.py: using <source>', '"'+source+'",', '<dir>', eval("'"+dir+"'") # i
     if doit is False: print ' * No <doit> (3rd) argument given. Thats 0K (Pass no args for script usage)' # i
-    add_collection(collectionDir = dir, source = source, prompt_incompletes = True, doit = doit, fast_import = False)
+    add_collection(location = dir, source = source, prompt_incompletes = True, doit = doit, fast_import = False)
     

@@ -13,3 +13,6 @@ DEF_DBNAME='gordon_db'
 DEF_DBUSER='gordon'
 DEF_DBPASS=
 DEF_DBSUPERUSER=
+
+# Turn to False to shut this thing up (only important "file.py: message"s will come out):
+DEBUG = True 

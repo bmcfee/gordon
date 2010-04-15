@@ -54,11 +54,11 @@ except :  #this will set up a scoped session using native sqlalchemy (no turboge
     session = Session()
     import sqlalchemy.schema
     metadata = sqlalchemy.schema.MetaData(None)
-#    mapper = Session.mapper #jorgeorpinel: this is deprecated... (solved 4 lines down)
+#    mapper = Session.mapper #jorgeorpinel: SQLA 0.5. This is deprecated... (see 4 lines down)
     print 'model.py: intialized external connection to gordon database on %s  (SQL Alchemy ver. %s)' % (config.DEF_DBHOST, sqlalchemy.__version__)
     AUTOCOMMIT=True
     
-    #jorgeorpinel: this is how its supposed to be done now: (http://www.sqlalchemy.org/trac/wiki/UsageRecipes/SessionAwareMapper)
+    #jorgeorpinel: this is a SQLA 0.6 legacy workaround found at http://www.sqlalchemy.org/trac/wiki/UsageRecipes/SessionAwareMapper
     from sqlalchemy.orm import mapper as sqla_mapper
     def session_mapper(scoped_session):
         def mapper(cls, *arg, **kw):
@@ -228,7 +228,7 @@ def add(object) :
     session.add(object)
 
 def query(*entities, **kwargs):
-    '''Share new SQL Alchemy Session.query()'''
+    '''Share new SQL Alchemy 0.6+ Session.query()'''
     return session.query(*entities, **kwargs)
 
 

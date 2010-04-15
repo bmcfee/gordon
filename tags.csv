@@ -1,0 +1,14 @@
+﻿# Gordon CSV tag file example - for WAV files in album when using audio_intake.py
+# Place file in album's dir. Python styled comments are respected. White lines are ignored.
+
+# csv file line structure:
+# filename, title, artist, album, tracknum, compilation # don't use commas in the tag values !!! spaces are NOT trimmed.
+
+40s Background (AK).wav, A-Kab (excerpt),Jorge Orpinel,,,CalArts Portfolio
+40s Background (CB).wav,Cloud Blanch (instrumental) (excerpts),Jorge Orpinel,,,CalArts Portfolio
+# Note: not all values need to exist, not all files in directory NEED to have tags
+
+40s Background (LN).wav,La Navaja (excerpt),Jorge Orpinel,,,CalArts Portfolio
+40s Background (Paranoia).wav,Paranoia (excerpt),Jorge Orpinel,,,CalArts Portfolio
+40s Background (SMC).wav,So Many Clouds (excerpt),Jorge Orpinel,,,CalArts Portfolio
+40s Background (Tears).wav,Tears (excerpts),Jorge Orpinel;Cesar Rattoni (L3v0),,,CalArts Portfolio
