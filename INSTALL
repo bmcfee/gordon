@@ -46,7 +46,8 @@ Prerequisites
 Gordon setup
 ------------
 1. Copy gordon/db/config.py.default to gordon/db/config.py and fill in
-   the details of your local configuration.
+   the details of your local configuration. *Also, export a PYTHONPATH with
+   the project's root dir
 
 2. Run gordon/db/gordon_initialize.py to build the database tables.
 
