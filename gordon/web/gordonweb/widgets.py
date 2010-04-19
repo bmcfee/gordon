@@ -1,7 +1,7 @@
 from turbogears.database import metadata, mapper
 from sqlalchemy import Table, Column, ForeignKey, String, Unicode, Integer, DateTime,MetaData,PassiveDefault,text,Index,Text,Float,ForeignKeyConstraint,SmallInteger,Boolean
 from sqlalchemy.orm import relation,backref,column_property,deferred
-from sqlalchemy.databases.postgres import PGArray
+#from sqlalchemy.databases.postgres import PGArray
 #from sqlalchemy.orm.collections import InstrumentedList
 from turbogears import identity,config,update_config,flash
 from turbogears import validators as v
