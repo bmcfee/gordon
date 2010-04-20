@@ -1,5 +1,8 @@
 """Local configuration for gordon database."""
 
+import logging
+import sys
+
 # Logging configuration used throughout gordon
 log = logging.getLogger('gordon')
 # If you want to see debugging messages, uncomment the next line
