@@ -45,11 +45,16 @@ except :  #this will set up a scoped session using native sqlalchemy (no turboge
 
     from sqlalchemy.orm import scoped_session
     import sqlalchemy
-    # I needed to change postgresql:// to postgres:// on Ubuntu 9.10
-    #   -ronw 2010-03-26
-    engine = sqlalchemy.create_engine('postgresql://%s:%s@%s/%s'
-                                      % (config.DEF_DBUSER, config.DEF_DBPASS, config.DEF_DBHOST,
-                                         config.DEF_DBNAME))
+    # works in SQLAlchemy 0.6
+    dburl = 'postgresql://%s:%s@%s/%s' % (config.DEF_DBUSER, config.DEF_DBPASS,
+                                          config.DEF_DBHOST, config.DEF_DBNAME)
+    try:
+        engine = sqlalchemy.create_engine(dburl)
+    except ImportError:
+        # Works in sqlalchemy 0.5.5
+        dburl = dburl.replace('postgresql', 'postgres')
+        engine = sqlalchemy.create_engine(dburl)
+
     Session= scoped_session(sessionmaker(bind=engine,autoflush=True, autocommit=True))
     session = Session()
     import sqlalchemy.schema
