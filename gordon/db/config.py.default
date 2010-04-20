@@ -1,5 +1,11 @@
 """Local configuration for gordon database."""
 
+# Logging configuration used throughout gordon
+log = logging.getLogger('gordon')
+# If you want to see debugging messages, uncomment the next line
+#log.setLevel(logging.DEBUG)
+log.addHandler(logging.StreamHandler(sys.stdout))
+
 # Local path to audio/feature data
 DEF_GORDON_DIR=
 
@@ -13,6 +19,3 @@ DEF_DBNAME='gordon_db'
 DEF_DBUSER='gordon'
 DEF_DBPASS=
 DEF_DBSUPERUSER=
-
-# Turn to False to shut this thing up (only important "file.py: message"s will come out):
-DEBUG = True 
