@@ -92,6 +92,29 @@ def reassign_artist(oldid,newid) :
     session.delete(oldartist)
     commit()
 
+
+def delete_source(source) :
+    """Deletes all tracks and albums for a given source. The source is 
+    stored in the Track. Must be run interactively because it runs gordon_validate
+    which asks questions at the prompt"""
+
+    #This woudl be the "right" way to do it but it's slow because
+    #we update track count on every track
+    #for t in Track.query.filter_by(source=source) :
+    #    print 'Deleting',t
+    #    delete_track(t)
+
+
+    for t in Track.query.filter_by(source=source) :
+        print 'Deleting',t
+        session.delete(t)
+    commit()
+    gordon_validate()
+
+  
+
+
+
 def delete_album(album) :
     #we handle cascading deletes ourselves for track and artist
     for t in album.tracks :
@@ -106,18 +129,20 @@ def delete_track(track) :
     albums = track.albums
     artists = track.artists
     session.delete(track)
-    session.flush()
+    session.flush()  #should this be a commit?
 
     print 'Updating albums and artists'
     for a in albums :
         a.update_trackcount()
         if a.trackcount==0 :
-            print 'Someone delete me!',a
+            session.delete(a)
+            #print 'Someone delete me!',a
 
     for a in artists :
         a.update_trackcount()
         if a.trackcount==0 :
-            print 'Someone delete me!',a
+            session.delete(a)
+            #print 'Someone delete me!',a
 
     commit()
 
@@ -375,19 +400,46 @@ def update_features(tid=-1,gordonDir=DEF_GORDON_DIR,force=False):
     else :
         pass# print 'Skipping',tid,'because it is <15sec'
         
-def update_secs_zsecs(tid,gordonDir=DEF_GORDON_DIR,force=False):
+def update_secs_zsecs(tid_or_track,gordonDir=DEF_GORDON_DIR,force=False,fast=False,do_commit=True):
+    """Updates the seconds and optionally zero-stripped seconds (sec,zsec) for a track
+    Takes either a Track object or a track id.  
+    If force is False (default) then only computes if values are missing
+    If fast is True we don't decode the file. Instead we read in times from track header.  
+    Also we set zsecs to -1 if it is not already...
+
+    If do_commit is true, we commit this to the database. Otherwise we do not"""
+
     #album 6451 does not work for our audioio
-    track = Track.query.get(tid)
+    if isinstance(tid_or_track,Track) :
+        track=tid_or_track
+    else :
+        track = Track.query.get(tid_or_track)
+
     if track==None :
         raise ValueError('Track for id %i not found in update_secs_zsecs' % tid)
-    if force or track.secs==None or track.secs<0 or track.zsecs==None or track.zsecs <0 :
-        fullpath = os.path.join(gordonDir,'audio','main',Track.query.get(tid).path)
-        print 'Track',track.id,'gordondir',gordonDir,'with path',fullpath#'setting secs and zsecs',secs,zsecs
-        a = AudioFile(fullpath)
-        secs, zsecs = a.get_secs_and_zsecs()
+
+    #fast case we only update the secs
+
+    #the defaults for these is -1 in the database. There should be no NULL values
+    if track.secs is None :
+        track.secs=-1
+    if track.zsecs is None:
+        track.zsecs=-1
+
+    if force or (fast and track.secs<=0) or ((not fast) and (track.secs<=0 or track.zsecs <=0)) :
+        a = AudioFile(track.fn_audio)
+        if fast :  #update secs but not zsecs based on file header (no decoding)
+            zsecs=-1
+            (fs,chans,secs)=a.read_stats()
+        else :     #update both secs and zsecs by decoding file and actually working with audio (more accurate)
+            secs, zsecs = a.get_secs_zsecs()
         track.secs=secs
         track.zsecs=zsecs
-        commit()
+        print 'Processed track',track.id,secs,zsecs
+        if do_commit :
+            commit()
+
+        
     return (track.secs,track.zsecs) 
    
 def update_audio_features(tid,gordonDir=DEF_GORDON_DIR,force=False,params=dict()):
@@ -501,7 +553,7 @@ def verify_delete(vals,msg) :
 
 def check_missing_mp3s(deleteMissing=False, gordonDir=DEF_GORDON_DIR) :
     print 'Checking for missing mp3s... this takes a while'
-    for t in Track.query() :
+    for t in Track.query.all() :
         mp3=os.path.join(gordonDir,'audio','main',get_tidfilename(t.id))
         if not os.path.exists(mp3) :
             if deleteMissing :
@@ -616,7 +668,7 @@ def update_artist_trackcounts() :
     """Updates value Artist.trackcount which caches the number of
     tracks per artist for fast querying.
     """
-    artists = Artist.query()
+    artists = Artist.query.all()
     for (ctr,a) in enumerate(artists) :
         a.update_trackcount()
         if ctr % 100 ==0 :
@@ -624,11 +676,34 @@ def update_artist_trackcounts() :
             print 'Processed artist',ctr
     session.flush()
 
+def update_track_times(fast=False) :
+    """Updates track times and zsec times. If fast is true, we only update the time, not the ztime
+    and we do it without decoding the mp3. If we fail, we just keep going."""
+    if fast:
+        tracks = Track.query.filter("secs is NULL OR secs<=0 ")
+    else :
+        tracks = Track.query.filter("secs is NULL OR zsecs is NULL or secs<=0 or zsecs <=0")
+    cnt=tracks.count()
+
+    print 'Calculating',cnt,'track times'
+    for ctr,t in enumerate(tracks) :
+        #the function update_secs_zsecs will skip those with valid sec,zsec
+        try :
+            update_secs_zsecs(t,force=False,fast=fast,do_commit=False)
+            #print 'Recalculated %i of %i: %s' % (ctr,cnt,str(t))
+
+        except:
+            print "Unable to calculate track time for " + str(t)
+        if ctr%1000==0 :
+            print ctr,'...committing'
+            commit()
+    commit()
+
 def update_album_trackcounts() :
     """Updates value Album.trackcount which caches the number of
     tracks per album for fast querying
     """
-    albums= Album.query()
+    albums= Album.query.all()
     for (ctr,a) in enumerate(albums) :
         a.update_trackcount()
         if ctr % 100 ==0 :
@@ -671,7 +746,6 @@ def delete_duplicate_mb_albums(gordonDir=DEF_GORDON_DIR) :
 
 def check_nulls(gordonDir=DEF_GORDON_DIR) :
     """Finds instances where trackcount, Artist.mb_id, Track.mb_id, Album.mb_id are null.
-
     This should not be the case and causes problems.
     """
     # For sqlalchemy queries (we treat empty string as "null" for
@@ -722,12 +796,18 @@ def check_nulls(gordonDir=DEF_GORDON_DIR) :
     else :
         print 'No null trackcounts  in albums'
 
-def gordon_validate(gordonDir=DEF_GORDON_DIR,updateCounts=True,checkMissingMp3s=False,deleteMissingMp3Recs=False,checkOrphans=False,checkNulls=True) :
-    #this would be a good script to run once a week.  It does a lot of work. 
+def gordon_validate(gordonDir=DEF_GORDON_DIR,updateCounts=True,checkMissingMp3s=False,deleteMissingMp3Recs=False,checkOrphans=False,checkNulls=True,updateTrackTimes=False) :
+    """This script does a lot of different validations. It is a good thing to run once a week"""
 
     #gets rid of null values in some fields. 
     if checkNulls :
         check_nulls()
+
+
+    if updateTrackTimes :
+        #will calculate track time from mp3 for missing track times
+        update_track_times()
+
 
     #Finds track records which have no mp3 file (more serious)
     if checkMissingMp3s:
@@ -788,7 +868,7 @@ def cache_albumcovers(gordonDir=DEF_GORDON_DIR,aid=None) :
     import urllib2
 
     if aid is None :
-        albums=Album.query()
+        albums=Album.query.all()
     else :
         albums=[Album.query.get(aid)]
 

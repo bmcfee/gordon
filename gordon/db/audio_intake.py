@@ -51,7 +51,9 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
          album  -- The album for this track. An instance of Album. None if not present
          fast_import -- If true, do not calculate strip_zero length. Defaults to False
     '''
-    (path, filename) = os.path.split(mp3)
+
+
+    (filepath, filename) = os.path.split(mp3)
     log.debug('Adding mp3 file "%s" of "%s" album by %s - add_mp3()', filename,
               album, artist)    
     
@@ -102,7 +104,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
                   oartist = id3_dict['artist'],
                   oalbum = id3_dict['album'],
                   otracknum = id3_dict['tracknum'],
-                  ofilename = fn_recoded,
+                  ofilename = os.path.join(filepath,fn_recoded),  
                   source = source,
                   bytes = bytes)
 
@@ -114,11 +116,16 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
     log.debug('Wrote track record %s to database', track.id)
 
     if fast_import :
-        track.secs = -1
+        #try to get the seconds from ffmpeg
         track.zsecs = -1
+        track.secs= -1
+        try :
+            a = AudioFile(filename)
+            [ignore_fs,ignore_chans,track.secs] = a.read_stats()
+        except :
+            print "Could not read stats from",filename
+            
     else :
-        #FIXME: untested code for checking secs and zsecs (DSE Feb 5, 2010)
-        #jorgeorpinel: well, it seems to work for mp3 files
         a = AudioFile(filename)
         [track.secs, track.zsecs] = a.get_secs_zsecs()
 
@@ -405,6 +412,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     #add our album to Album table
     log.debug('Album has %d recordings', len(tags_dicts))
     albumrec = Album(name = album_name, trackcount = len(tags_dicts), a='1') #jorgeorpinel: a='1' ?
+    #eckdoug: what's a='1' doing? That is not in my original code. I dont know what it does. 
 
     #if we have an *exact* string match we will use the existing artist
     artist_dict = dict()
@@ -413,6 +421,10 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
         if match.count() == 1 :
             log.debug('Matched %s %s in database', artist, match[0])
             artist_dict[artist] = match[0]
+            #eckdoug: TODO what happens if match.count()>1? This means we have multiple artists in db with same 
+            #name. Do we try harder to resolve which one? Or just add a new one.  I added a new one (existing code)
+            #but it seems risky.. like we will generate lots of new artists.  Anyway, we resolve this in the musicbrainz 
+            #resolver....
         else :
             # add our Artist to artist table
             newartist = Artist(name = artist)
@@ -422,6 +434,10 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
         albumrec.artists.append(artist_dict[artist])
 
     commit() #commit these changes #jorgeorpinel: hold it... shouldn't it commit until the very end?
+    #eckdoug: Jorge, if memory serves, I had to commit now in order to have access to this album record when 
+    #adding tracks.   That is, each Track wants an Album and without the Album committed I could not
+    #get to add Tracks.  This seemed to me to be an SQLAlchemy weakness/bug. It seems like uncommitted records
+    #shoudl be available. So we could try again . 
 
     #now add our tracks to album
     for file in tags_dicts.keys() :
@@ -502,7 +518,10 @@ def add_collection(location, source = str(datetime.date.today()), prompt_incompl
 def _die_with_usage() :
     print 'This program imports a directory into the database'
     print 'Usage: '
-    print 'audio_intake <source> <dir> [doit]'
+    print 'audio_intake [flags] <source> <dir> [doit]'
+    print 'Flags:' 
+    print '  -fast: imports without calculating zero-stripped track times.'
+    print '  -noprompt: will not prompt for incomplete albums.  See log for what we skipped'
     print 'Arguments: '
     print '  <source> is the string stored to the database for source e.g. DougDec22'
     print '  <dir> is the directory to be imported'
@@ -514,6 +533,20 @@ if __name__ == '__main__':
     print 'audio_intake.py: Gordon audio intake script running...' # i
     if len(sys.argv) < 3:
         _die_with_usage()
+
+
+    prompt_incompletes=True
+    fast_import=False
+    #parse flags 
+    while True:
+        if sys.argv[1]=='-fast' :
+            fast_import=True
+        elif sys.argv[1]=='-noprompt' :
+            prompt_incompletes=False
+        else :
+            break
+        sys.argv.pop(1)
+
 
     source = sys.argv[1]
     dir = sys.argv[2]
@@ -527,5 +560,5 @@ if __name__ == '__main__':
 
     print 'audio_intake.py: using <source>', '"'+source+'",', '<dir>', eval("'"+dir+"'") # i
     if doit is False: print ' * No <doit> (3rd) argument given. Thats 0K (Pass no args for script usage)' # i
-    add_collection(location = dir, source = source, prompt_incompletes = True, doit = doit, fast_import = False)
+    add_collection(location = dir, source = source, prompt_incompletes = prompt_incompletes, doit = doit, fast_import = fast_import)
     
