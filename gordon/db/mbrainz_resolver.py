@@ -61,7 +61,7 @@ class GordonResolver(object) :
         ctr=0
         for a in albums:
             print 'Processing %i of %i' % (ctr,ln)
-            self.resolve_album(a.id,mbart=mbart,mbart_lc_list=mbart_lc_list)
+            self.resolve_album(id=a.id,mbart=mbart,mbart_lc_list=mbart_lc_list)
             ctr+=1
 
     def resolve_album(self,id,mbart='',mbart_lc_list='') :
@@ -121,12 +121,12 @@ class GordonResolver(object) :
         for (idx,a) in enumerate(autoupdates) :
             print '%i of %i : Updating album %i' % (idx+1,cnt,a.album_id)
             #print a
-            self.update_album(rid=a.album_id,mb_id=a.mb_id,use_recommended_track_order=True,doit=True)
+            self.update_album(id=a.album_id,mb_id=a.mb_id,use_recommended_track_order=True,doit=True)
           
 
 
 
-    def update_album(self,rid,mb_id=-1,use_recommended_track_order=False,doit=True) :
+    def update_album(self,id,mb_id=-1,use_recommended_track_order=False,doit=True) :
         """
         Updates an album from MusicBrainz database
         1) writes mb_id to album table
@@ -137,12 +137,12 @@ class GordonResolver(object) :
         """
         #if mb_id is not provided, presumes that album's stored mb_id is the one. This allows us to refresh from new mb db
         if mb_id==-1 :
-            mb_id=Album.query.get(rid).mb_id
+            mb_id=Album.query.get(id).mb_id
 
         #collect all the data we need to update album
         result = self.dbmb.query("SELECT R.id, R.name, AM.asin  FROM album as R, albummeta as AM WHERE R.gid = '%s' AND  AM.id = R.id" % mb_id).getresult()
         if not len(result)==1 :
-            print 'update_album cannot processes id',rid,'mb_id',mb_id,'Mb_Id not found in mb database'
+            print 'update_album cannot processes id',id,'mb_id',mb_id,'Mb_Id not found in mb database'
             return
         else :
             new_mbrid=result[0][0]
@@ -172,12 +172,12 @@ class GordonResolver(object) :
         newtr.sort()
 
         #get existing tracks from our database
-        oldalbum = Album.query.get(rid)
+        oldalbum = Album.query.get(id)
         oldtracks = oldalbum.tracks
 
 
         #reorder the tracks via recommened ordering. This needs to be cleaned up
-        res= Mbalbum_recommend.query.filter_by(album_id=rid)
+        res= Mbalbum_recommend.query.filter_by(album_id=id)
         if res.count()==1 and res[0].trackorder<>None :
 
             trackorder = eval(res[0].trackorder)
@@ -191,9 +191,7 @@ class GordonResolver(object) :
                 print 'reorder by ',trackorder
 
 
-        #print "Working on id",rid,deaccent_unicode(oldalbum.name).ljust(40)
-        #for a in oldalbum.artists :
-        #    print 'Artist=',a.name
+
 
         for t in oldtracks:
             if oldalbum.name <> t.album :
@@ -310,7 +308,7 @@ class GordonResolver(object) :
                     print 'Would modifiy file',tid,'field', fieldnames[i]
 
 
-    def validate_album_data(self,rid=-1, mode='auto', thresh=.79, force=True):
+    def validate_album_data(self,id=-1, mode='auto', thresh=.79, force=True):
         """verify that tagged albums still have same info as found in musicbrainz.     
            when mode=='auto' will automatically make changes for anything wiht stringmatch threshold > thresh
            whem mode=='prompt' will *ALSO* do same auto updates but will prompt for user for changes
@@ -327,10 +325,10 @@ class GordonResolver(object) :
                     asat.status='mb_unverified'
             commit()
 
-        if rid==-1 :
+        if id==-1 :
             recs = Album.query.filter('LENGTH(mb_id)>0')
         else :
-            recs = Album.query.filter_by(id=rid)
+            recs = Album.query.filter_by(id=id)
 
 
 
@@ -420,14 +418,14 @@ class GordonResolver(object) :
                     verified=False
                     if redo_thresh>thresh :
                         print 'Automatic update of',r.id
-                        self.update_album(rid=r.id)
+                        self.update_album(id=r.id)
                         verified=True
                     else :
                         if mode=='prompt' :
                             print ''
                             print ''
                             if get_raw_yesno('Update?') : 
-                                self.update_album(rid=r.id)
+                                self.update_album(id=r.id)
                                 verified=True
                         else :
                             print 'Skipping',r.id
@@ -532,13 +530,13 @@ class GordonResolver(object) :
 
 
 
-    def _closest_mb_album(self, rid, mbart='',mbart_lc_list='',tbl='',k=5) :
+    def _closest_mb_album(self, id, mbart='',mbart_lc_list='',tbl='',k=5) :
         """returns pairs of mbartist, mbalbum hashes with our confidence in each 
         tracktimes and tracktitles must be dictionaries keyed by trackidx
         if they are empty, no track info will be considered
         tbl is the stub for the table if we are using an imported table."""
 
-        print 'Processing rid',rid,
+        print 'Processing release id',id,
         tic=time.time()
         artists=list()
         titles=list()
@@ -549,9 +547,9 @@ class GordonResolver(object) :
 
 
         try :
-            albumrec = Album.query.get(rid)
+            albumrec = Album.query.get(id)
         except :
-            print 'Album',rid,'does not exist'
+            print 'Album',id,'does not exist'
             return ('','',(0,0,0,0,0),dict())
 
         album = albumrec.name
@@ -917,14 +915,14 @@ def die_with_usage() :
     print 'gordon_resolver.py <operation>'
     print 'Arguments:'
     print '<operation> is one of the following possiblities:'
-    print '    resolve [rid] :  resolves unresolved album(s) in Gordon database and saves those predictions. This does not actually'
+    print '    resolve [id]   : resolves unresolved album(s) in Gordon database and saves those predictions. This does not actually'
     print '                     change the tracks, albums, artists. It simply predicts a musicbrainz album and stores that prediction.'
-    print '                     Resolving ALL will take an hour or so! If [rid] is provided, this is done for only that album.'
+    print '                     Resolving ALL will take an hour or so! If [id] is provided, this is done for only that album.'
     print '    commit_safe    : commits safe unresolved albums. This actually writes the predictions to the track, album, artist databases'
     print '                     and modifies the mp3 id3 tags. To commit unsafe mids use the Gordon webserver.'
-    print '    validate [rid] : validates *already-resolved* albums against current MusicBrainz database and saves any changes.' 
+    print '    validate [id]  : validates *already-resolved* albums against current MusicBrainz database and saves any changes.' 
     print '                     For example, if the spelling of a track changed since we resolved an album to MusicBrainz,'
-    print '                     we would incorporate those changes with this code. If [rid] is provided, this is done for only that album'                   
+    print '                     we would incorporate those changes with this code. If [id] is provided, this is done for only that album'                   
     print ''
     print 'It is faster to be logged into %s' % DEF_DBHOST
     sys.exit(0) 
@@ -942,7 +940,7 @@ if __name__=='__main__' :
         if len(sys.argv)>=3 :
             id=int(sys.argv[2])
             print 'Resolving album',id
-            res.resolve_album(rid=id)
+            res.resolve_album(id=id)
         else :
             print 'Resolving all albums'
             res.resolve_all_albums()
@@ -956,7 +954,7 @@ if __name__=='__main__' :
         else :
             id=-1
             print 'Validating all albums against MusicBrainz data'
-        res.validate_album_data(rid=id)
+        res.validate_album_data(id=id)
     else :
         die_with_usage()
 
