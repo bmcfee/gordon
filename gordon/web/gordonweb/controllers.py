@@ -33,7 +33,6 @@ import gordon.db
 # log = logging.getLogger("gordonweb.controllers")
 
 
-GORDON_DIR=config.DEF_GORDON_DIR_ON_WEBSERVER
 
 class Root(controllers.RootController):
     """The root controller of the application."""
@@ -788,7 +787,7 @@ class Root(controllers.RootController):
         for k in kw :
             (id,mb_id)=k.split('SEP')
             mb_id=mb_id.replace('H','-')
-            mbrainz_resolver.update_album(id=id,mb_id=mb_id,use_recommended_track_order=True,doit=True)
+            mbrainz_resolver.update_album(rid=id,mb_id=mb_id,use_recommended_track_order=True,doit=True)
             st="%s\nUpdated %s" % (st,id)
         flash(st)
         redirect("/resolve_viewalbums")
