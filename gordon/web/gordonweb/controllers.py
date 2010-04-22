@@ -349,8 +349,9 @@ class Root(controllers.RootController):
         elif operation=='delete' :
             #decrement track count for related album
             #I wish this could happen in the gordon_model.Track class but can't figure out how to get things to work.
-            albums = track.albums;
-            session.delete(track)
+            gordon_db.delete_track(track)
+            #albums = track.albums;
+            #session.delete(track)
             flash('Deleted track %s' % str(id))
 
             for album in albums:
@@ -714,7 +715,7 @@ class Root(controllers.RootController):
                 raise redirect('/album/%s/edit' % id)
 
         elif operation=='delete' :
-            session.delete(album)
+            gordon_db.delete_album(album)
             flash('Deleted album %s' % str(id))
             redirect(referer)
         
