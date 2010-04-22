@@ -34,12 +34,12 @@ log = logging.getLogger('gordon.audio_intake')
 
 from csv import reader
 
-from model import add, commit, Album, Artist, Track
-from gordon_db import get_tidfilename, make_subdirs_and_copy
+from gordon.db.model import add, commit, Album, Artist, Track
+from gordon.db.gordon_db import get_tidfilename, make_subdirs_and_copy
 from gordon.io import mp3_eyeD3 as id3
 from gordon.io import AudioFile
 
-from config import DEF_GORDON_DIR
+from gordon.db.config import DEF_GORDON_DIR
 
 
 def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, id3_dict = dict(), artist = None, album = None, fast_import = False) :
@@ -389,7 +389,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     else:
         log.debug('%d artists in directory: %s', len(artists), artists)
     
-    if len(artists) <> 1 :  # if more than 1 artist found in ID3 tags
+    if len(albums) <> 1 :  # if more than 1 album found found in ID3 tags
         if prompt_aname :
             # prompt user to choose an album
             album_name = _prompt_aname(albumDir, tags_dicts, albums, cwd)
@@ -397,7 +397,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
         else :
             os.chdir(cwd)
             log.info('Not adding %d album names in album %s %s',
-                     len(albums), albumDir, albums)
+                     len(albums), albumDir, str(albums))
             return  # more than one album in directory ------------------ return
     else : # there's only one album in the directory (as should be)
         album_name = albums[0]
