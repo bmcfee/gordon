@@ -177,7 +177,7 @@ class GordonResolver(object) :
 
 
         #reorder the tracks via recommened ordering. This needs to be cleaned up
-        res= Mbalbum_recommend.query().filter_by(album_id=rid)
+        res= Mbalbum_recommend.query.filter_by(album_id=rid)
         if res.count()==1 and res[0].trackorder<>None :
 
             trackorder = eval(res[0].trackorder)
@@ -322,7 +322,7 @@ class GordonResolver(object) :
         """
         if force :
             #when we force we mark all records as unverified
-            for asat in AlbumStatus.query() :
+            for asat in AlbumStatus.query.all() :
                 if asat.status=='mb_verified' :
                     asat.status='mb_unverified'
             commit()
