@@ -107,7 +107,8 @@ def get_albumcover_urltxt(row) :
         asin=row.asin
 
         #here we might be able to recover url from local cache
-        albumcover_path=gordon.db.get_full_albumcovername(row.id)        
+        albumcover_path=gordon.db.get_full_albumcovername(row.id) 
+        #print 'ALBUM',albumcover_path
         if os.path.exists(albumcover_path) :
             return '/cover/A%i.jpg' % row.id
 
@@ -437,6 +438,7 @@ def download(tracks, album='', randomize=0, host=-1)  :
     import zipfile
     import glob
     import gordon.db
+
     (topdir,ignore)=os.path.split(widgets.__file__)
 
 
@@ -445,10 +447,28 @@ def download(tracks, album='', randomize=0, host=-1)  :
     else :
         tmpdir='/tmp'
     tempdir=tempfile.mkdtemp(dir=tmpdir)
+
+
+    
+    cwd=os.getcwd()
+    os.chdir(tmpdir)
+    oldfiles=glob.glob('gordon_download*.zip')
+    for o in oldfiles:
+        stats=os.stat(o)
+        lastmod=time.localtime(stats[8])
+        df=time.mktime(time.localtime())-time.mktime(lastmod)
+        if df>43200 : #12 hours
+            print 'Deleting',o
+            os.unlink(o)
+        else :
+            print 'Leaving',o
+
+
     msg=''
     ctr=1
     for t in tracks :
-        src = gordon.db.get_full_mp3filename(t.id)
+        src = t.fn_audio#augordon.db.get_full_mp3filename(t.id)
+
         (artist,album,title,tracknum)=mp3_eyeD3.id3v2_getval(src,['artist','album','title','tracknum'])
         if album=='' :
             album='Unknown'
@@ -471,6 +491,11 @@ def download(tracks, album='', randomize=0, host=-1)  :
     tardir=os.getcwd()
     bn = os.path.basename(tempdir)
 
+
+
+
+
+
     #FOR MAKING TARBALLS
     comptyp='zip'
     if len(tracks)>1:
@@ -492,7 +517,7 @@ def download(tracks, album='', randomize=0, host=-1)  :
             print 'not deleteing. See widgets.py'
         else :
             raise ValueError('comptype is wrong which is silly because it is hardcoded above. Duh')
-        #shutil.rmtree(bn)
+        shutil.rmtree(bn)
 
 
         
