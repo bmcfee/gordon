@@ -171,6 +171,7 @@ class AudioFile(object):
         #get defaults from our class if they are not passed in here
         #this strategy allows us to call read multiple times for same instance and get 
         #different sampling rates, etc
+        #print 'FSTARGET is',fs_target
         if fs_target is not None :
             self.fs_target=fs_target
         if mono is not None :
@@ -225,22 +226,27 @@ class AudioFile(object):
             downsamp=''
             self.fs=self.fs_file    #we trust the sampling rate stored in the file
 
+
+
         #here is our command.
 #        cmd = 'ffmpeg -i %s %s %s -f s16le 2>/dev/null -' % (self._slashify(self.fn),downsamp,timing)
         #jorgeorpinel: is this really necesary? it needs permissions on the original file's dir:
         cmd = 'ffmpeg -i "%s" %s %s -f s16le 2>/dev/null -' % (self.fn, downsamp, timing) #jorgeorpinel: lets 2blequote instead (Windows)
         #jorgeorpinel: NOTE - /dev/null in Windows simply make ffmpeg say "The system cannot find the path specified." to stderr
-        data=self._command_with_output(cmd)
-        data=numpy.fromstring(data,'short')
-        #print 'data.shape',data.shape,cmd
-        x = numpy.zeros(len(data),'float')
-        #print 'tx1',type(x)
-        x[:] = data/float(32768)
-        #print 'tx2',type(x)
+
+
+        #old slow
+        if 0 :
+            data=numpy.fromstring(self._command_with_output(cmd),'short')
+            x = numpy.zeros(len(data),'float')
+            x[:] = data/float(32768)
+        else : #faster ...less memory alloc
+            x=numpy.fromstring(self._command_with_output(cmd),'short').astype('float')/float(32768)
+        
+        
+
         x=x.reshape(-1,self.chans)
-        #print data[0:10]
-        #print 'typex',type(x)
-        #print self.chans,'chans'
+
         if bypass_ffmpeg_times:
             if self.tlen_sec is not None :
                 tlast_sec = self.tlen_sec
@@ -266,9 +272,7 @@ class AudioFile(object):
             x=numpy.mean(x,1)
         assert(len(numpy.shape(x))<= 2)  #better be stereo or mono!
 
-        #print type(x),'before'
         (x,svals) = self._strip_zeros(x)    
-        #print type(x),'after'
         self.x=x
         self.svals=svals
         self.hash=hash        
@@ -306,9 +310,9 @@ class AudioFile(object):
             pylab.ylabel('amplitude')
             pylab.xlabel('time (sec)')
 
-        print 'Shape of signal',self.x.shape,'secs',self.secs,'fs',self.fs
         pylab.show()
-        
+
+
     def _strip_zeros(self,x) :
         """strips zeros from front and or end of x depending on value self.stripzeros"""
         if self.stripvals.count(self.stripzeros)<>1 :
@@ -327,11 +331,8 @@ class AudioFile(object):
             return (x,numpy.zeros(2))
         if not self.stripzeros == 'none':
             #prepare mono abs sequence for checking zerovals
-            if len(numpy.shape(x))>1 :
-                xAbs=abs(numpy.mean(x,1))
-            else:
-                xAbs=abs(x)
-             
+            if len(numpy.shape(x))==1 :
+                x.reshape((-1,1))
             #be sure our sequence is not all zeros (or <self.stripzeros_lim)
             #we will sample from the middle of the file K times. If they're all 0
             #we will take the max. This way we won't always take the max, which is expensive!
@@ -339,42 +340,40 @@ class AudioFile(object):
                 midIdx=int(len(x)/2)
                 takeMax=True
                 for i in range(midIdx,midIdx+10) :
-                    if xAbs[i]>= self.stripzeros_lim :
+                    if numpy.mean(abs(x[i,:])) >= self.stripzeros_lim :
                         takeMax=False
                         break
                 if takeMax :
-                    if xAbs.max()<self.stripzeros_lim :
+                    if abs(x).max()<self.stripzeros_lim :
                         #print 'here',abs(x).max()
                         return([],(len(x),0))
-            
+
         if self.stripzeros == 'leading' or self.stripzeros == 'both' :
             leading_samples=0
-            while xAbs[leading_samples]<self.stripzeros_lim and leading_samples<(len(xAbs)-1) :
+            while numpy.mean(abs(x[leading_samples,:]))<self.stripzeros_lim and leading_samples<(len(x)-1) :
                 #print xAbs[leading_samples],leading_samples,self.stripzeros_lim
                 leading_samples += 1
 
             if leading_samples>0:
-                if len(numpy.shape(x)) == 2 :
-                    x=x[leading_samples:,:]  #stereo                
-                else:
-                    x=x[leading_samples:]    #mono
-                xAbs=xAbs[leading_samples:]    #xAbs is mono
-    
+                x=x[leading_samples:,:]  #stereo                
+
         if self.stripzeros == 'trailing' or self.stripzeros == 'both' :
-            trailing_idx=len(xAbs)-1
-            while xAbs[trailing_idx]<self.stripzeros_lim and trailing_idx>0 :
+            trailing_idx=len(x)-1
+            orig_len=len(x)
+            while numpy.mean(abs(x[trailing_idx,:]))<self.stripzeros_lim and trailing_idx>0 :
                 trailing_idx -= 1
-            if trailing_idx<len(xAbs)-1:
-                if len(numpy.shape(x)) == 2 :
-                    x=x[0:trailing_idx,:]  #stereo
-                else:
-                    x=x[0:trailing_idx]    #mono
-            trailing_samples=len(xAbs)-trailing_idx
+            if trailing_idx<len(x)-1:
+                x=x[0:trailing_idx,:]  #stereo
+            trailing_samples=orig_len-trailing_idx
     
         svals=numpy.zeros(2)
         svals[0]=leading_samples
         svals[1]=trailing_samples
-        return (x,svals)
+
+        if x.shape[1]==1 :
+            x.reshape((-1,0))
+
+        return (x,svals) 
 
     def _slashify(self,fname) : #todo: this is not being used now
         """slashify filename to be safe for calling os.popen(cmd)"""
@@ -398,12 +397,16 @@ class AudioFile(object):
 #            cmd = unicode(cmd, 'utf-8') #jorgeorpinel: this may cause UnicodeDecodeError
             cmd = '%s' % cmd
         print "audio.py: Running cmd '"+cmd+"' from", os.getcwd() # debug -------
-        child = subprocess.Popen(cmd, shell=True, bufsize=-1, stdout=subprocess.PIPE).stdout
-        dat = child.read() # dat has the cmd line output
-#        if len(dat)<100 :
-        #print dat[0:40] 
-        #data = child.read()
-        err = child.close()
+        #child = subprocess.Popen(cmd, shell=True, bufsize=-1, stdout=subprocess.PIPE).stdout
+        #dat = child.read() # dat has the cmd line output
+        #err = child.close()
+
+
+        process = subprocess.Popen(cmd, shell=True, bufsize=-1, stdout=subprocess.PIPE)
+        (dat,err)=process.communicate()
+        #dat = child.read() # dat has the cmd line output
+        #err = child.close()
+
         if err<>None :
             print 'Error',err,'in running command',cmd
         return dat # stdout command output ------------------------------ return dat
@@ -443,8 +446,16 @@ if __name__=='__main__' :
         else :
             break
         sys.argv.pop(1)
-    
+
+    import time
+    tic=time.time()
     af = AudioFile(sys.argv[1],fs_target=fs_target,mono=mono)
+
+    #print af.get_secs_zsecs()
+    #print time.time()-tic,'for total'
+
+
+
     af.read()
     af.plot()
 
