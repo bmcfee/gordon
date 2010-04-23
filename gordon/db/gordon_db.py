@@ -712,37 +712,59 @@ def update_album_trackcounts() :
     session.flush()
 
 def delete_duplicate_mb_albums(gordonDir=DEF_GORDON_DIR) :
-    """Identify and delete duplicate albums.
-
+    """Identify and delete duplicate albums
     Only delete those albums labeled by musicbrainz.  We always keep
     the biggest (in bytes) complete album songs / features are
-    preserved in offline directory.  See the Track class in model.py
+    preserved in offline directory.  If the track times are sufficiently different from the
+    published track times, we skip and recommend user delete by hand. This is to avoid deleting
+    a good import while leaving behind an erroneous import.  See the Track class in model.py
     """
     #cannot figure out how to do this without a select :
     s = select([album.c.mb_id, func.count(album.c.mb_id)]).group_by(album.c.mb_id).having(func.count(album.c.mb_id)>1)
     dupes=session.execute(s).fetchall()
+
+    tt_std=200. #hand set in matcher. But not so important..
+    import pg
+    dbmb = pg.connect('musicbrainz_db',user=DEF_DBUSER,passwd=DEF_DBPASS,host=DEF_DBHOST)
     for [mb_id,count] in dupes :
-        dupealbums = Album.query.filter(func.length(Album.mb_id)>10).filter_by(mb_id=mb_id)
-        
-        if dupealbums.count()==0 :
-            print "Skipping mb_id",mb_id
+        if len(mb_id.strip())<10 :
             continue
-        print mb_id
+        dupealbums = Album.query.filter(func.length(Album.mb_id)>10).filter_by(mb_id=mb_id)
+
+
+        #look up track times. This requires two queries. One to translate the mb_id (their published text key)
+        #into an mb_numeric_id (their internal key). Then the query against the mb_numeric_id
+        mb_numeric_id = dbmb.query("SELECT R.id FROM album as R, albummeta as AM WHERE R.gid = '%s' AND  AM.id = R.id" % mb_id).getresult()[0][0]
+        q="""SELECT T.length  FROM track as T INNER JOIN albumjoin as AJ ON T.id = AJ.track 
+             INNER JOIN artist as A ON T.artist = A.id WHERE AJ.album = %i ORDER BY AJ.sequence""" % mb_numeric_id
+        mbtrackresult =array(dbmb.query(q).getresult())
+        mbtimes=numpy.array(mbtrackresult[:,]).flatten()/1000.
         bytes=list()
-        
+        timeterms=list()
         for a in dupealbums :
+            ttimes=numpy.array(map(lambda t: t.secs,a.tracks))
+            df=abs(ttimes-mbtimes)
+            time_term=numpy.mean(numpy.exp(-(mbtimes/1000.0-ttimes/1000.0)**2/tt_std))
             currbytes=0
             for t in a.tracks :
                 currbytes+=t.bytes
             bytes.append(currbytes)
-            print '  ',a,currbytes
+            timeterms.append(time_term)
+            
         
+    
+    
         keepidx=argmax(array(bytes))
-        print 'Keeping',keepidx
-        for (idx,a) in enumerate(dupealbums) :
-            if idx<>keepidx :
-                print 'Deleting',a
-                delete_album(a)
+        if timeterms[keepidx]<.9 :
+            print 'Not deleting',dupealbums[keepidx] ,'because the time match is not very good. Do so by hand!'
+            print '  Times to delete:',numpy.array(map(lambda t: t.secs,dupealbums[keepidx].tracks))
+            print '  Times from MBrZ:',mbtimes
+        else :
+            for (idx,a) in enumerate(dupealbums) :
+                if idx<>keepidx :
+                    print 'Deleting',a,timeterms[idx]
+                    delete_album(a)
+    dbmb.close()
 
 def check_nulls(gordonDir=DEF_GORDON_DIR) :
     """Finds instances where trackcount, Artist.mb_id, Track.mb_id, Album.mb_id are null.
