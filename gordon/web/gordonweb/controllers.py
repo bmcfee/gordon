@@ -787,7 +787,7 @@ class Root(controllers.RootController):
         for k in kw :
             (id,mb_id)=k.split('SEP')
             mb_id=mb_id.replace('H','-')
-            mbrainz_resolver.update_album(rid=id,mb_id=mb_id,use_recommended_track_order=True,doit=True)
+            mbrainz_resolver.update_album(id=id,mb_id=mb_id,use_recommended_track_order=True,doit=True)
             st="%s\nUpdated %s" % (st,id)
         flash(st)
         redirect("/resolve_viewalbums")
