@@ -450,20 +450,7 @@ def download(tracks, album='', randomize=0, host=-1)  :
 
 
     
-    cwd=os.getcwd()
-    os.chdir(tmpdir)
-    oldfiles=glob.glob('gordon_download*.zip')
-    for o in oldfiles:
-        stats=os.stat(o)
-        lastmod=time.localtime(stats[8])
-        df=time.mktime(time.localtime())-time.mktime(lastmod)
-        if df>43200 : #12 hours
-            print 'Deleting',o
-            os.unlink(o)
-        else :
-            print 'Leaving',o
-
-
+    
     msg=''
     ctr=1
     for t in tracks :
@@ -530,9 +517,23 @@ def download(tracks, album='', randomize=0, host=-1)  :
     os.chdir(cwd)
     print 'outfn %s name %s' % (outfn,os.path.basename(outfn))
 
-    return cherrypy.lib.cptools.serveFile(path=outfn,contentType=typ,disposition='attachment',name=os.path.basename(outfn))  #from cherrypy.lib.static
+    #return cherrypy.lib.cptools.serveFile(path=outfn,contentType=typ,disposition='attachment',name=os.path.basename(outfn))  #from cherrypy.lib.static
+    return deletable_file(outfn,typ,os.path.basename(outfn))
     
     
+def deletable_file(fname,typ,name) :
+    """Serves and then deletes a zip file"""
+    cherrypy.response.headers['Content-Type'] = typ
+    cherrypy.response.headers["Content-Disposition"] = 'attachment; filename="%s"' % (name)
+    def content():
+        zipfile=open(fname,'r+b')
+        yield zipfile.read()
+        zipfile.close()
+        #for chunk in zipfile.read(65536):
+        #    yield chunk
+        os.unlink(fname)
+    return content()
+deletable_file._cp_config = {'response.stream': True}
 
 
 
