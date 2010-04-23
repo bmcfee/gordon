@@ -69,6 +69,7 @@ class GordonResolver(object) :
         (win_album,win_mb_id,(conf,conf_album,conf_artist,conf_track,conf_time),reorder_dict)=self._closest_mb_album(id,mbart=mbart,mbart_lc_list=mbart_lc_list)
 
 
+    
         #turn reorder dictionary to string
         reorder_str = str(reorder_dict)
         #get other values
@@ -508,6 +509,7 @@ class GordonResolver(object) :
                 artist_terms=ones((len(mbartists)))
                 k=len(mbartists)
 
+
             else :  #go a hunting'
                 if len(mbart)==0 :
                     #lower case artists names ordered by artist id
@@ -611,6 +613,9 @@ class GordonResolver(object) :
 
         qcnt=0
         rcnt=0
+
+
+        print 'artists',artists_results
 
         for tgt_artist in artists_results.values() :
             for a in tgt_artist :  
@@ -866,7 +871,7 @@ class GordonResolver(object) :
         return s.ratio()
 
 
-    def _get_close_matches(self,word, possibilities, n=3, cutoff=0):
+    def _get_close_matches_orig(self,word, possibilities, n=3, cutoff=0):
 
         tic=time.time()
         #taken from difflib to return idx of winner as well as its score
@@ -885,15 +890,10 @@ class GordonResolver(object) :
                s.ratio() >= cutoff:
                 result.append((s.ratio(), idx))
 
-
-
         #replace words with indexes
-
         # Move the best scorers to head of list
         result = heapq.nlargest(n, result)
         # Strip scores for the best n matches
-
-
 
         #ugly
         scores=list()
@@ -902,7 +902,51 @@ class GordonResolver(object) :
             (score,idx)=r
             scores.append(score)
             idxs.append(idx)
+        return (idxs,scores)
 
+
+    def _get_close_matches(self,word, possibilities, n=3, cutoff=0):
+        """This version tries to handle The appropriately"""
+
+        tgt_the=word.startswith('the ') #does the target word start with "the"?
+        #if not tgt_the :
+        #    for i in range(len(possibilities)) :
+        #        if possibilities[i].startswith('the ') :
+        #            possibilities[i]=possibilities[i][3:] #strip off the "the" but leave a space
+
+        tic=time.time()
+        #taken from difflib to return idx of winner as well as its score
+        if not n >  0:
+            raise ValueError("n must be > 0: %r" % (n,))
+        if not 0.0 <= cutoff <= 1.0:
+            raise ValueError("cutoff must be in [0.0, 1.0]: %r" % (cutoff,))
+        result = []
+        s = DL.SequenceMatcher()
+        s.set_seq2(word)
+        for idx in range(len(possibilities)) :
+            x=possibilities[idx]
+
+            if not tgt_the and x.startswith('the ') :
+                s.set_seq1(x[3:])
+            else :
+                s.set_seq1(x)
+            if s.real_quick_ratio() >= cutoff and \
+               s.quick_ratio() >= cutoff and \
+               s.ratio() >= cutoff:
+                result.append((s.ratio(), idx))
+
+        #replace words with indexes
+        # Move the best scorers to head of list
+        result = heapq.nlargest(n, result)
+        # Strip scores for the best n matches
+
+        #ugly
+        scores=list()
+        idxs=list()
+        for r in result :
+            (score,idx)=r
+            scores.append(score)
+            idxs.append(idx)
         return (idxs,scores)
 
 
