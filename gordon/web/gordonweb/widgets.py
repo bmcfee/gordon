@@ -504,41 +504,26 @@ def download(tracks, album='', randomize=0, host=-1)  :
             print 'not deleteing. See widgets.py'
         else :
             raise ValueError('comptype is wrong which is silly because it is hardcoded above. Duh')
-        shutil.rmtree(bn)
-
-
-        
+        shutil.rmtree(bn)        
     else :
         #here we leave the directory because it contains our only file
         typ='audio/mpeg'
         outfn=tgt
 
-    print 'Removing',bn
     os.chdir(cwd)
-    print 'outfn %s name %s' % (outfn,os.path.basename(outfn))
-
-    #return cherrypy.lib.cptools.serveFile(path=outfn,contentType=typ,disposition='attachment',name=os.path.basename(outfn))  #from cherrypy.lib.static
+    #return cherrypy.lib.cptools.serveFile(path=outfn,contentType=typ,disposition='attachment',name=os.path.basename(outfn))
     return deletable_file(outfn,typ,os.path.basename(outfn))
-    
     
 def deletable_file(fname,typ,name) :
     """Serves and then deletes a zip file"""
     cherrypy.response.headers['Content-Type'] = typ
     cherrypy.response.headers["Content-Disposition"] = 'attachment; filename="%s"' % (name)
-    def content():
-        zipfile=open(fname,'r+b')
-        yield zipfile.read()
-        zipfile.close()
-        #for chunk in zipfile.read(65536):
-        #    yield chunk
-        os.unlink(fname)
-    return content()
-deletable_file._cp_config = {'response.stream': True}
-
-
-
-
-       
+    zipfile=open(fname,'r+b')
+    for line in zipfile:
+        yield line
+    zipfile.close()
+    os.unlink(fname)
+    
 
 def playlist(tracks, album='', randomize=0, host=-1)  :
     if host==-1:
