@@ -1,19 +1,18 @@
 Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
 
-- Current work on audio_intake.py : APR 5-12 WEEK                           LATE
+- Current work on audio_intake.py : APR 5-12 WEEK                             OK
 
  * read text file to extract wav tags - this means work wavs with ffmpeg      OK
- - degrade to python 2.5 and sqlalchemy 0.5
- - hg tag 0.2 it
- * extract tags from all taggy formats                                   CURRENT
+ * work with aif                                                             XXX
+ * extract tags from all taggy formats                                     EXTRA
 
-1 Immediate future : projected APR 23                                    ON-TIME
+1 Immediate future : projected APR 23                                       LATE
 
  * support multiple collections with the same audio files                CURRENT
 
-2 Late spring : projected MAY 21ish                                         ----
+2 Late spring : projected MAY 21ish                                      GETTING THERE
 
- * implement/clean-up _feature_ extraction                                     -
+ * implement/clean-up _feature_ extraction                               CURRENT
 
 3 Summer I : projected 2?th of JUNE                                         ----
 

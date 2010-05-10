@@ -55,18 +55,18 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
 
 
     (filepath, filename) = os.path.split(mp3)
-    log.debug('Adding mp3 file "%s" of "%s" album by %s - add_mp3()', filename,
+    log.debug('    Adding mp3 file "%s" of "%s" album by %s - add_mp3()', filename,
               album, artist)    
     
     # validations
     
     if len(id3_dict) == 0 :
         #todo: currently cannot add singleton mp3s. Need an album which is defined in id3_dict
-        log.error('ERROR: Cannot add "%s" because it is not part of an album',
+        log.error('    ERROR: Cannot add "%s" because it is not part of an album',
                   filename)
         return -1 # didn't add ------------------------------------------ return
     if not os.path.isfile(mp3) :
-        log.debug('Skipping %s because it is not a file', filename)
+        log.debug('    Skipping %s because it is not a file', filename)
         return -1 # not a file ------------------------------------------ return
 
 
@@ -76,7 +76,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
 #    try: #get track length
 #        eyed3_secs = int(id3.mp3_gettime(mp3)) #from mp3_eyed3 #jorgeorpinel: eyed3_secs unused 
 #    except :
-#        log.error('ERROR: Could not read time from mp3 %s', mp3)
+#        log.error('    ERROR: Could not read time from mp3 %s', mp3)
 #        eyed3_secs = -1
 
     #we get odd filenames that cannot be easily encoded.  This seems to come 
@@ -114,7 +114,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
     
     add(track)
     commit() #to get our track id we need to write this record
-    log.debug('Wrote track record %s to database', track.id)
+    log.debug('    Wrote track record %s to database', track.id)
 
     if fast_import :
         #try to get the seconds from ffmpeg
@@ -134,23 +134,23 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
 
     #This is a bit confusing. For backwards compat #todo: clean up DB relationships
     if artist:
-        log.debug('Linking to artist %s', artist)
+        log.debug('    Linking to artist %s', artist)
         track.artist = artist.name
         track.artists.append(artist)
 
     if album:
-        log.debug('Linking to album %s', album)
+        log.debug('    Linking to album %s', album)
         track.album = album.name
         track.albums.append(album)
 
     commit() # save (again) the track record (this time)
-    log.debug('* Wrote album and artist additions to track into database')
+    log.debug('    * Wrote album and artist additions to track into database')
 
     #copy the file to the Gordon instal audio/feature data directory
     
     tgt = os.path.join(gordonDir, 'audio', 'main', track.path)
     make_subdirs_and_copy(filename, tgt)
-    log.debug('Copied mp3 "%s" to %s', filename, tgt)
+    log.debug('    Copied mp3 "%s" to %s', filename, tgt)
 
     #stamp the file ("TID n" as an ID3v2 commment)
     id3.id3v2_putval(tgt, 'tid', 'T%i' % track.id) # writes on new audio file (the copy)
@@ -158,7 +158,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
     #we update id3 tags in mp3 if necessary (from local MusicBrainz DB, when no info found)
     if track.otitle <> track.title or track.oartist <> track.artist or track.oalbum <> track.album or track.otracknum <> track.tracknum :
         #todo: install musicbrainz_db pgdb first!
-        log.debug('(NOT) Trying to update_mp3_from_db %s %s', track.id,
+        log.debug('    (NOT) Trying to update_mp3_from_db %s %s', track.id,
                   os.path.join(gordonDir, 'audio', 'main'))
 #        from gordon.db.mbrainz_resolver import GordonResolver
 #        gordonResolver = GordonResolver()
@@ -169,7 +169,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
 #            pass
 
     #if not fast_import :
-#        log.debug('Calculating features for track %s', track.id)
+#        log.debug('    Calculating features for track %s', track.id)
 #        update_features(track.id) #jorgeorpinel: what is this?
     pass # for stupid Eclipse correct folding after comments
 
@@ -184,17 +184,17 @@ def add_uncomp(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_
     """
     (path, filename) = os.path.split(wav) #@UnusedVariable
     (fname, ext) = os.path.splitext(filename) #@UnusedVariable
-    log.debug('Adding uncompressed file "%s" of "%s" album by %s - add_uncomp()', filename, album, artist)
+    log.debug('    Adding uncompressed file "%s" of "%s" album by %s - add_uncomp()', filename, album, artist)
     
     
     # validations
     
     if len(tag_dict) == 0 :
         #todo: currently cannot add singleton files. Need an album which is defined in tag_dict
-        log.error('ERROR: Cannot add "%s" because it is not part of an album', filename)
+        log.error('    ERROR: Cannot add "%s" because it is not part of an album', filename)
         return -1 # didn't add ------------------------------------------ return
     if not os.path.isfile(wav) :
-        log.debug('Skipping %s because it is not a file', filename)
+        log.debug('    Skipping %s because it is not a file', filename)
         return -1 # not a file ------------------------------------------ return
 
     # required data
@@ -231,7 +231,7 @@ def add_uncomp(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_
     
     add(track) # needed to get a track id
     commit() #to get our track id we need to write this record
-    log.debug('Wrote track record %s to database', track.id)
+    log.debug('    Wrote track record %s to database', track.id)
 
     if fast_import :
         track.secs = -1
@@ -244,23 +244,23 @@ def add_uncomp(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_
 
     # links track to artist & album in DB
     if artist:
-        log.debug('Attaching artist %s', artist)
+        log.debug('    Attaching artist %s', artist)
         track.artist = artist.name
         track.artists.append(artist)
     if album:
-        log.debug('Attaching album %s', album)
+        log.debug('    Attaching album %s', album)
         track.album = album.name
         track.albums.append(album)
 
     commit() # save (again) the track record (this time having the track id)
-    log.debug('* Wrote album and artist additions to track into database')
+    log.debug('    * Wrote album and artist additions to track into database')
 
 
     #copy the file to the Gordon instal audio/feature data directory
     
     tgt = os.path.join(gordonDir, 'audio', 'main', track.path)
     make_subdirs_and_copy(filename, tgt)
-    log.debug('Copied uncompressed "%s" to %s', filename, tgt)
+    log.debug('    Copied uncompressed "%s" to %s', filename, tgt)
 
 
 def _prompt_aname(albumDir, tags_dicts, albums, cwd) :
@@ -310,6 +310,15 @@ def _get_id3_dict(mp3) :
     except :
         id3_dict['tracknum'] = 0
     id3_dict['compilation'] = compilation
+    
+    # check that theres info. in the ID3 tags 
+    empty = True # if this remains True, we have empty tags [same as _empty_tags()]
+    for tag in id3_dict:
+        if tag:
+            empty = False
+            break
+    
+    id3_dict['empty'] = empty
     return id3_dict
 
 def _read_csv_tags(cwd, csv):
@@ -327,16 +336,26 @@ def _read_csv_tags(cwd, csv):
             if line[0][0] == '#' : continue
             
             #save title, artist, album, tracknum, compilation in tags[<file name>]
+            line[0] = line[0].strip()
             tags[line[0]] = dict()
-            tags[line[0]]['title']  = line[1]
-            tags[line[0]]['artist'] = line[2]
-            tags[line[0]]['album']  = line[3]
+            tags[line[0]]['title']  = line[1].strip()
+            tags[line[0]]['artist'] = line[2].strip()
+            tags[line[0]]['album']  = line[3].strip()
             try: tags[line[0]]['tracknum'] = int(line[4])
             except: tags[line[0]]['tracknum'] = 0
-            tags[line[0]]['compilation'] = line[5]
+            tags[line[0]]['compilation'] = line[5].strip()
     except IOError:
         log.error('Error: Couldn\'t open "%s"', csv)
 
+    return tags
+
+def _empty_tags():
+    tags = dict()
+    tags['title'] = ''
+    tags['artist'] = ''
+    tags['album'] = ''
+    tags['tracknum'] = 0
+    tags['compilation'] = ''
     return tags
 
 def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, prompt_aname = False, fast_import = False):
@@ -345,7 +364,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
         * we can't just add each track individually. We have to make Artist ids for all artists
         * we will presume that 2 songs by same artist string are indeed same artist
     """
-    log.debug('Adding album %s - add_album()', albumDir)
+    log.debug('  Adding album %s - add_album()', albumDir) #                    debug
     
     tags_dicts = dict()
     albums = set()
@@ -353,38 +372,34 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     
     cwd = os.getcwd()
     os.chdir(albumDir)
-    #todo: check the actual MIME type, not only the extensions
+    #todo: check the actual MIME/type, not only the extensions, or somehow confirm content (eg with ffmpeg error)
     for filename in os.listdir('.') :
         (base, ext) = os.path.splitext(filename) #@UnusedVariable
         if not os.path.isdir(os.path.join(cwd, filename)) :
-            log.debug('Checking "%s" ...', filename)
+            log.debug('  Checking "%s" ...', filename) #                        debug
             csvtags = False
+            
             if ext.lower() == '.mp3' : # gets ID3 tags from mp3s
-                id3tags = _get_id3_dict(filename)
-                log.debug('%s is MP3 w/ ID3 tags', filename, id3tags)
-                tags_dicts[filename] = id3tags
-                albums.add(id3tags['album'])
-                artists.add(id3tags['artist'])
+                log.debug('  %s is MP3', filename) #                            debug
+                tags_dicts[filename] = _get_id3_dict(filename)
+                if not tags_dicts[filename]['empty']: # non empty tags obtained :)
+                    log.debug('  .. w/ ID3 tags', tags_dicts[filename]) #       debug
+                    del(tags_dicts[filename]['empty'])
                 tags_dicts[filename]['func'] = 'add_mp3'
             elif ext.lower() in ['.wav', '.aif', '.aiff']: # since this is wav/aif, use possible csv tags file
                 if not csvtags : csvtags = _read_csv_tags(os.getcwd(), 'tags.csv')
-                log.debug('%s is %s', filename, ext)
-                try:
-                    if csvtags[filename] : print 'w/ CSV tags', csvtags[filename] # debug
+                log.debug('  %s is %s', filename, ext) #                        debug
+                try: # if csvtags[filename] is not empty:
+                    if csvtags[filename] : log.debug('  .. w/ CSV tags (tags.csv)', csvtags[filename]) # debug
                     tags_dicts[filename] = csvtags[filename]
-                except: #make empty tags on the fly
-                    log.debug('... nothing found in tags.csv')
-                    tags_dicts[filename] = dict()
-                    tags_dicts[filename]['title'] = filename
-                    tags_dicts[filename]['artist'] = ''
-                    tags_dicts[filename]['album'] = ''
-                    tags_dicts[filename]['tracknum'] = 0
-                    tags_dicts[filename]['compilation'] = ''
-                albums.add(tags_dicts[filename]['album'])
-                artists.add(tags_dicts[filename]['artist'])
+                except: # make empty tags on the fly
+                    tags_dicts[filename] = _empty_tags()
                 tags_dicts[filename]['func'] = 'add_uncomp'
             else:
-                log.debug('%s is not a supported audio file format', filename)
+                log.debug('  %s is not a supported audio file format', filename) #debug
+                
+            albums.add(tags_dicts[filename]['album'])
+            artists.add(tags_dicts[filename]['artist'])
                 
             #todo: work with other non-mp3 audio files/tags!
     
@@ -392,10 +407,10 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     
     if len(artists) == 0 :
         os.chdir(cwd)
-        log.info('Nothing to add')
+        log.info('  Nothing to add') #                                          debug (info)
         return  # no songs ---------------------------------------------- return
     else:
-        log.debug('%d artists in directory: %s', len(artists), artists)
+        log.debug('  %d artists in directory: %s', len(artists), artists) #     debug
     
     if len(albums) <> 1 :  # if more than 1 album found found in ID3 tags
         if prompt_aname :
@@ -404,14 +419,13 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
             if album_name == False : return # why? see _prompt_aname() -- return
         else :
             os.chdir(cwd)
-            log.info('Not adding %d album names in album %s %s',
-                     len(albums), albumDir, str(albums))
+            log.info('  Not adding %d album names in album %s %s', len(albums), albumDir, str(albums)) #debug (info)
             return  # more than one album in directory ------------------ return
     else : # there's only one album in the directory (as should be)
         album_name = albums[0]
     
     #add our album to Album table
-    log.debug('Album has %d recordings', len(tags_dicts))
+    log.debug('  Album has %d recordings', len(tags_dicts)) #                   debug
     albumrec = Album(name = album_name, trackcount = len(tags_dicts), a='1') #jorgeorpinel: a='1' ?
     #eckdoug: what's a='1' doing? That is not in my original code. I dont know what it does. 
 
@@ -420,7 +434,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     for artist in set(artists) :
         match = Artist.query.filter_by(name = artist) #@UndefinedVariable #todo: remove this stupid Eclipse
         if match.count() == 1 :
-            log.debug('Matched %s %s in database', artist, match[0])
+            log.debug('  Matched %s %s in database', artist, match[0]) #        debug
             artist_dict[artist] = match[0]
             #eckdoug: TODO what happens if match.count()>1? This means we have multiple artists in db with same 
             #name. Do we try harder to resolve which one? Or just add a new one.  I added a new one (existing code)
@@ -444,17 +458,16 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     for file in tags_dicts.keys() :
         # calls add_mp3(), add_uncomp(), or other...
         addfunction = tags_dicts[file].pop('func')
-        print file, addfunction
         eval(addfunction + "(file, source, gordonDir, tags_dicts[file], artist_dict[tags_dicts[file]['artist']], albumrec, fast_import)")
-        log.debug('Added "%s"', file)
+        log.debug('  Added "%s"!', file) #                                      debug
 
     #now update our track counts
 #    print artist_dict
     for aname, artist in artist_dict.iteritems() :
         artist.update_trackcount()
-        log.debug('Updated trackcount for %s', artist)
+        log.debug('  * Updated trackcount for artist %s', artist) #               debug
     albumrec.update_trackcount()
-    log.debug('Updated trackcount for %s', albumrec)
+    log.debug('  * Updated trackcount for album %s', albumrec) #                  debug
     commit()
 
     os.chdir(cwd)
@@ -484,7 +497,7 @@ def add_collection(location, source = str(datetime.date.today()), prompt_incompl
 #        return # -------------------------------------------------------- return
     
     os.chdir(location)
-    log.debug('Looking for a collection in %s. - add_collection()', os.sep)
+    log.debug('Looking for a collection in %s. - add_collection()', os.sep) #   debug
 
     #handle root as a potential album
     if not iTunesDir :
@@ -492,7 +505,7 @@ def add_collection(location, source = str(datetime.date.today()), prompt_incompl
             print 'Would import .' + os.sep
         else :
             add_album('.', gordonDir = gordonDir, source = source, prompt_aname = prompt_incompletes, fast_import = fast_import)
-            log.debug('Proccessed %s.', os.sep)
+            log.debug('Proccessed %s.', os.sep) #                               debug
 
     for root, dirs, files in os.walk('.') :
         if iTunesDir and len(root.split(os.sep)) <> 2 :
@@ -504,7 +517,7 @@ def add_collection(location, source = str(datetime.date.today()), prompt_incompl
                 print 'Would import', root + os.sep + dir
             else :
                 add_album(os.path.join(root, dir), gordonDir = gordonDir, source = source, prompt_aname = prompt_incompletes, fast_import = fast_import)
-                log.debug('Added album %s', os.path.join(root, dir))
+                log.debug('Added album %s', os.path.join(root, dir)) #          debug
 
 #    #remove empty dirs #jorgeorpinel: no! why? it only works on linux anyway
 #    if doit:
@@ -532,10 +545,8 @@ def _die_with_usage() :
     sys.exit(0)                                                    # sys.exit(0)
 
 if __name__ == '__main__':
-    print 'audio_intake.py: Gordon audio intake script running...'
     if len(sys.argv) < 3:
         _die_with_usage()                                       # -> sys.exit(0)
-
 
     prompt_incompletes=True
     fast_import=False

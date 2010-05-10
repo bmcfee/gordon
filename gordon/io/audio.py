@@ -30,7 +30,7 @@ class AudioFile(object):
     Reading can be done at native sampling rate or at a target rate. You can also read random chunk of file using tstart_sec and tlen_sec. 
     Finally leading and trailing zeros can be stripped from the file """
     stripvals=['none', 'both', 'leading', 'trailing']
-    #todo: use myme/types...
+    #todo: use mime/types...
     filetypes=['.wav', '.aif', '.aiff', '.m4a', '.mp3', '.au', '.flac'] #todo: apply them, add more
     
     def __init__(self,fn, mono=False,tlast=-1,tstart_sec=None,tlen_sec=None,fs_target=-1, stripzeros='none',stripzeros_lim=0.0001):
