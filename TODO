@@ -6,13 +6,10 @@ issued - Get rid of as many "from x import *" as possible, especially in the
 issued - Replace prints with logging
 
  - Remove specific references to mp3s and eyeD3 outside of gordon/io/mp3_eyeD3.py
-DONE   - MEANS TO IMPORT META-DATA OF ALL AUDIO FORMATS, EVEN WAV/AIFF
 issued   - ffmpeg can read way more audio formats
-issued   - eventually we will move away from eyeD3 to TagPy/TagLib (no Windows impl?)
+issued   - eventually we will move away from eyeD3 to TagPy/TagLib
            to get support for metadata embedded in other file formats
  
-roadmapped - Means to add synched *annotations* related to the audio
-
  - Look again at the database. Specifically, what do we store in a Track? (there are some extra fields I think)
    and also how do we handle 
       : deletes of all tracks in an album 
@@ -26,7 +23,6 @@ roadmapped - Means to add synched *annotations* related to the audio
 
  - Write unit tests (!!)
 
-DONE - Fix bugs in audio_intake.py
-issued - doesn't exit gracefully when it can't write tags, so the tracks
+issued - audio_intake.py doesn't exit gracefully when it can't write tags, so the tracks
          are added to the database, but the mp3s are never copied
      

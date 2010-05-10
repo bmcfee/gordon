@@ -63,7 +63,7 @@ except :  #this will set up a scoped session using native sqlalchemy (no turboge
     print 'model.py: intialized external connection to gordon database on %s  (SQL Alchemy ver. %s)' % (config.DEF_DBHOST, sqlalchemy.__version__)
     AUTOCOMMIT=True
     
-    #jorgeorpinel: this is a SQLA 0.6 legacy workaround found at http://www.sqlalchemy.org/trac/wiki/UsageRecipes/SessionAwareMapper
+    #jorgeorpinel: this is a SQLA 0.5+ legacy workaround found at http://www.sqlalchemy.org/trac/wiki/UsageRecipes/SessionAwareMapper
     from sqlalchemy.orm import mapper as sqla_mapper
     def session_mapper(scoped_session):
         def mapper(cls, *arg, **kw):

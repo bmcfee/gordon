@@ -30,8 +30,6 @@ place, only verbose would-dos
 
 import os, datetime, logging, stat, sys
 
-log = logging.getLogger('gordon.audio_intake')
-
 from csv import reader
 
 from gordon.db.model import add, commit, Album, Artist, Track
@@ -40,6 +38,9 @@ from gordon.io import mp3_eyeD3 as id3
 from gordon.io import AudioFile
 
 from gordon.db.config import DEF_GORDON_DIR
+
+
+log = logging.getLogger('gordon.audio_intake') # No handlers could be found for logger "gordon.audio_intake"
 
 
 def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, id3_dict = dict(), artist = None, album = None, fast_import = False) :
@@ -172,26 +173,25 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
 #        update_features(track.id) #jorgeorpinel: what is this?
     pass # for stupid Eclipse correct folding after comments
 
-def add_wav(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, tag_dict = dict(), artist = None, album = None, fast_import = False) :
-    '''Add wav with filename <wav> to database
+def add_uncomp(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, tag_dict = dict(), artist = None, album = None, fast_import = False) :
+    """Add uncompressed wav/aif with filename <wav> to database
          source -- audio files data source
          gordonDir -- main Gordon directory
          tag_dict -- dictionary of key,val tag pairs - See add_album(...).
          artist -- The artist for this track. An instance of Artist. None if not present
          album  -- The album for this track. An instance of Album. None if not present
          fast_import -- If true, do not calculate strip_zero length. Defaults to False
-    '''
-    (path, filename) = os.path.split(wav)
-    log.debug('Adding wav file "%s" of "%s" album by %s - add_wav()', filename,
-              album, artist)
+    """
+    (path, filename) = os.path.split(wav) #@UnusedVariable
+    (fname, ext) = os.path.splitext(filename) #@UnusedVariable
+    log.debug('Adding uncompressed file "%s" of "%s" album by %s - add_uncomp()', filename, album, artist)
     
     
     # validations
     
     if len(tag_dict) == 0 :
         #todo: currently cannot add singleton files. Need an album which is defined in tag_dict
-        log.error('ERROR: Cannot add "%s" because it is not part of an album',
-                  filename)
+        log.error('ERROR: Cannot add "%s" because it is not part of an album', filename)
         return -1 # didn't add ------------------------------------------ return
     if not os.path.isfile(wav) :
         log.debug('Skipping %s because it is not a file', filename)
@@ -240,7 +240,7 @@ def add_wav(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
         a = AudioFile(filename)
         [track.secs, track.zsecs] = a.get_secs_zsecs()
 
-    track.path = u'%s' % get_tidfilename(track.id, 'wav') # creates path to insert in track
+    track.path = u'%s' % get_tidfilename(track.id, ext[1:]) # creates path to insert in track
 
     # links track to artist & album in DB
     if artist:
@@ -260,7 +260,7 @@ def add_wav(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
     
     tgt = os.path.join(gordonDir, 'audio', 'main', track.path)
     make_subdirs_and_copy(filename, tgt)
-    log.debug('Copied wav "%s" to %s', filename, tgt)
+    log.debug('Copied uncompressed "%s" to %s', filename, tgt)
 
 
 def _prompt_aname(albumDir, tags_dicts, albums, cwd) :
@@ -353,22 +353,22 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     
     cwd = os.getcwd()
     os.chdir(albumDir)
-    addfunction = False
-    #todo: have a list of supported formats and check the actual MIME type, not only the extension
+    #todo: check the actual MIME type, not only the extensions
     for filename in os.listdir('.') :
+        (base, ext) = os.path.splitext(filename) #@UnusedVariable
         if not os.path.isdir(os.path.join(cwd, filename)) :
             log.debug('Checking "%s" ...', filename)
             csvtags = False
-            if filename.lower().endswith('.mp3') : # gets ID3 tags from mp3s
+            if ext.lower() == '.mp3' : # gets ID3 tags from mp3s
                 id3tags = _get_id3_dict(filename)
                 log.debug('%s is MP3 w/ ID3 tags', filename, id3tags)
                 tags_dicts[filename] = id3tags
                 albums.add(id3tags['album'])
                 artists.add(id3tags['artist'])
-                addfunction = 'add_mp3'
-            elif filename.lower().endswith('.wav') :
+                tags_dicts[filename]['func'] = 'add_mp3'
+            elif ext.lower() in ['.wav', '.aif', '.aiff']: # since this is wav/aif, use possible csv tags file
                 if not csvtags : csvtags = _read_csv_tags(os.getcwd(), 'tags.csv')
-                log.debug('%s is WAV', filename)
+                log.debug('%s is %s', filename, ext)
                 try:
                     if csvtags[filename] : print 'w/ CSV tags', csvtags[filename] # debug
                     tags_dicts[filename] = csvtags[filename]
@@ -382,10 +382,11 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
                     tags_dicts[filename]['compilation'] = ''
                 albums.add(tags_dicts[filename]['album'])
                 artists.add(tags_dicts[filename]['artist'])
-                addfunction = 'add_wav'
-            log.debug('%s is not a supported audio file format', filename)
-            
-        #todo: work with other non-mp3 audio files/tags!
+                tags_dicts[filename]['func'] = 'add_uncomp'
+            else:
+                log.debug('%s is not a supported audio file format', filename)
+                
+            #todo: work with other non-mp3 audio files/tags!
     
     albums = list(albums)
     
@@ -441,9 +442,10 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
 
     #now add our tracks to album
     for file in tags_dicts.keys() :
-        tag_dict = tags_dicts[file] #@UnusedVariable becaue it is used at the following eval() call:
-        # calls add_mp3(), add_wav(), or other
-        eval(addfunction+"(file, source, gordonDir, tag_dict, artist_dict[tag_dict['artist']], albumrec, fast_import)")
+        # calls add_mp3(), add_uncomp(), or other...
+        addfunction = tags_dicts[file].pop('func')
+        print file, addfunction
+        eval(addfunction + "(file, source, gordonDir, tags_dicts[file], artist_dict[tags_dicts[file]['artist']], albumrec, fast_import)")
         log.debug('Added "%s"', file)
 
     #now update our track counts
@@ -527,17 +529,18 @@ def _die_with_usage() :
     print '  <dir> is the directory to be imported'
     print '  <doit> (default 1) use 0 to test the intake harmlessly'
     print 'More options are available by using the function add_collection()'
-    sys.exit(0)
+    sys.exit(0)                                                    # sys.exit(0)
 
 if __name__ == '__main__':
-    print 'audio_intake.py: Gordon audio intake script running...' # i
+    print 'audio_intake.py: Gordon audio intake script running...'
     if len(sys.argv) < 3:
-        _die_with_usage()
+        _die_with_usage()                                       # -> sys.exit(0)
 
 
     prompt_incompletes=True
     fast_import=False
-    #parse flags 
+    
+    # parse flags
     while True:
         if sys.argv[1]=='-fast' :
             fast_import=True
@@ -547,7 +550,7 @@ if __name__ == '__main__':
             break
         sys.argv.pop(1)
 
-
+    # pase arguments
     source = sys.argv[1]
     dir = sys.argv[2]
     doit = None
@@ -556,9 +559,9 @@ if __name__ == '__main__':
         else: doit = True
     except Exception :
         pass
-    doit = True if doit is None else doit   #jorgeorpinel: just trying Python's ternary opperator :p
+    doit = True if doit is None else True   #jorgeorpinel: just trying Python's ternary opperator :p
 
     print 'audio_intake.py: using <source>', '"'+source+'",', '<dir>', eval("'"+dir+"'") # i
-    if doit is False: print ' * No <doit> (3rd) argument given. Thats 0K (Pass no args for script usage)' # i
+    if doit is False: print ' * No <doit> (3rd) argument given. Thats 0K. (Pass no args for script usage.)' # i
     add_collection(location = dir, source = source, prompt_incompletes = prompt_incompletes, doit = doit, fast_import = fast_import)
     
