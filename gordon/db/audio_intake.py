@@ -32,7 +32,7 @@ import os, datetime, logging, stat, sys
 
 from csv import reader
 
-from gordon.db.model import add, commit, Album, Artist, Track
+from gordon.db.model import add, commit, Album, Artist, Track, Collection
 from gordon.db.gordon_db import get_tidfilename, make_subdirs_and_copy
 from gordon.io import mp3_eyeD3 as id3
 from gordon.io import AudioFile
@@ -105,9 +105,12 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
                   oartist = id3_dict['artist'],
                   oalbum = id3_dict['album'],
                   otracknum = id3_dict['tracknum'],
-                  ofilename = os.path.join(filepath,fn_recoded),  
-                  source = source,
+                  ofilename = os.path.join(filepath,fn_recoded),
+#                  source = source, #jorgeorpinel: I don't think we need this anymore.
                   bytes = bytes)
+    # add "source" collection <-> track
+    if isinstance(source, Collection): track.collections.append(source)
+    elif isinstance(source, str): pass #jorgeorpinel: what to do with this (default date) string? shuouldn't happen
 
 
     # add data
@@ -175,7 +178,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
 
 def add_uncomp(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, tag_dict = dict(), artist = None, album = None, fast_import = False) :
     """Add uncompressed wav/aif with filename <wav> to database
-         source -- audio files data source
+         source -- audio files data source - Collection object
          gordonDir -- main Gordon directory
          tag_dict -- dictionary of key,val tag pairs - See add_album(...).
          artist -- The artist for this track. An instance of Artist. None if not present
@@ -223,8 +226,11 @@ def add_uncomp(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_
                   oalbum = tag_dict['album'],
                   otracknum = tag_dict['tracknum'],
                   ofilename = fn_recoded,
-                  source = source,
+#                  source = source, #jorgeorpinel: I don't think we need this anymore.
                   bytes = bytes)
+    # add "source" collection <-> track
+    if isinstance(source, Collection): track.collections.append(source)
+    elif isinstance(source, str): pass #jorgeorpinel: what to do with this (default date) string? shuouldn't happen
 
 
     # add data
@@ -324,6 +330,7 @@ def _get_id3_dict(mp3) :
 def _read_csv_tags(cwd, csv):
     '''Reads a csv text file with tags for WAV files
     
+    # may use py comments in tags.csv file (in album-folder)
     filename, title, artist, album, tracknum, compilation
     per line'''
     
@@ -331,12 +338,12 @@ def _read_csv_tags(cwd, csv):
     
     try:
         csvfile = reader(open(os.path.join(cwd, csv)))
-        for line in csvfile:
+        for line in csvfile: # each record (file rows)
             if len(line) < 6 : continue
-            if line[0][0] == '#' : continue
+            line[0] = line[0].strip()
+            if not line[0] or line[0][0] == '#' : continue # if name empty or comment line
             
             #save title, artist, album, tracknum, compilation in tags[<file name>]
-            line[0] = line[0].strip()
             tags[line[0]] = dict()
             tags[line[0]]['title']  = line[1].strip()
             tags[line[0]]['artist'] = line[2].strip()
@@ -386,6 +393,8 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
                     log.debug('  .. w/ ID3 tags', tags_dicts[filename]) #       debug
                     del(tags_dicts[filename]['empty'])
                 tags_dicts[filename]['func'] = 'add_mp3'
+                albums.add(tags_dicts[filename]['album'])
+                artists.add(tags_dicts[filename]['artist'])
             elif ext.lower() in ['.wav', '.aif', '.aiff']: # since this is wav/aif, use possible csv tags file
                 if not csvtags : csvtags = _read_csv_tags(os.getcwd(), 'tags.csv')
                 log.debug('  %s is %s', filename, ext) #                        debug
@@ -395,11 +404,10 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
                 except: # make empty tags on the fly
                     tags_dicts[filename] = _empty_tags()
                 tags_dicts[filename]['func'] = 'add_uncomp'
+                albums.add(tags_dicts[filename]['album'])
+                artists.add(tags_dicts[filename]['artist'])
             else:
                 log.debug('  %s is not a supported audio file format', filename) #debug
-                
-            albums.add(tags_dicts[filename]['album'])
-            artists.add(tags_dicts[filename]['artist'])
                 
             #todo: work with other non-mp3 audio files/tags!
     
@@ -426,13 +434,20 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     
     #add our album to Album table
     log.debug('  Album has %d recordings', len(tags_dicts)) #                   debug
-    albumrec = Album(name = album_name, trackcount = len(tags_dicts), a='1') #jorgeorpinel: a='1' ?
-    #eckdoug: what's a='1' doing? That is not in my original code. I dont know what it does. 
+    albumrec = Album(name = album_name, trackcount = len(tags_dicts))
+#    collection = None
+    match = Collection.query.filter_by(source = source) #@UndefinedVariable #stupid Eclipse
+    if match.count() == 1:
+        log.debug('  Matched source %s in database', match[0]) #                debug
+        collection = match[0]
+    else:
+        collection = Collection(source=source)
+    albumrec.collections.append(collection)
 
     #if we have an *exact* string match we will use the existing artist
     artist_dict = dict()
     for artist in set(artists) :
-        match = Artist.query.filter_by(name = artist) #@UndefinedVariable #todo: remove this stupid Eclipse
+        match = Artist.query.filter_by(name = artist) #@UndefinedVariable #stupid Eclipse
         if match.count() == 1 :
             log.debug('  Matched %s %s in database', artist, match[0]) #        debug
             artist_dict[artist] = match[0]
@@ -443,31 +458,28 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
         else :
             # add our Artist to artist table
             newartist = Artist(name = artist)
+            newartist.collections.append(collection)
             artist_dict[artist] = newartist
 
         #add artist to album (album_artist table)
         albumrec.artists.append(artist_dict[artist])
 
-    commit() #commit these changes #jorgeorpinel: hold it... shouldn't it commit until the very end?
-    #eckdoug: Jorge, if memory serves, I had to commit now in order to have access to this album record when 
-    #adding tracks.   That is, each Track wants an Album and without the Album committed I could not
-    #get to add Tracks.  This seemed to me to be an SQLAlchemy weakness/bug. It seems like uncommitted records
-    #shoudl be available. So we could try again . 
+    commit() #commit these changes in order to have access to this album record when adding tracks
 
     #now add our tracks to album
     for file in tags_dicts.keys() :
         # calls add_mp3(), add_uncomp(), or other...
         addfunction = tags_dicts[file].pop('func')
-        eval(addfunction + "(file, source, gordonDir, tags_dicts[file], artist_dict[tags_dicts[file]['artist']], albumrec, fast_import)")
+        eval(addfunction + "(file, collection, gordonDir, tags_dicts[file], artist_dict[tags_dicts[file]['artist']], albumrec, fast_import)")
         log.debug('  Added "%s"!', file) #                                      debug
 
     #now update our track counts
 #    print artist_dict
     for aname, artist in artist_dict.iteritems() :
         artist.update_trackcount()
-        log.debug('  * Updated trackcount for artist %s', artist) #               debug
+        log.debug('  * Updated trackcount for artist %s', artist) #             debug
     albumrec.update_trackcount()
-    log.debug('  * Updated trackcount for album %s', albumrec) #                  debug
+    log.debug('  * Updated trackcount for album %s', albumrec) #                debug
     commit()
 
     os.chdir(cwd)

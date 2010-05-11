@@ -1,5 +1,5 @@
 # Gordon CSV tag file example - for WAV/AIF files in album when using audio_intake.py
-# Place file in album's dir. Python styled comments are respected. White lines are ignored.
+# Place file in album's dir. Python styled WHOLE-LINE comments are respected. White lines are ignored.
    
 # csv file line structure:
 # filename, title, artist, album, tracknum, compilation # don't use commas in the tag values !!!
