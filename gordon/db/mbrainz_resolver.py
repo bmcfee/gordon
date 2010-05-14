@@ -21,15 +21,15 @@
 
 from numpy import *
 import pg
-from model import *
+from gordon.db.model import *
 from sqlalchemy import *
 import heapq,time,shutil,os,string,datetime,stat,copy,sys,glob,random # unused
 #from sqlalchemy.databases.postgres import PGArray # try from sqlalchemy.dialects.postgresql.base import PGArray
 from collections import defaultdict
 import traceback
 
-import dse_difflib as DL #short term replacement until 200-char limit is addressed
-from gordon_db import *
+import gordon.db.dse_difflib as DL #short term replacement until 200-char limit is addressed
+from gordon.db.gordon_db import *
 from gordon.io.mp3_eyeD3 import * 
 
 #---------------------
@@ -871,6 +871,115 @@ class GordonResolver(object) :
         return s.ratio()
 
 
+    def _format_time(self,val) :
+        """formats time for printer below."""
+        if val==-1 :
+            return '??:??'
+        else :
+            mins = int(val/60.0)
+            remsecs = int(val - mins*60)
+            return '%s:%s' % (str(mins).zfill(1),str(remsecs).zfill(2))
+
+    def read_dumpfile(self,fn) :
+        """Reads in edited dumpfile as produced by dump_existing_validations and commits those albums marked Y"""
+        import codecs
+        fid=codecs.open(fn,'r','utf-8') 
+        accepts=list() #store our accepts to print all at once
+        for l in fid :
+            try :
+                l=str(l).strip() 
+                if l.startswith(u'Link MBID') :
+                    vals = l.split(' ') 
+                    if vals[-1].lower()=='y':
+                        mbid=vals[2]
+                        rid=vals[5]
+                        if rid.endswith('?') :
+                            rid=rid[:len(rid)-1]
+                        try :
+                            rid=int(rid)
+                        except:
+                            print 'Cannot cast',rid,'as int'
+                        if len(mbid)==36 and type(rid)==int:
+                            accepts.append((mbid,rid))
+                        else:
+                            print len(mbid)
+                            print 'Problem with',mbid,rid
+
+
+            except :
+                pass
+        for mb_id,rid in accepts:
+            print 'Map',mb_id,'to',rid
+        while True :
+            ans=raw_input('Process? y/n >')
+            if ans.lower()=='y' :
+                for mb_id,rid in accepts :
+                    self.update_album(id=rid,mb_id=mb_id,use_recommended_track_order=True,doit=True)
+                break
+            if ans.lower()=='n' :
+                break
+
+    def dump_existing_validations(self,fn,order='conf') :
+        """Dumps existing validations to UTF file in comma-delimited form to be read and edited
+        Order can be conf, conf_time, conf_artist, conf_track (though conf and conf_time are by experience
+        the only useful ones"""
+
+        import codecs
+        fid=codecs.open(fn,'w','utf-8')
+
+        import gordon.db.model as gordon_model
+        mbrecommend = gordon_model.Mbalbum_recommend.query.filter(gordon_model.Mbalbum_recommend.album.has(or_(gordon_model.Album.mb_id=='',gordon_model.Album.mb_id==None))).filter(gordon_model.Mbalbum_recommend.album.has(~gordon_model.Album.status.any())).order_by(order+' DESC')
+        for m in mbrecommend:
+            album=m.album
+
+            if len(album.artists)>1 :
+                artiststr= '%s and others' % album.artists[0].name
+            elif len(album.artists)==1 :
+                artiststr='%s' % album.artists[0].name
+            else :
+                artiststr='Unknown Artist'
+
+            st='Gordon   %s by %s' % (album.name,artiststr)
+            fid.write(st+'\n')
+
+            st='Mbrainz  %s by %s' % (m.mb_album,m.mb_artist)
+            fid.write(st+'\n')
+
+            st='conf=%4.4f, conf_time=%4.4f, conf_album=%4.4f, conf_artist=%4.4f, conf_track=%4.4f' % \
+                (m.conf,m.conf_time,m.conf_album,m.conf_artist,m.conf_track)
+            fid.write(st +'\n')
+
+            #here we get track names from mbrainz to compare to our own. This should be encapsulated somehow. It's a copy-paste from the webpage resolve_viewalbum
+            tracks=album.tracks
+            if m.trackorder<>None :
+                trackorder = eval(m.trackorder)
+                if len(trackorder)==len(tracks) :
+                    trks = [0] * len(tracks)
+                    for t in tracks :
+                        idx = trackorder[t.id]
+                        trks[idx]=t
+                    tracks = trks
+            (recommend_tracks,status) = self.add_mbalbumdata_to_trackdict(m.mb_id,tracks) #adds mb tracks to tracks structure
+            twid=40
+            awid=30
+            for r in recommend_tracks :
+                
+                
+                st='  %s %s %s %s %s %s %s  %s  %s' % (str(r.tracknum).ljust(2), str(r.mb_tracknum).ljust(2),   
+                                                   r.title[:twid].ljust(twid),        r.mb_track[:twid].ljust(twid),
+                                                   r.artist[:awid].ljust(awid),       r.mb_artist[:awid].ljust(awid),
+                                                   self._format_time(r.secs),self._format_time(r.mb_secs),self._format_time(abs(r.mb_secs-r.secs)))
+                #stg='GORDON %s %s %s %s' % (str(r.tracknum).ljust(2),   r.title.ljust(20),   r.artist.ljust(20),   self._format_time(r.secs))
+                #stm='MBRAIN %s %s %s %s' % (str(r.mb_tracknum).ljust(2),r.mb_track.ljust(20),r.mb_artist.ljust(20),self._format_time(r.mb_secs))
+                #print stg.encode('utf-8') 
+                #print stm.encode('utf-8') 
+                #print stall.encode('utf-8') 
+                fid.write(st +'\n')
+            fid.write('Link MBID %s to Album %i?  N' % (m.mb_id,album.id))
+            fid.write('\n---\n\n')
+        fid.close()
+
+
     def _get_close_matches_orig(self,word, possibilities, n=3, cutoff=0):
 
         tic=time.time()
@@ -967,6 +1076,9 @@ def die_with_usage() :
     print '    validate [id]  : validates *already-resolved* albums against current MusicBrainz database and saves any changes.' 
     print '                     For example, if the spelling of a track changed since we resolved an album to MusicBrainz,'
     print '                     we would incorporate those changes with this code. If [id] is provided, this is done for only that album'                   
+    print ' dump [fn] [order] : Dumps recommendations in utf-8 format to filename [fn]. User can edit and use readdump to process.'
+    print '                     [order] is optional ordering key. can be conf, conf_time, conf_track, conf_artist which are confidences'
+    print '                     in goodness of match for those values'
     print ''
     print 'It is faster to be logged into %s' % DEF_DBHOST
     sys.exit(0) 
@@ -974,12 +1086,14 @@ def die_with_usage() :
 pass
 ##----MAIN ----
 if __name__=='__main__' :
-    if len(sys.argv)<2 :
+    if len(sys.argv)<3 :
         die_with_usage()
 
 
     res = GordonResolver()
     command=sys.argv[1]
+    dumpfile=None
+    dumporder='conf'
     if command=='resolve' :
         if len(sys.argv)>=3 :
             id=int(sys.argv[2])
@@ -991,6 +1105,16 @@ if __name__=='__main__' :
     elif command=='commit_safe' :
         print 'Committing safe predictions to database'
         res.automatic_update_all_albums()
+    elif command=='dump' :
+        dumpfile=sys.argv[2]
+        if len(sys.argv)>3:
+            order=sys.argv[3]
+        print 'Dumping existing recommendations sorted by overall confidence as cdf to ' + dumpfile + ' ordered by ' + order
+        res.dump_existing_validations(dumpfile,order)
+    elif command=='readdump' :
+        dumpfile=sys.argv[2]
+        print 'Reading edited dumpfile ' + dumpfile
+        res.read_dumpfile(dumpfile)
     elif command=='validate' :
         if len(sys.argv)>=3:
             id=int(sys.argv[2])
@@ -1000,6 +1124,7 @@ if __name__=='__main__' :
             print 'Validating all albums against MusicBrainz data'
         res.validate_album_data(id=id)
     else :
+        print 'here'
         die_with_usage()
 
       
