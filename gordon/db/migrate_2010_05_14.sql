@@ -3,7 +3,9 @@ of Gordon to new versions of DB.
 
 Douglas Eck (douglas.eck@gmail.com)
 
-For this version be sure and run db/gordon_initialize.py first!
+Before using this file, run db/gordon_initialize.py first!
+To use this file simply run the following command:
+psql --user DEF_DBUSER --host DEF_DBHOST DEF_DBNAME < the_name_of_this_file.sql 
 */
 
 
