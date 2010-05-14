@@ -30,7 +30,7 @@ class AudioFile(object):
     stripvals=['none', 'both', 'leading', 'trailing']
     filetypes=['.wav', '.aiff', '.m4a', '.mp3', '.au', '.flac'] #todo: apply them, add more
     
-    def __init__(self,fn, mono=False,tlast=-1,tstart_sec=None,tlen_sec=None,fs_target=None, stripzeros='none',stripzeros_lim=0.0001):
+    def __init__(self,fn=None, mono=False,tlast=-1,tstart_sec=None,tlen_sec=None,fs_target=None, stripzeros='none',stripzeros_lim=0.0001):
         """Represents an audio file
         Flags:         fn: file name
                      mono: yields a mono sample. Default is None which means we return whatever is in file
@@ -152,8 +152,7 @@ class AudioFile(object):
             raise ValueError('Cannot read stats for file of type %s' % stub)
 
         #read mp3 using ffmpeg
-#        cmd = 'ffmpeg -i %s 2>&1' %  self._slashify(self.fn)
-        cmd = 'ffmpeg -i "%s" 2>&1' % self.fn #jorgeorpinel: lets just double-quote self.fn (Windiws)
+        cmd = 'ffmpeg -i "%s" 2>&1' % self.fn
         #here we read in fs_file, chan, secs using the output from ffmpeg -i
         #when pyffmpeg next version comes out we should be able to replace this
         #in the meantime, lets hope fftmpeg never changes its text output. . . .
@@ -298,17 +297,12 @@ class AudioFile(object):
         #jorgeorpinel: is this really necesary? it needs permissions on the original file's dir:
         cmd = 'ffmpeg -i "%s" %s %s -f s16le 2>/dev/null -' % (self.fn, downsamp, timing) #jorgeorpinel: lets 2blequote instead (Windows)
         #jorgeorpinel: NOTE - /dev/null in Windows simply make ffmpeg say "The system cannot find the path specified." to stderr
-        data=self._command_with_output(cmd)
-        data=numpy.fromstring(data,'short')
-        #print 'data.shape',data.shape,cmd
-        x = numpy.zeros(len(data),'float')
-        #print 'tx1',type(x)
-        x[:] = data/float(32768)
-        #print 'tx2',type(x)
-        x=x.reshape(-1,self.chans)
-        #print data[0:10]
-        #print 'typex',type(x)
-        #print self.chans,'chans'
+
+
+        #Doug: This is faster than previous version because it does not allocate twice...
+        x=numpy.fromstring(self._command_with_output(cmd),'short').astype('float')/float(32768)
+        x=x.reshape((-1,self.chans))
+
         if bypass_ffmpeg_times:
             if self.tlen_sec is not None :
                 tlast_sec = self.tlen_sec
@@ -334,9 +328,7 @@ class AudioFile(object):
             x=numpy.mean(x,1)
         assert(len(numpy.shape(x))<= 2)  #better be stereo or mono!
 
-        #print type(x),'before'
         (x,svals) = self._strip_zeros(x)    
-        #print type(x),'after'
         self.x=x
         self.svals=svals
         self.hash=hash        
@@ -374,7 +366,6 @@ class AudioFile(object):
             pylab.ylabel('amplitude')
             pylab.xlabel('time (sec)')
 
-        print 'Shape of signal',self.x.shape,'secs',self.secs,'fs',self.fs
         pylab.show()
 
     def _strip_zeros(self,x) :
@@ -387,71 +378,71 @@ class AudioFile(object):
         if self.stripzeros=='none' :
             return (x,numpy.zeros(2))
         
-        
-
+        stripzeros_lim=self.stripzeros_lim
+        #This is a lambda expression for compatibility with the Pygmy version of audio.py. q
+        stripz_func = lambda x: numpy.max(abs(x))
         leading_samples=0
         trailing_samples=0
         if len(x) == 0 :
             return (x,numpy.zeros(2))
         if not self.stripzeros == 'none':
             #prepare mono abs sequence for checking zerovals
-            if len(numpy.shape(x))>1 :
-                xAbs=abs(numpy.mean(x,1))
-            else:
-                xAbs=abs(x)
+            if len(numpy.shape(x))==1 :
+                x=x.reshape((-1,1))
+            
              
-            #be sure our sequence is not all zeros (or <self.stripzeros_lim)
+            #be sure our sequence is not all zeros (or <stripzeros_lim)
             #we will sample from the middle of the file K times. If they're all 0
             #we will take the max. This way we won't always take the max, which is expensive!
             if len(x)>100 :
                 midIdx=int(len(x)/2)
                 takeMax=True
                 for i in range(midIdx,midIdx+10) :
-                    if xAbs[i]>= self.stripzeros_lim :
+                    if numpy.mean(abs(x[i,:])) >= stripzeros_lim :
                         takeMax=False
                         break
                 if takeMax :
-                    if xAbs.max()<self.stripzeros_lim :
+                    if abs(x).max()<stripzeros_lim :
                         return([],(len(x),0))
-            
+   
+
         if self.stripzeros == 'leading' or self.stripzeros == 'both' :
             leading_samples=0
-            while xAbs[leading_samples]<self.stripzeros_lim and leading_samples<(len(xAbs)-1) :
+            while stripz_func(x[leading_samples,:])<stripzeros_lim and leading_samples<(len(x)-1) :
                 leading_samples += 1
-
             if leading_samples>0:
-                if len(numpy.shape(x)) == 2 :
-                    x=x[leading_samples:,:]  #stereo                
-                else:
-                    x=x[leading_samples:]    #mono
-                xAbs=xAbs[leading_samples:]    #xAbs is mono
-    
+                x=x[leading_samples:,:]  
+ 
         if self.stripzeros == 'trailing' or self.stripzeros == 'both' :
-            trailing_idx=len(xAbs)-1
-            while xAbs[trailing_idx]<self.stripzeros_lim and trailing_idx>0 :
+            trailing_idx=len(x)-1
+            orig_len=len(x)
+            while stripz_func(x[trailing_idx,:])<stripzeros_lim and trailing_idx>0 :
                 trailing_idx -= 1
-            if trailing_idx<len(xAbs)-1:
-                if len(numpy.shape(x)) == 2 :
-                    x=x[0:trailing_idx,:]  #stereo
-                else:
-                    x=x[0:trailing_idx]    #mono
-            trailing_samples=len(xAbs)-trailing_idx
+            if trailing_idx<len(x)-1:
+                x=x[0:trailing_idx,:] 
+            trailing_samples=orig_len-trailing_idx
     
+
         svals=numpy.zeros(2)
         svals[0]=leading_samples
         svals[1]=trailing_samples
+
+#Was in Pygmy. Do we need it?
+#        if x.shape[1]==1 :
+#            x=x.flatten()
+
         return (x,svals)
+
+
 
 
     def _command_with_output(self, cmd):
         """Runs command on system and returns output"""
         import subprocess
         if not type(cmd) == unicode :
-#            cmd = unicode(cmd, 'utf-8') #jorgeorpinel: this may cause UnicodeDecodeError
             cmd = '%s' % cmd
-        child = subprocess.Popen(cmd, shell=True, bufsize=-1, stdout=subprocess.PIPE).stdout
-        dat = child.read() # dat has the cmd line output
-        err = child.close()
+        process = subprocess.Popen(cmd, shell=True, bufsize=-1, stdout=subprocess.PIPE)
+        (dat,err)=process.communicate()
         if err<>None :
             print 'Error',err,'in running command',cmd
         return dat # stdout command output ------------------------------
