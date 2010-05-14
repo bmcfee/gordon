@@ -75,7 +75,7 @@ class Root(controllers.RootController):
 
 
         #we are hardcoding a path here to get around NFS issues
-        outfn = gordon_db.get_full_mp3filename(track_id,gordonDir=GORDON_DIR)
+        outfn = gordon_db.get_full_mp3filename(track_id)
         print 'Serving',outfn
         return cherrypy.lib.cptools.serveFile(path=outfn,disposition='attachment',name=os.path.basename(outfn))  
 
@@ -95,8 +95,7 @@ class Root(controllers.RootController):
         except :
             return "Cannot find feature %s" % str(fn_or_track_id)
 
-        outfn = gordon_db.get_full_featurefilename(track_id,gordonDir=GORDON_DIR)
-        #outfn = gordon_db.get_full_mp3filename(track_id,gordonDir=GORDON_DIR)
+        outfn = gordon_db.get_full_featurefilename(track_id)
         print 'Serving',outfn
         return cherrypy.lib.cptools.serveFile(path=outfn,disposition='attachment',name=os.path.basename(outfn))  
         #return serve_file(fn)
