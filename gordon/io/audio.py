@@ -18,10 +18,8 @@
 # along with Gordon.  If not, see <http://www.gnu.org/licenses/>.
 '''ffmpeg wrapper for reading audio files'''
 
-import os, sys, string#,tempfile, time #jorgeorpinel: unused
-#from numpy import * #jorgeorpinel: unused
-import numpy 
-#import tempfile #jorgeorpinel: unused
+import os, sys, string
+import numpy
 
 
 
@@ -33,17 +31,20 @@ class AudioFile(object):
     #todo: use mime/types...
     filetypes=['.wav', '.aif', '.aiff', '.m4a', '.mp3', '.au', '.flac'] #todo: apply them, add more
     
-    def __init__(self,fn, mono=False,tlast=-1,tstart_sec=None,tlen_sec=None,fs_target=-1, stripzeros='none',stripzeros_lim=0.0001):
+    def __init__(self,fn=None, mono=False,tlast=-1,tstart_sec=None,tlen_sec=None,fs_target=None, stripzeros='none',stripzeros_lim=0.0001):
         """Represents an audio file
-        Flags:          fn: file name
-                     mono: yields a mono sample
+        Flags:         fn: file name
+                     mono: yields a mono sample. Default is None which means we return whatever is in file
                     tlast: is desired last sample in sec (deprecated! do not use. Exception will be raised)
-               tstart_sec: is desired starting point in seconds in file
-                 tlen_sec: is desired number of seconds to read.  
-                fs_target: is a target fs. resampling / decimation will be used to get the target rate
+               tstart_sec: is desired starting point in seconds in file; Default is None which returns all data
+                 tlen_sec: is desired number of seconds to read; Default is None which returns all data
+                fs_target: is a target fs. resampling / decimation will be used to get the target rate; Default is None which uses native fs
                stripzeros: removes near-zero-values from beginning and/or end of signal
                            values can be 'none','both','leading','trailing'
-           stripzeros_lim: is the limit used for stripping leading and trailing zeros; default=0.1             
+           stripzeros_lim: is the limit used for stripping leading and trailing zeros; default=0.0001
+
+           Note: these flags are all None rather than, e.g., 0 or False so that we can set them both in constructor and 
+           in the read() method. If read() value is None we leave existing value from constructor.  
         """ 
         self.fn=fn
         self.mono=mono  
@@ -53,12 +54,10 @@ class AudioFile(object):
         self.x=None
         self.svals=None
         self.chans=None
-
         self.tstart_sec=tstart_sec       #starting point in seconds for reading from file
         self.tlen_sec=tlen_sec           #number of seconds to read from file
         if tlast <>-1 :
             raise ValueError("tlast is deprecated. Replace with tstart_sec and tlen_sec")
-        
         self.fs_target=fs_target         #target sampling rate for our waveform
         self.fs=None                     #sampling rate of our waveform
         self.fs_file=None                #native sampling rate of our file 
@@ -66,17 +65,73 @@ class AudioFile(object):
         self.stats_looping=False         #a bit of a hack to allow read_stats() to itself call read() when it cannot determine file length
         self.hash=None                   #hash code for read file to keep us from reading multiple times for same parameters
      
-    def write(self,x,fs):
-        """Writes x to file with sampling rate fs"""
-        import scikits.audiolab 
-        scikits.audiolab.wavwrite(x,self.fn,fs)
+
+    def write(self,fn=None,x=None,fs=None,channels=None,format=None, bitrate=None,audiolab=False):
+        """Writes data x (as numpy array of floats scaled between -1 and 1) at sampling rate fs to file fn
+             fn: name of file to create (defualt is self.fn)
+              x: data buffer (default is self.x)
+             fs: sampling rate (default is self.fs)
+       channels: number of channels (default is x.shape[1])
+         format: output file format as used by -f flag of ffmpeg (will attempt to infer from extension of fn if omitted)
+        bitrate: bitrate for compressed codec. For mp3 and mp4, 196k is default.
+       audiolab: if True, uses scikits.audiolab in place of ffmpeg.  In this case, the output will be a wav file 
+        Warning: overwrites fn if fn exists
+        """
+        from scipy.io.numpyio import fwrite, fread
+        import copy
+        import tempfile
+
+        if fn is None :
+            fn=self.fn
+        if x is None:
+            x=self.x
+        if fs is None:
+            fs=self.fs
+
+        if channels is None:
+            if len(x.shape)==2 :
+                channels=x.shape[1]
+            else:
+                channels=1
+
+        if audiolab:
+            import scikits.audiolab 
+            scikits.audiolab.wavwrite(x,fn,fs)
+            return
+
+        [ignore,suffix] = os.path.splitext(fn)
+        [fdir,file]=os.path.split(os.path.abspath(fn))
+        tf=tempfile.NamedTemporaryFile(dir=fdir)     
+        xout=(x.flatten()*32768).astype('int16')
+        fwrite(tf.file,len(xout),xout)
+
+                
+        #set up format for known file types
+        if format is None:
+            format=suffix[1:]
+        format_text='-f ' + format
+        bitrate_text=''
+        if bitrate is not None :
+            bitrate_text ='-ab %i' % bitrate
+        else :
+            if format=='mp4' or format=='mp3' :
+                bitrate_text='-ab 196k'
+                
+        #print 'Saving x of shape=%s fs=%i format=%s to file %s' % (str(x.shape),fs,format,fn)
+        #-y is not well documented but forces overwrite of target file
+        if os.path.exists(fn) :
+            os.unlink(fn)
+        cmd='ffmpeg -ar %i -f s16le -ac %i -i %s %s %s %s' % (fs,channels,tf.name,bitrate_text,format_text,fn)
+        os.system(cmd)
+        tf.close()
+
 
     def read_stats(self,noloop=False) :
         """Returns statistics about file
-        [fs_file, chans, lensec]
+        [secs, fs_file, chans]
+                secs:  length of audio file in seconds
              fs_file:  the sampling rate of our file (not of our desired waveform, which may be resampled)
                chans:  number of channels
-                secs:  length of audio file in seconds
         Stores these same variables in class
 
         The variable noloop simply keeps us from falling into an infinite loop when we call read from here
@@ -98,8 +153,7 @@ class AudioFile(object):
             raise ValueError('Cannot read stats for file of type %s' % stub)
 
         #read mp3 using ffmpeg
-#        cmd = 'ffmpeg -i %s 2>&1' %  self._slashify(self.fn)
-        cmd = 'ffmpeg -i "%s" 2>&1' % self.fn #jorgeorpinel: lets just double-quote self.fn (Windiws)
+        cmd = 'ffmpeg -i "%s" 2>&1' % self.fn
         #here we read in fs_file, chan, secs using the output from ffmpeg -i
         #when pyffmpeg next version comes out we should be able to replace this
         #in the meantime, lets hope fftmpeg never changes its text output. . . .
@@ -135,7 +189,7 @@ class AudioFile(object):
                 except :
                     pass
 
-        if (self.fs_file is None) or (self.chans is None) : 
+        if (self.fs_file is None) or (self.chans is None) :
             raise ValueError("Unable to read fs_file=%s or chans=%s from file. Cannot recover from this\n\n%s" % (str(self.fs_file),str(self.chans),data))
 
         if self.secs is None :
@@ -147,7 +201,7 @@ class AudioFile(object):
             if self.secs is None :
                 raise ValueError('Unable to read length of file. Cannot recover from this')
 
-        return [self.fs_file, self.chans,self.secs]
+        return [self.secs, self.fs_file,self.chans]
 
     def read(self, fs_target=None, mono=None, tstart_sec=None, tlen_sec=None, stripzeros=None, stripzeros_lim=None, tlast=None,force=False):
         """Reads file and returns:
@@ -166,13 +220,19 @@ class AudioFile(object):
         for future calls to read.
         """
 
+
+        #this is for backward compatability. We have some code that uses None rather than -1 to indicate a missing value
+        #but below our code uses -1
+        if self.fs_target is None: 
+            self.fs_target=-1
+
+
         if not os.path.exists(self.fn) :
             raise IOError ('File %s not found' %self.fn )
-        
+
         #get defaults from our class if they are not passed in here
         #this strategy allows us to call read multiple times for same instance and get 
         #different sampling rates, etc
-        #print 'FSTARGET is',fs_target
         if fs_target is not None :
             self.fs_target=fs_target
         if mono is not None :
@@ -199,9 +259,14 @@ class AudioFile(object):
             #we have already read this
             return (self.x,self.fs,self.svals)
 
+
+
+
         (ignore,stub)=os.path.splitext(self.fn.lower())
         if self.filetypes.count(stub)==0:
             raise ValueError('Cannot read file of type %s' % stub)
+
+
 
         # ffmpeg turns out to be not so accurate with respect to timing. So we 
         # are not trying to do tstart_sec in ffmpeg but rather in tstart_sec is 
@@ -219,6 +284,7 @@ class AudioFile(object):
             if self.tlen_sec is not None:
                 timing='%s -t %4.6f' % (timing, self.tlen_sec + ffmpeg_time_offset)
 
+
         #resample if necessary
         if self.fs_target<>-1 and (self.fs_target <> self.fs_file) :
             downsamp=' -ar %i' % self.fs_target
@@ -227,8 +293,6 @@ class AudioFile(object):
             downsamp=''
             self.fs=self.fs_file    #we trust the sampling rate stored in the file
 
-
-
         #here is our command.
 #        cmd = 'ffmpeg -i %s %s %s -f s16le 2>/dev/null -' % (self._slashify(self.fn),downsamp,timing)
         #jorgeorpinel: is this really necesary? it needs permissions on the original file's dir:
@@ -236,17 +300,9 @@ class AudioFile(object):
         #jorgeorpinel: NOTE - /dev/null in Windows simply make ffmpeg say "The system cannot find the path specified." to stderr
 
 
-        #old slow
-        if 0 :
-            data=numpy.fromstring(self._command_with_output(cmd),'short')
-            x = numpy.zeros(len(data),'float')
-            x[:] = data/float(32768)
-        else : #faster ...less memory alloc
-            x=numpy.fromstring(self._command_with_output(cmd),'short').astype('float')/float(32768)
-        
-        
-
-        x=x.reshape(-1,self.chans)
+        #Doug: This is faster than previous version because it does not allocate twice...
+        x=numpy.fromstring(self._command_with_output(cmd),'short').astype('float')/float(32768)
+        x=x.reshape((-1,self.chans))
 
         if bypass_ffmpeg_times:
             if self.tlen_sec is not None :
@@ -313,7 +369,6 @@ class AudioFile(object):
 
         pylab.show()
 
-
     def _strip_zeros(self,x) :
         """strips zeros from front and or end of x depending on value self.stripzeros"""
         if self.stripvals.count(self.stripzeros)<>1 :
@@ -324,8 +379,9 @@ class AudioFile(object):
         if self.stripzeros=='none' :
             return (x,numpy.zeros(2))
         
-        
-
+        stripzeros_lim=self.stripzeros_lim
+        #This is a lambda expression for compatibility with the Pygmy version of audio.py. q
+        stripz_func = lambda x: numpy.max(abs(x))
         leading_samples=0
         trailing_samples=0
         if len(x) == 0 :
@@ -333,84 +389,64 @@ class AudioFile(object):
         if not self.stripzeros == 'none':
             #prepare mono abs sequence for checking zerovals
             if len(numpy.shape(x))==1 :
-                x.reshape((-1,1))
-            #be sure our sequence is not all zeros (or <self.stripzeros_lim)
+                x=x.reshape((-1,1))
+            
+             
+            #be sure our sequence is not all zeros (or <stripzeros_lim)
             #we will sample from the middle of the file K times. If they're all 0
             #we will take the max. This way we won't always take the max, which is expensive!
             if len(x)>100 :
                 midIdx=int(len(x)/2)
                 takeMax=True
                 for i in range(midIdx,midIdx+10) :
-                    if numpy.mean(abs(x[i,:])) >= self.stripzeros_lim :
+                    if numpy.mean(abs(x[i,:])) >= stripzeros_lim :
                         takeMax=False
                         break
                 if takeMax :
-                    if abs(x).max()<self.stripzeros_lim :
-                        #print 'here',abs(x).max()
+                    if abs(x).max()<stripzeros_lim :
                         return([],(len(x),0))
+   
 
         if self.stripzeros == 'leading' or self.stripzeros == 'both' :
             leading_samples=0
-            while numpy.mean(abs(x[leading_samples,:]))<self.stripzeros_lim and leading_samples<(len(x)-1) :
-                #print xAbs[leading_samples],leading_samples,self.stripzeros_lim
+            while stripz_func(x[leading_samples,:])<stripzeros_lim and leading_samples<(len(x)-1) :
                 leading_samples += 1
-
             if leading_samples>0:
-                x=x[leading_samples:,:]  #stereo                
-
+                x=x[leading_samples:,:]  
+ 
         if self.stripzeros == 'trailing' or self.stripzeros == 'both' :
             trailing_idx=len(x)-1
             orig_len=len(x)
-            while numpy.mean(abs(x[trailing_idx,:]))<self.stripzeros_lim and trailing_idx>0 :
+            while stripz_func(x[trailing_idx,:])<stripzeros_lim and trailing_idx>0 :
                 trailing_idx -= 1
             if trailing_idx<len(x)-1:
-                x=x[0:trailing_idx,:]  #stereo
+                x=x[0:trailing_idx,:] 
             trailing_samples=orig_len-trailing_idx
     
+
         svals=numpy.zeros(2)
         svals[0]=leading_samples
         svals[1]=trailing_samples
 
-        if x.shape[1]==1 :
-            x.reshape((-1,0))
+#Was in Pygmy. Do we need it?
+#        if x.shape[1]==1 :
+#            x=x.flatten()
 
-        return (x,svals) 
+        return (x,svals)
 
-    def _slashify(self,fname) : #todo: this is not being used now
-        """slashify filename to be safe for calling os.popen(cmd)"""
-        s_fname=string.replace(fname," ","\ ")
-        s_fname=string.replace(s_fname,"\'","\\'")
-        s_fname=string.replace(s_fname,"\"","\\\"")
-        s_fname=string.replace(s_fname,"(","\(")
-        s_fname=string.replace(s_fname,")","\)")
-        s_fname=string.replace(s_fname,"&","\&")
-        s_fname=string.replace(s_fname,";","\;")
-        s_fname=string.replace(s_fname,"$","\$")
-        s_fname=string.replace(s_fname,"`","\`")
-        s_fname=string.replace(s_fname,",","\,")
-        s_fname=string.replace(s_fname,"-","\-")
-        return s_fname
+
+
 
     def _command_with_output(self, cmd):
         """Runs command on system and returns output"""
         import subprocess
         if not type(cmd) == unicode :
-#            cmd = unicode(cmd, 'utf-8') #jorgeorpinel: this may cause UnicodeDecodeError
             cmd = '%s' % cmd
-        print "audio.py: Running cmd '"+cmd+"' from", os.getcwd() # debug -------
-        #child = subprocess.Popen(cmd, shell=True, bufsize=-1, stdout=subprocess.PIPE).stdout
-        #dat = child.read() # dat has the cmd line output
-        #err = child.close()
-
-
         process = subprocess.Popen(cmd, shell=True, bufsize=-1, stdout=subprocess.PIPE)
         (dat,err)=process.communicate()
-        #dat = child.read() # dat has the cmd line output
-        #err = child.close()
-
         if err<>None :
             print 'Error',err,'in running command',cmd
-        return dat # stdout command output ------------------------------ return dat
+        return dat # stdout command output ------------------------------
 
     def __str__(self) :
         if self.fs is None:
@@ -447,16 +483,8 @@ if __name__=='__main__' :
         else :
             break
         sys.argv.pop(1)
-
-    import time
-    tic=time.time()
+    
     af = AudioFile(sys.argv[1],fs_target=fs_target,mono=mono)
-
-    #print af.get_secs_zsecs()
-    #print time.time()-tic,'for total'
-
-
-
     af.read()
     af.plot()
 
