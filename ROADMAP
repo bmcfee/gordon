@@ -3,18 +3,24 @@ Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
 - Current work on audio_intake.py : APR 5-12 WEEK                             OK
 
  * read text file to extract wav tags - this means work wavs with ffmpeg      OK
- * work with aif                                                             XXX
- * extract tags from all taggy formats                                     EXTRA
+ * work with aif                                                              OK
+ * extract tags from all taggy formats                                     EXTRA see 2.1
 
-1 Immediate future : projected APR 23                                       LATE
+1 Immediate future : projected APR 23                                         OK
 
- * support multiple collections with the same audio files                CURRENT
+ * support multiple collections with the same audio files                     OK
 
-2 Late spring : projected MAY 21ish                                      GETTING THERE
+2 Late spring : projected MAY 21ish                                      
 
- * implement/clean-up _feature_ extraction                               CURRENT
+ * move tag 0.3 to comit 67
+ * implement _annotation_ file association to tracks                     
+   annotation types:
+  1 all (metadata) tags - implement name:value pairs? (normalize with annotation_type table [master list]) note -.***
+  2 time-values (eg HTK) files (incorporate in 1 *check psql variable length coltypes)
+  3 inter-relationships (eg covers) - use special collections * add collection.description field (do add_to_collection(tracks) function?)
+  * add_to_collecctions(tracks) function? maybe in new py module?)
 
-3 Summer I : projected 2?th of JUNE                                         ----
+3 Summer I : projected 2ish of JUNE                                        
 
- * implement _annotation_ file association to tracks                           -
+ * implement/clean-up _feature_ extraction                                   
  
