@@ -189,7 +189,6 @@ track =  Table('track', metadata,
     Column(u'otitle', Unicode(length=256), default=u'', primary_key=False),
     Column(u'oartist', Unicode(length=256), default=u'',primary_key=False),
     Column(u'oalbum', Unicode(length=256), default=u'', primary_key=False),
-    Column(u'source', Unicode(length=64), default=u'', primary_key=False),
     Column(u'bytes', Integer(), primary_key=False, default=-1),
     Column(u'otracknum', SmallInteger(), default=-1, primary_key=False),
     Column(u'ofilename', Unicode(length=256), default=u'', primary_key=False),
@@ -387,6 +386,8 @@ class Artist(object) :
             tc = self.trackcount
         st= '<Artist %i %s Trackcount=%i>' % (self.id,self.name,tc)
         return st.encode('utf-8')
+    
+    def __repr__(self): return self.__str__()
 
     def update_trackcount(self) :
         tc = session.query(ArtistTrack).filter(ArtistTrack.artist_id==self.id).count()
@@ -411,6 +412,8 @@ class Album(object) :
         st ='<Album %s %s (by %s) Trackcount=%i MusicbrainzId=%s>' % (str(self.id).ljust(5),self.name.ljust(20),artiststr.ljust(20),tc,self.mb_id)
         return st.encode('utf-8')
 
+    def __repr__(self): return self.__str__()
+
     def _get_fn_albumcover(self) :
         return os.path.join(config.DEF_GORDON_DIR,'data','covers',_get_filedir(self.id),'A%i_cover.jpg' % self.id)
     fn_albumcover= property(fget=_get_fn_albumcover,doc="""returns absolute path to album cover.  Does *not* verify that album cover is actually present!""")
@@ -430,16 +433,13 @@ class Album(object) :
             self.trackcount=tc
 
 
-class AlbumTrack(object) :
-    pass
+class AlbumTrack(object) : pass
 
 
-class ArtistTrack(object) :
-    pass
+class ArtistTrack(object) : pass
 
 
-class AlbumArtist(object) :
-    pass
+class AlbumArtist(object) : pass
 
 
 class AlbumStatus(object) :
@@ -447,9 +447,10 @@ class AlbumStatus(object) :
         st='<AlbumStatus id=%i album_id=%i status=%s>' % (self.id, self.album_id,self.status)
         return st
 
+    def __repr__(self): return self.__str__()
 
-class Mbartist_resolve(object) :
-    pass
+
+class Mbartist_resolve(object) : pass
 
 
 class Mbalbum_recommend(object) :
@@ -465,6 +466,8 @@ class Mbalbum_recommend(object) :
         #fixme album_id not always bound #st = '<MBAlbum_recommend %4.4f [%i Name=%s Artist=%s] [%s MBAlbumName=%s MBAlbumArtist=%s] > ' % (self.conf,self.album_id,album_name, artist,self.mb_id, self.mb_album,self.mb_artist)
         st = '<MBAlbum_recommend conf=%4.4f conf_time=%4.4f conf_album=%4.4f conf_artist=%4.4f conf_track=%4.4f [Name=%s Artist=%s] [%s MBAlbumName=%s MBAlbumArtist=%s] > ' % (self.conf,self.conf_time,self.conf_album, self.conf_artist,self.conf_track,album_name, artist,self.mb_id, self.mb_album,self.mb_artist)
         return st.encode('utf-8')
+
+    def __repr__(self): return self.__str__()
 
 
 class Collection (object):

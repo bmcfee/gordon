@@ -293,9 +293,7 @@ class AudioFile(object):
             downsamp=''
             self.fs=self.fs_file    #we trust the sampling rate stored in the file
 
-        #here is our command.
 #        cmd = 'ffmpeg -i %s %s %s -f s16le 2>/dev/null -' % (self._slashify(self.fn),downsamp,timing)
-        #jorgeorpinel: is this really necesary? it needs permissions on the original file's dir:
         cmd = 'ffmpeg -i "%s" %s %s -f s16le 2>/dev/null -' % (self.fn, downsamp, timing) #jorgeorpinel: lets 2blequote instead (Windows)
         #jorgeorpinel: NOTE - /dev/null in Windows simply make ffmpeg say "The system cannot find the path specified." to stderr
 
