@@ -127,12 +127,12 @@ Index('album_trackcount_idx', album.c.trackcount, unique=False)
 Index('album_pkey', album.c.id, unique=True)
 
 
-#album_status =  Table('album_status', metadata,
-#     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-#     Column(u'album_id', Integer(), ForeignKey('album.id'),nullable=False),
-#     Column(u'status', String(length=None), primary_key=False),
-#     )
-#Index('album_status_pkey', album_status.c.id, unique=True)
+album_status =  Table('album_status', metadata,
+     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
+     Column(u'album_id', Integer(), ForeignKey('album.id'),nullable=False),
+     Column(u'status', String(length=None), primary_key=False),
+     )
+Index('album_status_pkey', album_status.c.id, unique=True)
 
 album_artist =  Table('album_artist', metadata,
     Column(u'album_id', Integer(), ForeignKey('album.id'), nullable=False),
@@ -528,7 +528,7 @@ mapper(Artist,artist,
                    }
        )
 
-#mapper(AlbumStatus,album_status)
+mapper(AlbumStatus,album_status)
 
 mapper(Mbartist_resolve,mbartist_resolve)
 
