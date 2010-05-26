@@ -131,7 +131,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
             a = AudioFile(filename)
             [ignore_fs,ignore_chans,track.secs] = a.read_stats()
         except :
-            print "Could not read stats from",filename
+            log.warn("    Could not read stats from", filename) #               warnning
             
     else :
         a = AudioFile(filename)
@@ -478,7 +478,6 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
         log.debug('  Added "%s"!', file) #                                      debug
 
     #now update our track counts
-#    print artist_dict
     for aname, artist in artist_dict.iteritems() :
         artist.update_trackcount()
         log.debug('  * Updated trackcount for artist %s', artist) #             debug
@@ -545,7 +544,7 @@ def add_collection(location, source = str(datetime.date.today()), prompt_incompl
 #        print 'Removing any empty directories. This command will fail if none of the directories are empty. No worries'
 #        os.system('find . -depth -type dir -empty -print0 | xargs -0 rmdir')
 #    os.chdir(cwd)
-    print 'audio_intake.py: Finished!'
+    log.info('audio_intake.py: Finished!') #                                    info
 
 
 
@@ -593,7 +592,7 @@ if __name__ == '__main__':
         pass
     doit = True if doit is None else True   #jorgeorpinel: just trying Python's ternary opperator :p
 
-    print 'audio_intake.py: using <source>', '"'+source+'",', '<dir>', dir # i
-    if doit is False: print ' * No <doit> (3rd) argument given. Thats 0K. (Pass no args for script usage.)' # i
+    log.info('audio_intake.py: using <source>', '"'+source+'",', '<dir>', dir) #info
+    if doit is False: log.info(' * No <doit> (3rd) argument given. Thats 0K. (Pass no args for script usage.)') #info
     add_collection(location = dir, source = source, prompt_incompletes = prompt_incompletes, doit = doit, fast_import = fast_import)
     

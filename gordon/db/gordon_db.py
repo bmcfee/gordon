@@ -25,21 +25,21 @@ validating the contents of the database, removing duplicates, etc.
 '''
 
 import traceback
-import time, string, sys, shutil#,difflib,os,heapq,datetime,stat,copy,glob,random
+import time, string, sys, shutil, os, copy#, difflib, heapq, datetime, stat, glob, random
 #from collections import defaultdict
-from numpy import array, argmax
+import numpy
 
 from sqlalchemy import func, select
 
-from gordon.db.model import *
-from gordon.db.config import *
+from gordon.db.model import * #Eclipse can't figure out sqlalchemy object enhancements...
+#from gordon.db.model import Artist, session, commit, Track, Album, album, Mbalbum_recommend, execute_raw_sql
+from gordon.db.config import DEF_GORDON_DIR, DEF_DBUSER, DEF_DBPASS, DEF_DBHOST
 
-from gordon.io.mp3_eyeD3 import * 
-#from gordon.io import AudioFile
+from gordon.io import AudioFile
+from gordon.io.mp3_eyeD3 import *
 
+#todo: use a "Gordon" Logger
 print 'gordon_db.py: using gordon directory',DEF_GORDON_DIR
-
-
 
 
 
@@ -48,7 +48,6 @@ print 'gordon_db.py: using gordon directory',DEF_GORDON_DIR
 #-------------------            
 #we have some values cached (album.trackcount, artist.trackcount) 
 #after we do our cascading deletes we need to update those things....
-
 
 def reassign_artist(oldid,newid) :
     """Reassigns all tracks and albums from oldid to newid then
@@ -92,7 +91,6 @@ def reassign_artist(oldid,newid) :
     session.delete(oldartist)
     commit()
 
-
 def delete_source(source) :
     """Deletes all tracks and albums for a given source. The source is 
     stored in the Track. Must be run interactively because it runs gordon_validate
@@ -110,10 +108,6 @@ def delete_source(source) :
         session.delete(t)
     commit()
     gordon_validate()
-
-  
-
-
 
 def delete_album(album) :
     #we handle cascading deletes ourselves for track and artist
@@ -191,7 +185,6 @@ def postgres_column_to_str(col) :
     st = st.replace('\n','')
     return st
 
-
 pass
 #Found on a newsgroup
 #Fredrik Lundh fredrik at pythonware.com
@@ -264,7 +257,7 @@ def make_subdirs(tgt) :
             _set_perms(subdir, 775) #jorgeorpinel: this has no effect on Windows
 
 def get_albumcover_filename(aid) :
-    return '%s/A%s_cover.jpg' % (get_tiddirectory(aid),str(aid))
+    return '%s/A%s_cover.jpg' % (get_tiddirectory(aid), str(aid))
 
 def get_full_featurefilename(tid,gordonDir=DEF_GORDON_DIR) :
     """Returns the full feature file name.
@@ -275,12 +268,12 @@ def get_full_featurefilename(tid,gordonDir=DEF_GORDON_DIR) :
     """
     return os.path.join(gordonDir,'data','features','%s.h5' % get_tidfilename(tid))
 
-def get_full_albumcovername(aid,gordonDir=DEF_GORDON_DIR) :
+def get_full_albumcovername(aid, gordonDir=DEF_GORDON_DIR) :
     """Returns the full album cover name.
 
     If gordonDir is not provided, we use DEF_GORDON_DIR as the prefix.
     """
-    return os.path.join(gordonDir,'data','covers',get_albumcover_filename(aid))
+    return os.path.join(gordonDir, 'data', 'covers', get_albumcover_filename(aid))
 
 def get_full_mp3filename(tid,gordonDir=DEF_GORDON_DIR) :
     """Returns the full audio file name.
@@ -737,7 +730,7 @@ def delete_duplicate_mb_albums(gordonDir=DEF_GORDON_DIR) :
         mb_numeric_id = dbmb.query("SELECT R.id FROM album as R, albummeta as AM WHERE R.gid = '%s' AND  AM.id = R.id" % mb_id).getresult()[0][0]
         q="""SELECT T.length  FROM track as T INNER JOIN albumjoin as AJ ON T.id = AJ.track 
              INNER JOIN artist as A ON T.artist = A.id WHERE AJ.album = %i ORDER BY AJ.sequence""" % mb_numeric_id
-        mbtrackresult =array(dbmb.query(q).getresult())
+        mbtrackresult =numpy.array(dbmb.query(q).getresult())
         mbtimes=numpy.array(mbtrackresult[:,]).flatten()/1000.
         bytes=list()
         timeterms=list()
@@ -754,7 +747,7 @@ def delete_duplicate_mb_albums(gordonDir=DEF_GORDON_DIR) :
         
     
     
-        keepidx=argmax(array(bytes))
+        keepidx=numpy.argmax(numpy.array(bytes))
         if timeterms[keepidx]<.9 :
             print 'Not deleting',dupealbums[keepidx] ,'because the time match is not very good. Do so by hand!'
             print '  Times to delete:',numpy.array(map(lambda t: t.secs,dupealbums[keepidx].tracks))
@@ -869,10 +862,9 @@ def gordon_validate(gordonDir=DEF_GORDON_DIR,updateCounts=True,checkMissingMp3s=
 
 def get_albumcover_urltxt(asin) :
     #here we might be able to recover url from local cache
-    #todo: what is gordon_db? what is row?
-    albumcover_path=gordon_db.get_full_albumcovername(row.id)        
+    albumcover_path=get_full_albumcovername(asin.id)        
     if os.path.exists(albumcover_path) :
-        return '/cover/A%i.jpg' % row.id
+        return '/cover/A%i.jpg' % asin.id
 
     if asin<>None and len(asin.strip())>5 :
         urltxt = 'http://ec1.images-amazon.com/images/P/%s.jpg' % asin.strip()
@@ -941,7 +933,7 @@ def get_valid_tids(limit=-1,features_only=False) :
 
     query='select id from track%s order by id%s' % (fstr,lstr)
     
-    tids = map(int,array(execute_raw_sql(query).fetchall()).flatten())
+    tids = map(int,numpy.array(execute_raw_sql(query).fetchall()).flatten())
     return tids
 
 def slashify(fname) :
@@ -957,3 +949,10 @@ def slashify(fname) :
     s_fname=string.replace(s_fname,",","\,")
     s_fname=string.replace(s_fname,"-","\-")
     return s_fname
+
+def add_to_collection(tracks):
+    """ Adds a python collection of sqla Track objects to a given Gordon collection"""
+    
+    #todo: this
+    return tracks
+

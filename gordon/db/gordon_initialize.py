@@ -7,13 +7,13 @@ database configuration must be specified in config.py.
 
 import sqlalchemy
 
-import model
+from gordon.db import model
 
 nexceptions = 0
 done = False
 while not done:
     try: 
-        model.metadata.create_all(model.engine)
+        model.metadata.create_all(model.engine) #@UndefinedVariable #Eclipse doesn't know about SQL Alchemy
         done = True
     except sqlalchemy.exceptions.ProgrammingError:
         nexceptions += 1

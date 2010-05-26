@@ -127,12 +127,12 @@ Index('album_trackcount_idx', album.c.trackcount, unique=False)
 Index('album_pkey', album.c.id, unique=True)
 
 
-album_status =  Table('album_status', metadata, #jorgeorpinel: what is this for??? can't this be a status field in album table?
-     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-     Column(u'album_id', Integer(), ForeignKey('album.id'),nullable=False),
-     Column(u'status', String(length=None), primary_key=False),
-     )
-Index('album_status_pkey', album_status.c.id, unique=True)
+#album_status =  Table('album_status', metadata,
+#     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
+#     Column(u'album_id', Integer(), ForeignKey('album.id'),nullable=False),
+#     Column(u'status', String(length=None), primary_key=False),
+#     )
+#Index('album_status_pkey', album_status.c.id, unique=True)
 
 album_artist =  Table('album_artist', metadata,
     Column(u'album_id', Integer(), ForeignKey('album.id'), nullable=False),
@@ -153,7 +153,7 @@ Index('album2track_rid_idx', album_track.c.album_id, unique=False)
 Index('album2track_tid_idx', album_track.c.track_id, unique=False)
 
 
-artist =  Table('artist', metadata,
+artist = Table('artist', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
     Column(u'mb_id', String(length=64, convert_unicode=False, assert_unicode=None), default='', primary_key=False),
     Column(u'name', Unicode(length=256), default='', primary_key=False),
@@ -163,7 +163,7 @@ Index('artist_mb_id_idx', artist.c.mb_id, unique=False)
 Index('artist_name_idx', artist.c.name, unique=False)
 Index('artist_pkey', artist.c.id, unique=True)
 Index('artist_trackcount_idx', artist.c.trackcount, unique=False)    
-    
+
 artist_track =  Table('artist_track', metadata,
     Column(u'artist_id', Integer(), ForeignKey('artist.id'), nullable=False),
     Column(u'track_id', Integer(), ForeignKey('track.id'),  nullable=False),
@@ -172,7 +172,6 @@ artist_track =  Table('artist_track', metadata,
 Index('artist2track_aid_idx', artist_track.c.artist_id, unique=False)
 Index('artist2track_id_idx', artist_track.c.id, unique=False)
 Index('artist2track_tid_idx', artist_track.c.track_id, unique=False)
-
 
 track =  Table('track', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
@@ -198,6 +197,16 @@ Index('track_album_idx', track.c.album, unique=False)
 Index('track_artist_idx', track.c.artist, unique=False)
 Index('track_mb_id_idx', track.c.mb_id, unique=False)
 Index('track_title_idx', track.c.title, unique=False)
+
+track_annotation =  Table('track_annotation', metadata,
+    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
+    Column(u'track_id', Integer(), ForeignKey('track.id'),  nullable=False),
+    Column(u'type', Unicode(length=256), default=u'', primary_key=False),
+    Column(u'annotation', Unicode(length=256),default=u'',  primary_key=False),
+    Column(u'value', Unicode(length=512), default=u'', primary_key=False),
+    )
+Index('track_annotation_pkey', track_annotation.c.id, unique=True)
+Index('track_annotation_track_idx', track_annotation.c.track_id, unique=False)
 
 
 album_collection =  Table('album_collection', metadata,
@@ -519,7 +528,7 @@ mapper(Artist,artist,
                    }
        )
 
-mapper(AlbumStatus,album_status)
+#mapper(AlbumStatus,album_status)
 
 mapper(Mbartist_resolve,mbartist_resolve)
 
