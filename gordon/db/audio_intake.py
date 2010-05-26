@@ -40,7 +40,11 @@ from gordon.io import AudioFile
 from gordon.db.config import DEF_GORDON_DIR
 
 
-log = logging.getLogger('gordon.audio_intake') # No handlers could be found for logger "gordon.audio_intake"
+log = logging.getLogger('Gordon.AudioIntake')
+#todo: use a logging.config ini file for the gordon package loggers (see
+# http://www.red-dove.com/python_logging.html#config) or use manual logging.Filters ?
+log.addHandler(logging.StreamHandler(sys.stdout))
+log.setLevel(logging.DEBUG) #jorgeorpinel: for now, change DEBUG to INFO here to reduce verbosity
 
 
 def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, id3_dict = dict(), artist = None, album = None, fast_import = False) :
@@ -415,7 +419,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     
     if len(artists) == 0 :
         os.chdir(cwd)
-        log.info('  Nothing to add') #                                          debug (info)
+        log.debug('  Nothing to add') #                                         debug
         return  # no songs ---------------------------------------------- return
     else:
         log.debug('  %d artists in directory: %s', len(artists), artists) #     debug
@@ -427,7 +431,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
             if album_name == False : return # why? see _prompt_aname() -- return
         else :
             os.chdir(cwd)
-            log.info('  Not adding %d album names in album %s %s', len(albums), albumDir, str(albums)) #debug (info)
+            log.debug('  Not adding %d album names in album %s %s', len(albums), albumDir, str(albums)) #debug
             return  # more than one album in directory ------------------ return
     else : # there's only one album in the directory (as should be)
         album_name = albums[0]
