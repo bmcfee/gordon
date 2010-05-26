@@ -1,1 +1,1 @@
-from audio import AudioFile
+from gordon.io.audio import AudioFile

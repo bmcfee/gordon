@@ -1,1 +1,1 @@
-from gordon_db import *
+from gordon.db.gordon_db import *

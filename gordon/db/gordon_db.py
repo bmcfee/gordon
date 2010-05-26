@@ -31,8 +31,8 @@ from numpy import array, argmax
 
 from sqlalchemy import func, select
 
-from model import *
-from config import *
+from gordon.db.model import *
+from gordon.db.config import *
 
 from gordon.io.mp3_eyeD3 import * 
 #from gordon.io import AudioFile

@@ -66,7 +66,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
     
     if len(id3_dict) == 0 :
         #todo: currently cannot add singleton mp3s. Need an album which is defined in id3_dict
-        log.error('    ERROR: Cannot add "%s" because it is not part of an album',
+        log.error('    Cannot add "%s" because it is not part of an album',
                   filename)
         return -1 # didn't add ------------------------------------------ return
     if not os.path.isfile(mp3) :
@@ -80,7 +80,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
 #    try: #get track length
 #        eyed3_secs = int(id3.mp3_gettime(mp3)) #from mp3_eyed3 #jorgeorpinel: eyed3_secs unused 
 #    except :
-#        log.error('    ERROR: Could not read time from mp3 %s', mp3)
+#        log.error('    Could not read time from mp3 %s', mp3)
 #        eyed3_secs = -1
 
     #we get odd filenames that cannot be easily encoded.  This seems to come 
@@ -198,7 +198,7 @@ def add_uncomp(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_
     
     if len(tag_dict) == 0 :
         #todo: currently cannot add singleton files. Need an album which is defined in tag_dict
-        log.error('    ERROR: Cannot add "%s" because it is not part of an album', filename)
+        log.error('    Cannot add "%s" because it is not part of an album', filename)
         return -1 # didn't add ------------------------------------------ return
     if not os.path.isfile(wav) :
         log.debug('    Skipping %s because it is not a file', filename)
@@ -356,7 +356,7 @@ def _read_csv_tags(cwd, csv):
             except: tags[line[0]]['tracknum'] = 0
             tags[line[0]]['compilation'] = line[5].strip()
     except IOError:
-        log.error('Error: Couldn\'t open "%s"', csv)
+        log.error('  Couldn\'t open "%s"', csv)
 
     return tags
 
@@ -512,7 +512,12 @@ def add_collection(location, source = str(datetime.date.today()), prompt_incompl
 #        print 'audio_intake.py: Finished! (import from csv file)'
 #        return # -------------------------------------------------------- return
     
-    os.chdir(location)
+    try:
+        os.chdir(location)
+    except Exception:
+        log.critical('%s not found' % location)
+        sys.exit(1)
+    
     log.debug('Looking for a collection in %s. - add_collection()', os.sep) #   debug
 
     #handle root as a potential album
@@ -588,7 +593,7 @@ if __name__ == '__main__':
         pass
     doit = True if doit is None else True   #jorgeorpinel: just trying Python's ternary opperator :p
 
-    print 'audio_intake.py: using <source>', '"'+source+'",', '<dir>', eval("'"+dir+"'") # i
+    print 'audio_intake.py: using <source>', '"'+source+'",', '<dir>', dir # i
     if doit is False: print ' * No <doit> (3rd) argument given. Thats 0K. (Pass no args for script usage.)' # i
     add_collection(location = dir, source = source, prompt_incompletes = prompt_incompletes, doit = doit, fast_import = fast_import)
     

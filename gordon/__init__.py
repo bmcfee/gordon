@@ -34,6 +34,6 @@ gordon.db.mbrainz_resolver : resolve database metadata against MusicBrainz
 gordon.web : TurboGears web interface to the database
 """
 
-__version__ = ""
+__version__ = "0.3"
 
-from db import *
+from gordon.db import *

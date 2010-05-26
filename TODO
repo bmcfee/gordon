@@ -10,8 +10,8 @@ issued   - ffmpeg can read way more audio formats
 issued   - eventually we will move away from eyeD3 to TagPy/TagLib
            to get support for metadata embedded in other file formats
  
- - Look again at the database. Specifically, what do we store in a Track? (there are some extra fields I think)
-   and also how do we handle 
+open - Look again at the database. Specifically, what do we store in a Track? (there are some extra fields I think)
+       and also how do we handle:
       : deletes of all tracks in an album 
       : tracks having no album
       : storing original path (right now it's relative to SITM_DEF_DIR)
@@ -19,7 +19,7 @@ issued   - eventually we will move away from eyeD3 to TagPy/TagLib
         it makes more sense to either drop this completely or to store leading_zeros and trailing_zeros
 	as well.  However it *is* useful because you can, e.g., limit your queries to tracks having at least 
         15sec of non-zero data. 
-      : hashing a specific MP3 so as to not to import it twice. 
+      : hashing a specific audio file to avoid importing it twice 
 
  - Write unit tests (!!)
 

@@ -25,7 +25,7 @@ from datetime import datetime #from sqlalchemy.sql.expression import text
 
 from gordon.io import AudioFile #todo: this imports itself ultimately... code in this file is executed twice.
 
-import config
+from gordon.db import config
 
 
 
