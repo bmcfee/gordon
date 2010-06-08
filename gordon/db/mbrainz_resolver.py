@@ -284,7 +284,7 @@ class GordonResolver(object) :
 
         #get tags from mp3
         
-        fullpath=get_full_mp3filename(tid)
+        fullpath=get_full_audiofilename(tid)
         if not os.path.exists(fullpath) :
             print 'ERROR: Cannot update mp3 tags in',fullpath,'because file does not exist'
             return False

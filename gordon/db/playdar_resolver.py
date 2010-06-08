@@ -18,7 +18,7 @@ stdout = sys.stdout
 sys.stdout = sys.stderr
 
 from model import Artist, Track
-from gordon_db import get_full_mp3filename
+from gordon_db import get_full_audiofilename
 import dse_difflib  as DL
 
 # Restore stdout
@@ -46,7 +46,7 @@ def track2dict(artist, track, score):
     return {'artist': artist.name,
             'track': track.title,
             'album': track.album,
-            'url': 'file://' + get_full_mp3filename(track.id),
+            'url': 'file://' + get_full_audiofilename(track.id),
             'duration': int(track.secs),
             'source': 'gordon',
             'score': score}

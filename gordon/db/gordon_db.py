@@ -275,7 +275,7 @@ def get_full_albumcovername(aid, gordonDir=DEF_GORDON_DIR) :
     """
     return os.path.join(gordonDir, 'data', 'covers', get_albumcover_filename(aid))
 
-def get_full_mp3filename(tid,gordonDir=DEF_GORDON_DIR) :
+def get_full_audiofilename(tid,gordonDir=DEF_GORDON_DIR) :
     """Returns the full audio file name.
 
     If gordonDir is not provided, we use DEF_GORDON_DIR as the prefix.

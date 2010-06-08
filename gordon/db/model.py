@@ -311,8 +311,13 @@ class Track(object) :
     def _get_fn_audio(self) :
         return os.path.join(config.DEF_GORDON_DIR,'audio','main', self.path)
 
-    fn_audio = property(fget=_get_fn_audio,doc="""returns absolute path to audio file.  Does *not* verify that MP3 is actually present!""")
+    fn_audio = property(fget=_get_fn_audio,doc="""returns absolute path to audio file.  Does *not* verify that the file is actually present!""")
 
+    def _get_fn_audio_extension(self) :
+        root,ext = os.path.splitext(self.path)
+        return ext[1:]
+
+    fn_audio_extension = property(fget=_get_fn_audio_extension,doc="""returns file extension of the audio file.  Does *not* verify that the file is actually present!""")
 
     def _get_fn_feature(self,gordonDir='') :
         return os.path.join(config.DEF_GORDON_DIR,'data','features',_get_shortfile(self.id,'h5'))

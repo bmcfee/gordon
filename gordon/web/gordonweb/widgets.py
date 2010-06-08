@@ -25,6 +25,7 @@ import turbogears
 import numpy as N
 import time
 import operator
+import mimetypes
 
 
 #artist datagrid ---------------------------------------
@@ -168,14 +169,14 @@ album_datagrid = PaginateDataGrid(
 #track datagrid -------------------------------------
 #        id          int4 PRIMARY KEY,  -- Track id
 #        mb_         varchar(64),       -- Musicbrainz track id
-#        path        varchar(512),      -- Path to mp3 file
+#        path        varchar(512),      -- Path to audio file
 #        title       varchar(256),      -- Title
 #        artist      varchar(256),      -- Artist
 #        album       varchar(256),      -- Album
 #        tracknum    int2,              -- Track number
 #        secs        float,             -- Seconds in track
 #        zsecs       float,             -- Zero-stripped second
-#        md5         varchar(64),       -- MD5 value of mp3
+#        md5         varchar(64),       -- MD5 value of audio file
 #        compilation bool,              -- True if part of a compilation
 #        otitle      varchar(256),      -- Original Title
 #        oartist     varchar(256),      -- Original Artist
@@ -228,21 +229,6 @@ def get_mbtrack_time(row) :
     remsecs = int(row.mb_secs - mins*60)
     return '%s:%s' % (str(mins).zfill(1),str(remsecs).zfill(2))
 
-def get_track_mp3(row) :
-    #gets url to track with album image if album image exists
-    if not row or not row.path:
-        return ''
-    if type(row)==str:
-        path=row
-    else :
-        if row.path :
-            path=row.path
-        else :
-            return ''
-    link = ET.Element('a',href='/mp3/%i.mp3' % id)
-    link.text=path
-    return link
-
 
 def get_track_mb_id_url(row) :
     #this will work with a DataGrid row or with mb_id directly
@@ -264,16 +250,16 @@ def get_track_mb_id_url(row) :
         return 'None'
 
 
-def get_yahoo_player_mp3(row,arrow=True,albumcover=False) :
+def get_yahoo_player_audio_url(row,arrow=True,albumcover=False) :
     #gets url to track with album image if album image exists
     #if arrow is true, arrow icon is shown on page
     #if album cover is true, album cover is shown on page
     try :
-
+        ext = get_track_audio_extension(row)
         if not arrow :
-            link = ET.Element('a',style='display:none', title="%s - %s (%s)" % (row.artist,row.title,row.album),href='/mp3/T%s.mp3' % str(row.id))
+            link = ET.Element('a',style='display:none', title="%s - %s (%s)" % (row.artist,row.title,row.album),href='/audio/T%s.%s' % (str(row.id), ext))
         else :
-            link = ET.Element('a',title="%s - %s (%s)" % (row.artist,row.title,row.album),href='/mp3/T%s.mp3' % str(row.id))
+            link = ET.Element('a',title="%s - %s (%s)" % (row.artist,row.title,row.album),href='/audio/T%s.%s' % (str(row.id), ext))
         #don't show text for this
         link.text=''
         #now add the album cover
@@ -290,7 +276,7 @@ def get_yahoo_player_mp3(row,arrow=True,albumcover=False) :
 
 track_datagrid = PaginateDataGrid(
     fields=[
-    PaginateDataGrid.Column('mp3',           get_yahoo_player_mp3,              'Play',options=dict(sortable=False)),
+    PaginateDataGrid.Column('audio',         get_yahoo_player_audio_url, 'Play',options=dict(sortable=False)),
     PaginateDataGrid.Column('id',            get_track_url_for_id,       'Track ID', options=dict(sortable=True)),
     PaginateDataGrid.Column('tracknum',      get_track_url_for_tracknum, 'Track',options=dict(sortable=True)),
     PaginateDataGrid.Column('title',         get_track_url_for_title,    'Title',options=dict(sortable=True)),
@@ -299,14 +285,14 @@ track_datagrid = PaginateDataGrid(
     PaginateDataGrid.Column('time',          get_track_time,             'Time',options=dict(sortable=True)),
 #    PaginateDataGrid.Column('compilation',   'compilation',              'Compilation',options=dict(sortable=True)),
     PaginateDataGrid.Column('source',        'source',                   'Source',options=dict(sortable=True)),
-    PaginateDataGrid.Column('mb_id',          get_track_mb_id_url,               'MB ID',options=dict(sortable=True)),
+    PaginateDataGrid.Column('mb_id',         get_track_mb_id_url,        'MB ID',options=dict(sortable=True)),
 
     ])
 
 
 track_datagrid_no_album = PaginateDataGrid(
     fields=[
-    PaginateDataGrid.Column('mp3',           get_yahoo_player_mp3,              'Play',options=dict(sortable=False)),
+    PaginateDataGrid.Column('audio',         get_yahoo_player_audio_url, 'Play',options=dict(sortable=False)),
     PaginateDataGrid.Column('id',            get_track_url_for_id,       'Track ID', options=dict(sortable=True)),
     PaginateDataGrid.Column('tracknum',      get_track_url_for_tracknum, 'Track',options=dict(sortable=True)),
     PaginateDataGrid.Column('title',         get_track_url_for_title,    'Title',options=dict(sortable=True)),
@@ -314,7 +300,7 @@ track_datagrid_no_album = PaginateDataGrid(
     PaginateDataGrid.Column('time',          get_track_time,             'Time',options=dict(sortable=True)),
 #    PaginateDataGrid.Column('compilation',   'compilation',              'Compilation',options=dict(sortable=True)),
     PaginateDataGrid.Column('source',        'source',                   'Source',options=dict(sortable=True)),
-    PaginateDataGrid.Column('mb_id',          get_track_mb_id_url,               'MB ID',options=dict(sortable=True)),
+    PaginateDataGrid.Column('mb_id',          get_track_mb_id_url,       'MB ID',options=dict(sortable=True)),
 
     ])
 
@@ -389,7 +375,7 @@ def get_track_edit_url(row) :
 
 mbrecommend_track_datagrid = PaginateDataGrid(
     fields=[
-    PaginateDataGrid.Column('mp3',           get_yahoo_player_mp3,       'PlayIt',options=dict(sortable=False)),
+    PaginateDataGrid.Column('audio',         get_yahoo_player_audio_url, 'PlayIt',options=dict(sortable=False)),
     PaginateDataGrid.Column('id',            get_track_edit_url,         'Gordon ID'),
     PaginateDataGrid.Column('tracknum',      'tracknum',                 'Gordon Track'),
     PaginateDataGrid.Column('mb_tracknum',      'mb_tracknum',           'MB Track'),
@@ -432,7 +418,6 @@ def slashify_xml(str) :
                   
 def download(tracks, album='', randomize=0, host=-1)  :
     import widgets
-    from gordon.io import mp3_eyeD3
     import cherrypy.lib.cptools
     import tarfile
     import zipfile
@@ -454,18 +439,23 @@ def download(tracks, album='', randomize=0, host=-1)  :
     msg=''
     ctr=1
     for t in tracks :
-        src = t.fn_audio#augordon.db.get_full_mp3filename(t.id)
+        src = gordon.db.get_full_audiofilename(t.id)
 
-        (artist,album,title,tracknum)=mp3_eyeD3.id3v2_getval(src,['artist','album','title','tracknum'])
-        if album=='' :
+        artist = t.artist
+        album = t.album
+        title = t.title
+        tracknum = t.tracknum
+
+        if not album:
             album='Unknown'
-        if title=='' :
+        if not title:
             title='Unknown'
-        if tracknum<=0 :
+        if tracknum<=0:
             tracknum=ctr
 
+        ext = get_track_audio_extension(t)
         tracknum=str(tracknum).zfill(2)
-        fname='%s - %s - %s - %s.mp3' % (artist,album,tracknum,title)
+        fname='%s - %s - %s - %s.%s' % (artist,album,tracknum,title,ext)
         fname=itunes_slashify(fname)  #get rid of dangerous characters
         tgt=os.path.join(tempdir,fname)
         msg='%s\n copy %s to %s' % (msg,src,tgt)
@@ -489,14 +479,14 @@ def download(tracks, album='', randomize=0, host=-1)  :
         if comptyp=='zip' :
             outfn='%s/gordon_download_%s.zip' % (tardir,bn)    
             zip = zipfile.ZipFile(outfn,'w')
-            for f in glob.glob('%s/*mp3' % bn) :
+            for f in glob.glob('%s/*' % bn) :
                 zip.write(f,os.path.basename(f),zipfile.ZIP_STORED)
             zip.close()
             typ='application/x-zip'
         elif comptyp=='tar' :
             outfn='%s/gordon_download_%s.tar' % (tardir,bn)    
             tar = tarfile.open(outfn,'w')
-            for f in glob.glob('%s/*mp3' % bn) :
+            for f in glob.glob('%s/*' % bn) :
                 tar.add(f)
             tar.close()
             typ='application/x-tar'
@@ -507,7 +497,7 @@ def download(tracks, album='', randomize=0, host=-1)  :
         shutil.rmtree(bn)        
     else :
         #here we leave the directory because it contains our only file
-        typ='audio/mpeg'
+        typ,ignored = mimetypes.guess_type(tgt)
         outfn=tgt
 
     os.chdir(cwd)
@@ -559,9 +549,11 @@ def playlist(tracks, album='', randomize=0, host=-1)  :
             try :
                 albumcover_urltxt=get_albumcover_urltxt(track.albums[0])
             except :
+
+                ext = get_track_audio_extension(track)
                 albumcover_urltxt=''
         str+='     <track>\n'
-        str+='            <location>http://%s/mp3/T%i.mp3</location>\n' % (host,track.id)
+        str+='            <location>http://%s/audio/T%i.%s</location>\n' % (host,track.id,ext)
         str+='            <album>%s</album>\n' % slashify_xml(track.album)
         str+='            <title>%s</title>\n' % slashify_xml(track.title)
         str+='            <creator>%s</creator>\n' % slashify_xml(track.artist)
@@ -761,3 +753,7 @@ def itunes_slashify(fname) :
         fname='_' + fname[1:]
     return fname
 
+
+def get_track_audio_extension(track):
+    root, ext = os.path.splitext(track.fn_audio)
+    return ext[1:]

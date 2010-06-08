@@ -44,7 +44,7 @@ MusicBrainz ID: <span py:replace="artist.mb_id"/><br/>
 <span py:replace="album_widget(albums)"/>
 
 
-<span py:for="m in mp3s">
+<span py:for="m in audiourls">
 <span py:content="m">X</span>
 </span>
 

@@ -60,7 +60,7 @@ class Root(controllers.RootController):
 
     @expose("json")
     @identity.require(identity.has_permission("listen"))
-    def mp3(self,fn_or_track_id) :
+    def audio(self,fn_or_track_id) :
         #this should be flexible enough to do either a filename or track_id
         fn_or_track_id=str(fn_or_track_id)
         (path,fn) = os.path.split(fn_or_track_id)
@@ -71,11 +71,11 @@ class Root(controllers.RootController):
         try :
             track_id = int(stub) 
         except :
-            return "Cannot find mp3 %s" % str(fn_or_track_id)
+            return "Cannot find audio file %s" % str(fn_or_track_id)
 
 
         #we are hardcoding a path here to get around NFS issues
-        outfn = gordon_db.get_full_mp3filename(track_id)
+        outfn = gordon_db.get_full_audiofilename(track_id)
         print 'Serving',outfn
         return cherrypy.lib.cptools.serveFile(path=outfn,disposition='attachment',name=os.path.basename(outfn))  
 
@@ -239,7 +239,7 @@ class Root(controllers.RootController):
         track = gordon_model.Track.query.get(id)
         referer = cherrypy.request.headerMap.get("Referer", "/")
         track.referer=referer
-        yahoo_url=get_yahoo_player_mp3(track)
+        yahoo_url=get_yahoo_player_audio_url(track)
         #widget_data is for the widget to render while track is the actual record.
         #allows us to render for viewing using DataGrid
         track_time=widgets.get_track_time(track)
@@ -437,14 +437,14 @@ class Root(controllers.RootController):
         #    artist_top_sims=artist_sims.top_sims
         #    artist_bottom_sims=artist_sims.bottom_sims
 
-        #build list of mp3s
+        #build list of audio files
         #for t in artist.tracks :
         tracks = artist.tracks
         random.shuffle(tracks)
-        mp3s=list()
+        audiourls=list()
         for (ctr,t) in enumerate(tracks) :
-            link = widgets.get_yahoo_player_mp3(t,arrow=False)#ET.Element('a',title="%s - %s (%s)" % (t.artist,t.title,t.album),style='display:none',href='/mp3/T%s.mp3' % str(t.id))
-            mp3s.append(link)
+            link = widgets.get_yahoo_player_audio_url(t,arrow=False)
+            audiourls.append(link)
             if ctr==100 :
                 break
         
@@ -456,7 +456,7 @@ class Root(controllers.RootController):
                     album_widget=album_datagrid,albums=artist.albums,artist_mb_id_link=artist_mb_id_link,shuffle_state=shuffle_state,action=action,
                     artist_top_sims=artist_top_sims,artist_bottom_sims=artist_bottom_sims,
                     artist_top_sim_datagrid=artist_top_sim_datagrid,artist_bottom_sim_datagrid=artist_bottom_sim_datagrid,
-                    mp3s=mp3s)
+                    audiourls=audiourls)
      
 
     @expose(template='gordonweb.templates.artists')

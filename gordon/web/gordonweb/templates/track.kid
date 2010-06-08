@@ -22,7 +22,7 @@ MusicBrainz ID: <span py:replace="track.mb_id"/><br/>
 <hr/>
 
 
-<a title="${track.artist} - ${track.title} (${track.album})" href="/mp3/T${track.id}.mp3"></a>|
+<a title="${track.artist} - ${track.title} (${track.album})" href="/audio/T${track.id}.${track.fn_audio_extension}"></a>|
 <span py:for="a in alternate_action">
 <span py:content="a">X</span> |
 <a href="/download/track_id:${track.id}">Download</a>|
