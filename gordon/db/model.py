@@ -308,7 +308,7 @@ class Track(object) :
         st= '<Track %i %s by %s from %s>' % (self.id,self.title,self.artist,self.album)
         return st.encode('utf-8')
     def _get_fn_audio(self) :
-        return os.path.join(config.DEF_GORDON_DIR,'audio','main',_get_shortfile(self.id))
+        return os.path.join(config.DEF_GORDON_DIR,'audio','main', self.path)
 
     fn_audio = property(fget=_get_fn_audio,doc="""returns absolute path to audio file.  Does *not* verify that MP3 is actually present!""")
 
