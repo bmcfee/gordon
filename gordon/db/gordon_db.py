@@ -950,9 +950,16 @@ def slashify(fname) :
     s_fname=string.replace(s_fname,"-","\-")
     return s_fname
 
-def add_to_collection(tracks):
-    """ Adds a python collection of sqla Track objects to a given Gordon collection"""
+def add_to_collection(tracks, source):
+    """ Adds a python collection of SQLA Track objects to a given Gordon collection (by source name)"""
     
-    #todo: this
-    return tracks
+    collection = Collection.query.filter_by(source=source).first()
+    if not collection: collection = Collection(source=source) # creates the collection if non existant
+    
+    for track in tracks:
+        collection.tracks.append(track)
+    
+    commit()
+        
+    return collection # ------------------------------------------------- return the collection found
 

@@ -232,7 +232,8 @@ collection_track =  Table('collection_track', metadata,
 
 collection = Table('collection', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-    Column(u'source', Unicode(length=256), primary_key=False),
+    Column(u'source', Unicode(length=256)),
+    Column(u'description', Unicode(length=256)),
     )
 #Index('collection_pkey', collection.c.id, unique=True)
 
@@ -479,14 +480,20 @@ class Mbalbum_recommend(object) :
     def __repr__(self): return self.__str__()
 
 
-class Collection (object):
+class Collection(object):
 #    def __init__(self, source):
 #        self.source = source
     
     def __repr__(self) :
         if not self.id: return '<Empty Collection>'
-        else: return '<Collection %s>' % self.source # ------------------ return
+        else: return '<Collection %s "%s">' % (self.source, self.description) # ------------------ return
+    
 
+class Annotation(object):
+    def __repr__(self) :
+        if not self.id: return '<Empty Annotation>'
+        else: return '<Annotation (%s) %s: %s>' % (self.type, self.annotation, self.value) #return
+    
 
 mapper(AlbumTrack,album_track)
 
@@ -542,28 +549,34 @@ mapper(Collection, collection,
     }
 )
 
-#jorgeorpinel: this didn't work... when calling metadata.create_all(engine), no collection table is found at album_collection (et al) foreign key (ie collection.id) declaration
+mapper(Annotation, track_annotation,
+    properties={
+       'track': relation(Track, backref=backref('annotations', order_by='track_annotation.type')),
+    }
+)
+
+#jorgeorpinel: this didn't work (again)... no track_annotationn table is created with metadata.create_all(engine)...
+# before, used to create Collection, when calling metadata.create_all(engine), no table is found at album_collection (et al) foreign key (ie collection.id) declaration
 ##jorgeorpinel: trying out the declarative way to create table, class and mapper (@ http://www.sqlalchemy.org/docs/05/ormtutorial.html#creating-table-class-and-mapper-all-at-once-declaratively)
 ##from sqlalchemy import ForeignKey # don't need this...
 ##from sqlalchemy.orm import relation, backref # got them already
 #from sqlalchemy.ext.declarative import declarative_base
 #Base = declarative_base()
 #
-#class Collection (Base):
-#    __tablename__ = 'collection'
+#class Annotation (Base):
+#    __tablename__ = 'track_annotation'
 #    
 #    id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
-#    source = Column(Unicode(length=256))
-#    
-#    # these are the mapper relationships (and backref "collections" at Album, Artist, and Track)
-#    albums =  relation(Album,    secondary='album_collection',    order_by=Album.name,     backref='collections')
-#    artists = relation("Artist", secondary="artist_collection", order_by="Artist.name",  backref="collections")
-#    tracks =  relation(Track,    secondary='collection_track',    order_by=Track.tracknum, backref="collections")
-#    # those were Many-to-Many Object<->Collection relationships (@ http://www.sqlalchemy.org/docs/05/ormtutorial.html#building-a-many-to-many-relation)
+#    track_id = Column(Integer, ForeignKey('track.id'), nullable=False)
+#    type = Column(Unicode(length=256), default=u'', nullable=False)
+#    annotation = Column(Unicode(length=256),default=u'')
+#    value = Column(Unicode(length=512), default=u'')
 #
-##    def __init__(self, source):
-##        self.source = source
-#    
+#    # these are the mapper relationships (and backref "collections" at Album, Artist, and Track)
+##    artists = relation("Artist", secondary="artist_collection", order_by="Artist.name",  backref="collections")
+#    tracks =  relation(Track, order_by=Track.tracknum, backref=backref('annotations', order_by=type))
+#
 #    def __repr__(self) :
-#        if not self.id: return '<Empty Collection>'
-#        else: return '<Collection %s>' % self.source # ------------------ return
+#        if not self.id: return '<Empty Annotation>'
+#        else: return '<Annotation (%s) %s: %s>' % (self.type, self.annotation, self.value) #return
+    
