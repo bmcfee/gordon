@@ -29,11 +29,12 @@ place, only verbose would-dos
 '''
 
 import os, datetime, logging, stat, sys
+from glob import glob
 
 from csv import reader
 
-from gordon.db.model import add, commit, Album, Artist, Track, Collection
-from gordon.db.gordon_db import get_tidfilename, make_subdirs_and_copy
+from gordon.db.model import add, commit, Album, Artist, Track, Collection, Annotation
+from gordon.db.gordon_db import get_tidfilename, make_subdirs_and_copy, is_binary
 from gordon.io import mp3_eyeD3 as id3
 from gordon.io import AudioFile
 
@@ -47,6 +48,46 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.setLevel(logging.DEBUG) #jorgeorpinel: for now, change DEBUG to INFO here to reduce verbosity
 
 
+def _store_annotations(audiofile, track):
+    """Searches for more tags on the audiofile (for now only ID3 in MP3): type <id3> annotation [tagname];
+    Searches for text-files with the same base-name whithin the folder (any [ext]ension): type <txt> annotation [ext];
+    Stores these annotation values in the track_annotation DB table
+    
+    audiofile is the file (should be previously verified as an actual audio file)
+    track is the already stored track record in the database, represented by a gordon.db.model.Track class (SQL Alchemy)
+    
+    returns number of annotations (0 to *) stored"""
+    #todo: chek if file is mp3. if so:
+        #extract all ID3 tags
+        #store each tag value as an annotation type id3.[tagname]
+    
+    #future todo: apply tagpy or other method to extract more tag types from more audiofile types
+    
+    # check text file annotations
+    (pathandbase, ext) = os.path.splitext(audiofile)
+    annots = 0
+    simfiles = list()
+    if os.path.exists(pathandbase): simfiles.append(pathandbase)
+    for s in glob(pathandbase+'.*'): simfiles.append(s)
+    txt=None
+
+    for simfile in simfiles: # for every file sharing base-name (any or no extension)
+        try:
+            if not is_binary(simfile): # if its a text file
+#                if simfile == audiofile: continue # (we skip the original) #unnecesary; it is_binary
+
+                # copy text (file content) to new track annotation (type txt.[ext])
+                txt=open(simfile)
+                (xxx, ext) = os.path.splitext(simfile) #@UnusedVariable
+                track.annotations.append(Annotation(type='txt', annotation=ext[1:], value=txt.read()))
+                annots += 1
+        finally:
+            if type(txt)==file: txt.close()
+            
+    commit() #saves all appended annotations in the track
+    
+    return annots
+
 def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, id3_dict = dict(), artist = None, album = None, fast_import = False) :
     '''Add mp3 with filename <mp3> to database
          source -- audio files data source
@@ -56,8 +97,6 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
          album  -- The album for this track. An instance of Album. None if not present
          fast_import -- If true, do not calculate strip_zero length. Defaults to False
     '''
-
-
     (filepath, filename) = os.path.split(mp3)
     log.debug('    Adding mp3 file "%s" of "%s" album by %s - add_mp3()', filename,
               album, artist)    
@@ -66,11 +105,10 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
     
     if len(id3_dict) == 0 :
         #todo: currently cannot add singleton mp3s. Need an album which is defined in id3_dict
-        log.error('    Cannot add "%s" because it is not part of an album',
-                  filename)
+        log.error('    Cannot add "%s" because it is not part of an album', filename) #debug (error)
         return -1 # didn't add ------------------------------------------ return
     if not os.path.isfile(mp3) :
-        log.debug('    Skipping %s because it is not a file', filename)
+        log.debug('    Skipping %s because it is not a file', filename)         # debug
         return -1 # not a file ------------------------------------------ return
 
 
@@ -178,7 +216,10 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
     #if not fast_import :
 #        log.debug('    Calculating features for track %s', track.id)
 #        update_features(track.id) #jorgeorpinel: what is this?
-    pass # for stupid Eclipse correct folding after comments
+    
+    #search for other annotations and store them in the database
+    
+    _store_annotations(mp3, track)
 
 def add_uncomp(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, tag_dict = dict(), artist = None, album = None, fast_import = False) :
     """Add uncompressed wav/aif with filename <wav> to database
@@ -189,8 +230,8 @@ def add_uncomp(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_
          album  -- The album for this track. An instance of Album. None if not present
          fast_import -- If true, do not calculate strip_zero length. Defaults to False
     """
-    (path, filename) = os.path.split(wav) #@UnusedVariable
-    (fname, ext) = os.path.splitext(filename) #@UnusedVariable
+    (xxx, filename) = os.path.split(wav) #@UnusedVariable
+    (xxx, ext) = os.path.splitext(filename) #@UnusedVariable
     log.debug('    Adding uncompressed file "%s" of "%s" album by %s - add_uncomp()', filename, album, artist)
     
     
@@ -271,6 +312,10 @@ def add_uncomp(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_
     tgt = os.path.join(gordonDir, 'audio', 'main', track.path)
     make_subdirs_and_copy(filename, tgt)
     log.debug('    Copied uncompressed "%s" to %s', filename, tgt)
+    
+    #search for other annotations and store them in the database
+    
+    _store_annotations(wav, track)
 
 
 def _prompt_aname(albumDir, tags_dicts, albums, cwd) :
@@ -385,7 +430,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     os.chdir(albumDir)
     #todo: check the actual MIME/type, not only the extensions, or somehow confirm content (eg with ffmpeg error)
     for filename in os.listdir('.') :
-        (base, ext) = os.path.splitext(filename) #@UnusedVariable
+        (xxx, ext) = os.path.splitext(filename) #@UnusedVariable
         if not os.path.isdir(os.path.join(cwd, filename)) :
             log.debug('  Checking "%s" ...', filename) #                        debug
             csvtags = False

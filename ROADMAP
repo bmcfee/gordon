@@ -4,23 +4,23 @@ Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
 
  * read text file to extract wav tags - this means work wavs with ffmpeg      OK
  * work with aif                                                              OK
- * extract tags from all taggy formats                                     EXTRA see 2.1
+ * extract all tags from all taggy formats                                 EXTRA see 2.1 as well
 
 1 Immediate future : projected APR 23                                         OK
 
  * support multiple collections with the same audio files                     OK
 
-2 Late spring : projected MAY 21ish                                      
+2 Late spring : projected MAY                                               LATE
 
- * move tag 0.3 to comit 67
- * implement _annotation_ file association to tracks                     
-   annotation types:
-  1 all (metadata) tags - implement name:value pairs? (normalize with annotation_type table [master list]) note -.***
-  2 time-values (eg HTK) files (incorporate in 1 *check psql variable length coltypes)
-  3 inter-relationships (eg covers) - use special collections * add collection.description field (do add_to_collection(tracks) function?)
-  * add_to_collecctions(tracks) function? maybe in new py module?)
+ * implement _annotation_ file association to tracks                        LATE
+   annotation types: (add track_annotation table OK)
+  0 DB structure (create annotation table)                                    OK
+  1 all (metadata) tags * normalize with annotation_type table?
+  2 time-values (eg HTK .lab) files *check psql variable length coltypes - do not parse
+  3 inter-relationships (eg covers) - create add_to_collection(tracks) function OK
 
-3 Summer I : projected 2ish of JUNE                                        
+3 Summer I : projected 2ish of JUNE                                      CURRENT
 
- * implement/clean-up _feature_ extraction                                   
+ * implement/clean-up _feature_ extraction                                   ...
+ * integrate with Ho-Hsiang Flash app (socket server, see http://blog.pettomato.com/?p=9)
  

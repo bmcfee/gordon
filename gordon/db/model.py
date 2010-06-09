@@ -498,7 +498,9 @@ class Collection(object):
 class Annotation(object):
     def __repr__(self) :
         if not self.id: return '<Empty Annotation>'
-        else: return '<Annotation (%s) %s: %s>' % (self.type, self.annotation, self.value) #return
+        value = self.value
+        if len(value) > 32: long=True
+        return '<Annotation %s.%s: %s%s>' % (self.type, self.annotation, value[:16], '...' if long else '') #return
     
 
 mapper(AlbumTrack,album_track)
