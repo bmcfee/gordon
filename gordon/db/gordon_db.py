@@ -24,19 +24,19 @@ Includes the database model and a set of utility functions for
 validating the contents of the database, removing duplicates, etc.
 '''
 
-import traceback
-import time, string, sys, shutil, os, copy#, difflib, heapq, datetime, stat, glob, random
-#from collections import defaultdict
-import numpy
-
+import numpy, os
+from shutil import move, copy
 from sqlalchemy import func, select
+from string import join, replace
+from sys import platform, version
+from time import sleep
+from traceback import print_exc
+from unicodedata import decomposition, normalize
 
-from gordon.db.model import * #Eclipse can't figure out sqlalchemy object enhancements...
-#from gordon.db.model import Artist, session, commit, Track, Album, album, Mbalbum_recommend, execute_raw_sql
+#from gordon.db.model import * #Eclipse can't figure out sqlalchemy object enhancements...
+from gordon.db.model import Artist, session, commit, Track, Album, album, Mbalbum_recommend, execute_raw_sql
 from gordon.db.config import DEF_GORDON_DIR, DEF_DBUSER, DEF_DBPASS, DEF_DBHOST
-
 from gordon.io import AudioFile
-from gordon.io.mp3_eyeD3 import *
 
 #todo: use a "Gordon" Logger
 print 'gordon_db.py: using gordon directory',DEF_GORDON_DIR
@@ -52,8 +52,8 @@ print 'gordon_db.py: using gordon directory',DEF_GORDON_DIR
 def reassign_artist(oldid,newid) :
     """Reassigns all tracks and albums from oldid to newid then
     deletes old artist."""
-    oldartist = Artist.query.get(oldid)
-    newartist = Artist.query.get(newid)
+    oldartist = Artist.query.get(oldid) #@UndefinedVariable (Eclipse vs. SQLA)
+    newartist = Artist.query.get(newid) #@UndefinedVariable (Eclipse vs. SQLA)
 
     if not oldartist :
         raise ValueError('Bad id for oldartist')
@@ -88,7 +88,7 @@ def reassign_artist(oldid,newid) :
 
     print "Updating trackcount"
     newartist.update_trackcount()
-    session.delete(oldartist)
+    session.delete(oldartist) #@UndefinedVariable (Eclipse vs. SQLA)
     commit()
 
 def delete_source(source) :
@@ -103,9 +103,9 @@ def delete_source(source) :
     #    delete_track(t)
 
 
-    for t in Track.query.filter_by(source=source) :
+    for t in Track.query.filter_by(source=source) : #@UndefinedVariable (Eclipse vs. SQLA)
         print 'Deleting',t
-        session.delete(t)
+        session.delete(t) #@UndefinedVariable (Eclipse vs. SQLA)
     commit()
     gordon_validate()
 
@@ -113,29 +113,29 @@ def delete_album(album) :
     #we handle cascading deletes ourselves for track and artist
     for t in album.tracks :
         artists = t.artists 
-        session.delete(t)        
+        session.delete(t) #@UndefinedVariable (Eclipse vs. SQLA)
         for a in artists :
             a.update_trackcount()
-    session.delete(album)
+    session.delete(album) #@UndefinedVariable (Eclipse vs. SQLA)
     commit()
     
 def delete_track(track) :
     albums = track.albums
     artists = track.artists
-    session.delete(track)
+    session.delete(track) #@UndefinedVariable (Eclipse vs. SQLA)
     session.flush()  #should this be a commit?
 
     print 'Updating albums and artists'
     for a in albums :
         a.update_trackcount()
         if a.trackcount==0 :
-            session.delete(a)
+            session.delete(a) #@UndefinedVariable (Eclipse vs. SQLA)
             #print 'Someone delete me!',a
 
     for a in artists :
         a.update_trackcount()
         if a.trackcount==0 :
-            session.delete(a)
+            session.delete(a) #@UndefinedVariable (Eclipse vs. SQLA)
             #print 'Someone delete me!',a
 
     commit()
@@ -150,31 +150,32 @@ def deaccent_unicode(s):
     return s.translate(unaccented_map())
 
 def delete(rec) :
-    session.delete(rec)
-  
-#commit is defined in model.py      
-#def commit() :
+    session.delete(rec) #@UndefinedVariable (Eclipse vs. SQLA)
+
+pass #Eclipse code folding      
+#def commit() : #commit is defined in model.py
     #when we use these functions from the prompt we need to do some commiting
- #   session.flush()
+    #session.flush()
     #try :
     #    session.flush()
     #except :
     #    print 'Unable to commit automatically. If you are in tgadmin shell, do not forget to commit!'
-        
+   
 def command_with_output(cmd):
     cmd = unicode(cmd,'utf-8')
     #should this be a part of slashify or command_with_output?
-    if sys.platform=='darwin' :
-        cmd = unicodedata.normalize('NFC',cmd)
+    if platform=='darwin' :
+        cmd = normalize('NFC',cmd)
     child = os.popen(cmd.encode('utf-8'))
     data = child.read()
-    err = child.close()
+#    err = child.close()
+    child.close()
     return data
 
 def postgres_column_to_str(col) :
     #transforms postgres column tos tring
     
-    st = string.join(col)
+    st = join(col)
     try :
         st = unicode(st,'utf-8')
     except :
@@ -191,7 +192,7 @@ pass
 #Fri Mar 24 20:37:03 CET 2006
 
 #import sys
-import unicodedata
+#import unicodedata
 CHAR_REPLACEMENT = {
     0xc6: u"AE", # LATIN CAPITAL LETTER AE
     0xd0: u"D",  # LATIN CAPITAL LETTER ETH
@@ -211,7 +212,7 @@ class unaccented_map(dict):
             return ch
         ch = unichr(key)
         try:
-            ch = unichr(int(unicodedata.decomposition(ch).split()[0], 16))
+            ch = unichr(int(decomposition(ch).split()[0], 16))
         except (IndexError, ValueError):
             ch = CHAR_REPLACEMENT.get(key, ch)
         # uncomment the following line if you want to remove remaining
@@ -219,7 +220,7 @@ class unaccented_map(dict):
         # if ch >= u"\x80": return None
         self[key] = ch
         return ch
-    if sys.version >= "2.5":
+    if version >= "2.5":
         __missing__ = mapchar
     else:
         __getitem__ = mapchar
@@ -236,11 +237,11 @@ def _set_perms(path, perm, groupName=None) :
 
 def make_subdirs_and_move(src,tgt) :    
     make_subdirs(tgt)
-    shutil.move(src,tgt)
+    move(src,tgt)
 
 def make_subdirs_and_copy(src, tgt) :    
     make_subdirs(tgt)
-    shutil.copy(src, tgt)
+    copy(src, tgt)
     _set_perms(tgt, 664)
 
 def make_subdirs(tgt) :
@@ -289,7 +290,7 @@ def get_tidfilename(tid, ext='mp3', featurestub='') :
     <featurestub> seems to be intended for feature file extentions further to .mp3 or .wav, etc'''
     from model import query as squery
     
-    fn = squery(Track.path).filter_by(id=tid).first()
+    fn = squery(Track.path).filter_by(id=tid).first() #@UndefinedVariable (Eclipse vs. SQLA)
     if fn is None or fn[0] == '': # creates the path with the expected file ext:
         fn = os.path.join(get_tiddirectory(tid), 'T%s.%s' % (tid, ext))
     else:   # retrieves the path from DB (ignoring <ext>)
@@ -322,7 +323,7 @@ def get_tidfilename_new(tid) :
     return '%s/%s' % (get_tiddirectory_new(tid),'T%s.mp3' % tid)
 
 def get_tiddirectory_new(tid) :
-    dr=''
+#    dr=''
     if type(tid)==str or type(tid)==unicode and tid[0]=='T' :
         tid=tid[1:]
     try :
@@ -378,13 +379,13 @@ def update_all(tid=-1,gordonDir=DEF_GORDON_DIR,force=False) :
             
         except :
             print 'Unable to update tid',tid
-            traceback.print_exc()
+            print_exc()
 
 def update_features(tid=-1,gordonDir=DEF_GORDON_DIR,force=False):
     #This shoudl update everything of importance. Because force is false, it should be relatively fast
     #when called on files where everything is already done. 
     #if called with no tid, we loop on entire database
-    (secs,zsecs)=update_secs_zsecs(tid,gordonDir=gordonDir,force=force)
+    (secs,zsecs)=update_secs_zsecs(tid,gordonDir=gordonDir,force=force) #@UnusedVariable
     if zsecs>=15:
         update_audio_features(tid,gordonDir=gordonDir,force=force)
         update_summarized_features(tid,gordonDir=gordonDir,force=force)
@@ -406,10 +407,10 @@ def update_secs_zsecs(tid_or_track,gordonDir=DEF_GORDON_DIR,force=False,fast=Fal
     if isinstance(tid_or_track,Track) :
         track=tid_or_track
     else :
-        track = Track.query.get(tid_or_track)
+        track = Track.query.get(tid_or_track) #@UndefinedVariable (Eclipse vs. SQLA)
 
     if track==None :
-        raise ValueError('Track for id %i not found in update_secs_zsecs' % tid)
+        raise ValueError('Track for id %i not found in update_secs_zsecs' % tid_or_track)
 
     #fast case we only update the secs
 
@@ -423,7 +424,7 @@ def update_secs_zsecs(tid_or_track,gordonDir=DEF_GORDON_DIR,force=False,fast=Fal
         a = AudioFile(track.fn_audio)
         if fast :  #update secs but not zsecs based on file header (no decoding)
             zsecs=-1
-            (fs,chans,secs)=a.read_stats()
+            (fs,chans,secs)=a.read_stats() #@UnusedVariable
         else :     #update both secs and zsecs by decoding file and actually working with audio (more accurate)
             secs, zsecs = a.get_secs_zsecs()
         track.secs=secs
@@ -459,7 +460,7 @@ def update_audio_features(tid,gordonDir=DEF_GORDON_DIR,force=False,params=dict()
 
 def set_feature_perms(tid,gordonDir=DEF_GORDON_DIR) :
     """Sets permissions for newly-created files"""
-    fn= Track.query.get(tid).fn_feature
+    fn= Track.query.get(tid).fn_feature #@UndefinedVariable (Eclipse vs. SQLA)
     if os.path.exists(fn) :
         os.system('chgrp musique %s' % fn)
         os.system('chmod g+rw %s' % fn)
@@ -539,14 +540,14 @@ def verify_delete(vals,msg) :
     if get_raw_yesno('Delete them?') :
         for v in vals :
             try  :
-                session.delete(v)
+                session.delete(v) #@UndefinedVariable (Eclipse vs. SQLA)
                 session.flush()
             except :
                 print 'Could not delete',v,'probably because there are artist_sims for this artist'
 
 def check_missing_mp3s(deleteMissing=False, gordonDir=DEF_GORDON_DIR) :
     print 'Checking for missing mp3s... this takes a while'
-    for t in Track.query.all() :
+    for t in Track.query.all() : #@UndefinedVariable (Eclipse vs. SQLA)
         mp3=os.path.join(gordonDir,'audio','main',get_tidfilename(t.id))
         if not os.path.exists(mp3) :
             if deleteMissing :
@@ -568,9 +569,9 @@ def check_orphans_new(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
     file_tids=list()
     if doMp3s :
         print 'Checking for tracks having no database record'
-        currDir = os.getcwd()
+#        currDir = os.getcwd()
         os.chdir(os.path.join(gordonDir,'audio','main'))
-        for root,dirs,files in os.walk('.') :
+        for root,dirs,files in os.walk('.') : #@UnusedVariable
             print 'Checking directory',root
             for f in files :
                 if f.endswith('.mp3') :
@@ -594,9 +595,9 @@ def check_orphans_new(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
 
     if doFeatures :
         print 'Checking for orphan features'
-        currDir = os.getcwd()
+#        currDir = os.getcwd()
         os.chdir(os.path.join(gordonDir,'data','features'))
-        for root,dirs,files in os.walk('.') :
+        for root,dirs,files in os.walk('.') : #@UnusedVariable
             print 'Checking directory',root
             for f in files :
                 vals = f.split('.')
@@ -605,7 +606,7 @@ def check_orphans_new(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
                 except :
                     continue
                 try :
-                    Track.query.get(tid)
+                    Track.query.get(tid) #@UndefinedVariable (Eclipse vs. SQLA)
                 except LookupError :
                     print 'Deleting orphan',f
                     os.unlink(os.path.join(root,f))
@@ -619,9 +620,9 @@ def check_orphans(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
     #this could be faster if I built two sets, one of tids from db, other of tids from database
     if doMp3s :
         print 'Checking for tracks having no database record'
-        currDir = os.getcwd()
+#        currDir = os.getcwd()
         os.chdir(os.path.join(gordonDir,'audio','main'))
-        for root,dirs,files in os.walk('.') :
+        for root,dirs,files in os.walk('.') : #@UnusedVariable
             print 'Checking directory',root
             for f in files :
                 if f.endswith('.mp3') :
@@ -631,15 +632,15 @@ def check_orphans(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
                     except :
                         continue
                     try :
-                        Track.query.get(tid)
+                        Track.query.get(tid) #@UndefinedVariable (Eclipse vs. SQLA)
                     except LookupError :
                         print 'Orphan',f
                         make_subdirs_and_move(os.path.join(root,f),os.path.join(gordonDir,'audio','offline',root,f))
     if doFeatures :
         print 'Checking for orphan features'
-        currDir = os.getcwd()
+#        currDir = os.getcwd()
         os.chdir(os.path.join(gordonDir,'data','features'))
-        for root,dirs,files in os.walk('.') :
+        for root,dirs,files in os.walk('.') : #@UnusedVariable
             print 'Checking directory',root
             for f in files :
                 vals = f.split('.')
@@ -648,7 +649,7 @@ def check_orphans(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
                 except :
                     continue
                 try :
-                    Track.query.get(tid)
+                    Track.query.get(tid) #@UndefinedVariable (Eclipse vs. SQLA)
                 except LookupError :
                     print 'Deleting orphan',f
                     os.unlink(os.path.join(root,f))
@@ -661,7 +662,7 @@ def update_artist_trackcounts() :
     """Updates value Artist.trackcount which caches the number of
     tracks per artist for fast querying.
     """
-    artists = Artist.query.all()
+    artists = Artist.query.all() #@UndefinedVariable (Eclipse vs. SQLA)
     for (ctr,a) in enumerate(artists) :
         a.update_trackcount()
         if ctr % 100 ==0 :
@@ -673,9 +674,9 @@ def update_track_times(fast=False) :
     """Updates track times and zsec times. If fast is true, we only update the time, not the ztime
     and we do it without decoding the mp3. If we fail, we just keep going."""
     if fast:
-        tracks = Track.query.filter("secs is NULL OR secs<=0 ")
+        tracks = Track.query.filter("secs is NULL OR secs<=0 ") #@UndefinedVariable (Eclipse vs. SQLA)
     else :
-        tracks = Track.query.filter("secs is NULL OR zsecs is NULL or secs<=0 or zsecs <=0")
+        tracks = Track.query.filter("secs is NULL OR zsecs is NULL or secs<=0 or zsecs <=0") #@UndefinedVariable (Eclipse vs. SQLA)
     cnt=tracks.count()
 
     print 'Calculating',cnt,'track times'
@@ -696,7 +697,7 @@ def update_album_trackcounts() :
     """Updates value Album.trackcount which caches the number of
     tracks per album for fast querying
     """
-    albums= Album.query.all()
+    albums= Album.query.all() #@UndefinedVariable (Eclipse vs. SQLA)
     for (ctr,a) in enumerate(albums) :
         a.update_trackcount()
         if ctr % 100 ==0 :
@@ -713,16 +714,16 @@ def delete_duplicate_mb_albums(gordonDir=DEF_GORDON_DIR) :
     a good import while leaving behind an erroneous import.  See the Track class in model.py
     """
     #cannot figure out how to do this without a select :
-    s = select([album.c.mb_id, func.count(album.c.mb_id)]).group_by(album.c.mb_id).having(func.count(album.c.mb_id)>1)
-    dupes=session.execute(s).fetchall()
+    s = select([album.c.mb_id, func.count(album.c.mb_id)]).group_by(album.c.mb_id).having(func.count(album.c.mb_id)>1) #@UndefinedVariable (Eclipse vs. SQLA)
+    dupes=session.execute(s).fetchall() #@UndefinedVariable (Eclipse vs. SQLA)
 
     tt_std=200. #hand set in matcher. But not so important..
     import pg
     dbmb = pg.connect('musicbrainz_db',user=DEF_DBUSER,passwd=DEF_DBPASS,host=DEF_DBHOST)
-    for [mb_id,count] in dupes :
+    for [mb_id,count] in dupes : #@UnusedVariable
         if len(mb_id.strip())<10 :
             continue
-        dupealbums = Album.query.filter(func.length(Album.mb_id)>10).filter_by(mb_id=mb_id)
+        dupealbums = Album.query.filter(func.length(Album.mb_id)>10).filter_by(mb_id=mb_id) #@UndefinedVariable (Eclipse vs. SQLA)
 
 
         #look up track times. This requires two queries. One to translate the mb_id (their published text key)
@@ -736,7 +737,7 @@ def delete_duplicate_mb_albums(gordonDir=DEF_GORDON_DIR) :
         timeterms=list()
         for a in dupealbums :
             ttimes=numpy.array(map(lambda t: t.secs,a.tracks))
-            df=abs(ttimes-mbtimes)
+#            df=abs(ttimes-mbtimes)
             time_term=numpy.mean(numpy.exp(-(mbtimes/1000.0-ttimes/1000.0)**2/tt_std))
             currbytes=0
             for t in a.tracks :
@@ -766,7 +767,7 @@ def check_nulls(gordonDir=DEF_GORDON_DIR) :
     # For sqlalchemy queries (we treat empty string as "null" for
     # strings and don't want to have to query for both is None and
     # len==0).
-    artists=Artist.query.filter('mb_id is NULL')
+    artists=Artist.query.filter('mb_id is NULL') #@UndefinedVariable (Eclipse vs. SQLA)
     if artists.count()>0 :
         print 'Fixing %i null mb_ids in artists' % artists.count()
         for a in artists:
@@ -775,7 +776,7 @@ def check_nulls(gordonDir=DEF_GORDON_DIR) :
     else :
         print 'No null mb_ids in artists'
 
-    albums=Album.query.filter('mb_id is NULL')
+    albums=Album.query.filter('mb_id is NULL') #@UndefinedVariable (Eclipse vs. SQLA)
     if albums.count()>0 :
         print 'Fixing %i null mb_ids in albums' % albums.count()
         for r in albums:
@@ -784,7 +785,7 @@ def check_nulls(gordonDir=DEF_GORDON_DIR) :
     else :
         print 'No null mb_ids in albums'
 
-    tracks=Track.query.filter('mb_id is NULL')
+    tracks=Track.query.filter('mb_id is NULL') #@UndefinedVariable (Eclipse vs. SQLA)
     if tracks.count()>0 :
         print 'Fixing %i null mb_ids in tracks' % tracks.count()
         for t in tracks:
@@ -793,7 +794,7 @@ def check_nulls(gordonDir=DEF_GORDON_DIR) :
     else :
         print 'No null mb_ids in tracks'
 
-    artists=Artist.query.filter('trackcount is NULL')
+    artists=Artist.query.filter('trackcount is NULL') #@UndefinedVariable (Eclipse vs. SQLA)
     if artists.count()>0 :
         print 'Fixing %i null trackcounts in artists' % artists.count()
         for a in artists:
@@ -802,7 +803,7 @@ def check_nulls(gordonDir=DEF_GORDON_DIR) :
     else :
         print 'No null trackcounts  in artists'
 
-    albums=Album.query.filter('trackcount is NULL')
+    albums=Album.query.filter('trackcount is NULL') #@UndefinedVariable (Eclipse vs. SQLA)
     if albums.count()>0 :
         print 'Fixing %i null trackcounts in albums' % albums.count()
         for a in albums:
@@ -830,25 +831,25 @@ def gordon_validate(gordonDir=DEF_GORDON_DIR,updateCounts=True,checkMissingMp3s=
 
     #these are necessary because I'm afraid to do cascading deletes for
     #orphaned tracks, albums, artists
-    vals = Artist.query.filter_by(tracks=None)
+    vals = Artist.query.filter_by(tracks=None) #@UndefinedVariable (Eclipse vs. SQLA)
     verify_delete(vals,'artists having no tracks')
 
-    vals = Artist.query.filter_by(albums=None)
+    vals = Artist.query.filter_by(albums=None) #@UndefinedVariable (Eclipse vs. SQLA)
     verify_delete(vals,'artists having no albums')
 
-    vals = Album.query.filter_by(artists=None)
+    vals = Album.query.filter_by(artists=None) #@UndefinedVariable (Eclipse vs. SQLA)
     verify_delete(vals,'albums having no artists')
 
-    vals = Album.query.filter_by(tracks=None)
+    vals = Album.query.filter_by(tracks=None) #@UndefinedVariable (Eclipse vs. SQLA)
     verify_delete(vals,'albums having no tracks')
 
-    vals = Track.query.filter_by(artists=None)
+    vals = Track.query.filter_by(artists=None) #@UndefinedVariable (Eclipse vs. SQLA)
     verify_delete(vals,'tracks having no artists')
 
-    vals = Track.query.filter_by(albums=None)
+    vals = Track.query.filter_by(albums=None) #@UndefinedVariable (Eclipse vs. SQLA)
     verify_delete(vals,'tracks having no albums')
 
-    vals = Mbalbum_recommend.query.filter_by(album=None)
+    vals = Mbalbum_recommend.query.filter_by(album=None) #@UndefinedVariable (Eclipse vs. SQLA)
     verify_delete(vals,'mbalbum_recommend having no album')
 
     if updateCounts :
@@ -882,9 +883,9 @@ def cache_albumcovers(gordonDir=DEF_GORDON_DIR,aid=None) :
     import urllib2
 
     if aid is None :
-        albums=Album.query.all()
+        albums=Album.query.all() #@UndefinedVariable (Eclipse vs. SQLA)
     else :
-        albums=[Album.query.get(aid)]
+        albums=[Album.query.get(aid)] #@UndefinedVariable (Eclipse vs. SQLA)
 
     for a in albums:
         fn_albumcover=a.fn_albumcover
@@ -908,7 +909,7 @@ def cache_albumcovers(gordonDir=DEF_GORDON_DIR,aid=None) :
             fh.write(img)
             fh.close()
             print 'Saved',a,'to',
-            time.sleep(.2)
+            sleep(.2)
             _set_perms(fn_albumcover,644)
         except :
             print 'Failed on',a
@@ -937,17 +938,17 @@ def get_valid_tids(limit=-1,features_only=False) :
     return tids
 
 def slashify(fname) :
-    s_fname=string.replace(fname," ","\ ")
-    s_fname=string.replace(s_fname,"\'","\\'")
-    s_fname=string.replace(s_fname,"\"","\\\"")
-    s_fname=string.replace(s_fname,"(","\(")
-    s_fname=string.replace(s_fname,")","\)")
-    s_fname=string.replace(s_fname,"&","\&")
-    s_fname=string.replace(s_fname,";","\;")
-    s_fname=string.replace(s_fname,"$","\$")
-    s_fname=string.replace(s_fname,"/","\/") # linux specific
-    s_fname=string.replace(s_fname,",","\,")
-    s_fname=string.replace(s_fname,"-","\-")
+    s_fname=replace(fname," ","\ ")
+    s_fname=replace(s_fname,"\'","\\'")
+    s_fname=replace(s_fname,"\"","\\\"")
+    s_fname=replace(s_fname,"(","\(")
+    s_fname=replace(s_fname,")","\)")
+    s_fname=replace(s_fname,"&","\&")
+    s_fname=replace(s_fname,";","\;")
+    s_fname=replace(s_fname,"$","\$")
+    s_fname=replace(s_fname,"/","\/") # linux specific
+    s_fname=replace(s_fname,",","\,")
+    s_fname=replace(s_fname,"-","\-")
     return s_fname
 
 
@@ -956,8 +957,8 @@ def add_to_collection(tracks, source):
     """Adds a python collection of SQLA Track objects to a given Gordon collection (by source name)
     @author: Jorge Orpinel <jorge@orpinel.com>"""
     
-    collection = Collection.query.filter_by(source=source).first()
-    if not collection: collection = Collection(source=source) # creates the collection if non existant
+    collection = Collection.query.filter_by(source=source).first() #@UndefinedVariable (Eclipse vs. SQLA)
+    if not collection: collection = Collection(source=source) # creates the collection if non existant #@UndefinedVariable (Eclipse vs. SQLA)
     
     for track in tracks:
         collection.tracks.append(track)

@@ -38,7 +38,9 @@ from gordon.io import AudioFile
 
 from gordon.db.config import DEF_GORDON_DIR
 
-logger = logging.getLogger('gordon.audio_intake')
+log = logging.getLogger('Gordon.AudioIntake')
+log.addHandler(logging.StreamHandler(sys.stdout))
+log.setLevel(logging.DEBUG) #jorgeorpinel: for now, change DEBUG to INFO here to reduce verbosity (at production)
 
 def add_track(trackpath, source=str(datetime.date.today()),
               gordonDir=DEF_GORDON_DIR, tag_dict=dict(), artist=None,
@@ -52,25 +54,25 @@ def add_track(trackpath, source=str(datetime.date.today()),
          album  -- The album for this track. An instance of Album. None if not present
          fast_import -- If true, do not calculate strip_zero length. Defaults to False
     """
-    (path, filename) = os.path.split(trackpath)
-    (fname, ext) = os.path.splitext(filename)
+    (path, filename) = os.path.split(trackpath) #@UnusedVariable
+    (fname, ext) = os.path.splitext(filename) #@UnusedVariable
 
-    logger.debug('Adding file "%s" of "%s" album by %s', filename, album,
+    log.debug('Adding file "%s" of "%s" album by %s', filename, album,
                  artist)
     
     # validations
     if 'album' not in tag_dict:
         #todo: currently cannot add singleton files. Need an album which is defined in tag_dict
-        logger.error('Cannot add "%s" because it is not part of an album',
+        log.error('Cannot add "%s" because it is not part of an album',
                      filename)
         return -1 # didn't add ------------------------------------------ return
     if not os.path.isfile(trackpath):
-        logger.info('Skipping %s because it is not a file', filename)
+        log.info('Skipping %s because it is not a file', filename)
         return -1 # not a file ------------------------------------------ return
     try:
         AudioFile(trackpath).read(tlen_sec=0.01)
     except:
-        logger.error('Skipping "%s" because it is not a valid audio file',
+        log.error('Skipping "%s" because it is not a valid audio file',
                      filename)
         return -1 # not an audio file ----------------------------------- return
 
@@ -108,7 +110,7 @@ def add_track(trackpath, source=str(datetime.date.today()),
     # add data
     add(track) # needed to get a track id
     commit() #to get our track id we need to write this record
-    logger.debug('Wrote track record %s to database', track.id)
+    log.debug('Wrote track record %s to database', track.id)
 
     if fast_import :
         track.secs = -1
@@ -121,22 +123,22 @@ def add_track(trackpath, source=str(datetime.date.today()),
 
     # links track to artist & album in DB
     if artist:
-        logger.debug('Linking %s to artist %s', track, artist)
+        log.debug('Linking %s to artist %s', track, artist)
         track.artist = artist.name
         track.artists.append(artist)
     if album:
-        logger.debug('Linking %s to album %s', track, album)
+        log.debug('Linking %s to album %s', track, album)
         track.album = album.name
         track.albums.append(album)
 
     commit() # save (again) the track record (this time having the track id)
-    logger.debug('Wrote album and artist additions to track into database')
+    log.debug('Wrote album and artist additions to track into database')
 
 
     # copy the file to the Gordon audio/feature data directory
     tgt = os.path.join(gordonDir, 'audio', 'main', track.path)
     make_subdirs_and_copy(trackpath, tgt)
-    logger.debug('Copied "%s" to %s', trackpath, tgt)
+    log.debug('Copied "%s" to %s', trackpath, tgt)
 
 
 def _read_csv_tags(cwd, csv=None):
@@ -157,7 +159,7 @@ def _read_csv_tags(cwd, csv=None):
         csvfile = reader(open(filename))
     except IOError:
         print 'here'
-        logger.error("Couldn't open '%s'", csv)
+        log.error("Couldn't open '%s'", csv)
 
     tags = dict()
     for line in csvfile: # each record (file rows)
@@ -195,25 +197,25 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()),
         * we can't just add each track individually. We have to make Artist ids for all artists
         * we will presume that 2 songs by same artist string are indeed same artist
     """
-    logger.debug('Adding album %s', album_name)
+    log.debug('Adding album %s', album_name)
     
     artists = set()
     for track in tags_dicts.itervalues():
         artists.add(track['artist'])
     
     if len(artists) == 0:
-        logger.debug('Nothing to add')
+        log.debug('Nothing to add')
         return  # no songs ---------------------------------------------- return
     else:
-        logger.debug('%d artists in directory: %s', len(artists), artists)
+        log.debug('%d artists in directory: %s', len(artists), artists)
     
     #add our album to Album table
-    logger.debug('Album has %d tracks', len(tags_dicts))
+    log.debug('Album has %d tracks', len(tags_dicts))
     albumrec = Album(name = album_name, trackcount = len(tags_dicts))
 #    collection = None
-    match = Collection.query.filter_by(source=source)
+    match = Collection.query.filter_by(source=source) #@UndefinedVariable (Eclipse vs SQLA)
     if match.count() == 1:
-        logger.debug('Matched source %s in database', match[0])
+        log.debug('Matched source %s in database', match[0])
         collection = match[0]
     else:
         collection = Collection(source=source)
@@ -222,9 +224,9 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()),
     #if we have an *exact* string match we will use the existing artist
     artist_dict = dict()
     for artist in artists:
-        match = Artist.query.filter_by(name=artist)
+        match = Artist.query.filter_by(name=artist) #@UndefinedVariable (Eclipse vs SQLA)
         if match.count() == 1 :
-            logger.debug('Matched %s to %s in database', artist, match[0])
+            log.debug('Matched %s to %s in database', artist, match[0])
             artist_dict[artist] = match[0]
             #eckdoug: TODO what happens if match.count()>1? This means we have multiple artists in db with same 
             #name. Do we try harder to resolve which one? Or just add a new one.  I added a new one (existing code)
@@ -246,14 +248,14 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()),
         add_track(filename, collection, gordonDir, tags_dicts[filename],
                   artist_dict[tags_dicts[filename]['artist']], albumrec,
                   fast_import)
-        logger.debug('  Added "%s"!', filename) #                                  debug
+        log.debug('  Added "%s"!', filename) #                                  debug
 
     #now update our track counts
-    for aname, artist in artist_dict.iteritems() :
+    for aname, artist in artist_dict.iteritems() : #@UnusedVariable
         artist.update_trackcount()
-        logger.debug('  * Updated trackcount for artist %s', artist) #             debug
+        log.debug('  * Updated trackcount for artist %s', artist) #             debug
     albumrec.update_trackcount()
-    logger.debug('  * Updated trackcount for album %s', albumrec) #                debug
+    log.debug('  * Updated trackcount for album %s', albumrec) #                debug
     commit()
 
 
@@ -268,7 +270,7 @@ def add_collection_from_csv_file(csvfile, source=str(datetime.date.today()), pro
     try:
         metadata = _read_csv_tags(csvfile)
     except:
-        logger.error('Error opening %s' % csvfile)
+        log.error('Error opening %s' % csvfile)
         sys.exit(1)
 
     # Turn metadata into a list of albums:
@@ -283,7 +285,7 @@ def add_collection_from_csv_file(csvfile, source=str(datetime.date.today()), pro
             add_album(albumname, tracks, gordonDir=gordonDir, source=source,
                       prompt_aname=prompt_incompletes, fast_import=fast_import)
     
-    logger.info('audio_intake.py: Finished!')
+    log.info('audio_intake.py: Finished!')
 
 
 def _die_with_usage() :
@@ -328,7 +330,7 @@ if __name__ == '__main__':
         pass
     doit = True if doit is None else True 
 
-    logger.info('audio_intake.py: using <source>', '"'+source+'",', '<csvfile>', csvfile) #info
-    if doit is False: logger.info(' * No <doit> (3rd) argument given. Thats 0K. (Pass no args for script usage.)') #info
+    log.info('audio_intake.py: using <source>', '"'+source+'",', '<csvfile>', csvfile) #info
+    if doit is False: log.info(' * No <doit> (3rd) argument given. Thats 0K. (Pass no args for script usage.)') #info
     add_collection_from_csv_file(csvfile, source = source, prompt_incompletes = prompt_incompletes, doit = doit, fast_import = fast_import)
     

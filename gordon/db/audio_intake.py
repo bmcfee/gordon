@@ -45,7 +45,7 @@ log = logging.getLogger('Gordon.AudioIntake')
 #todo: use a logging.config ini file for the gordon package loggers (see
 # http://www.red-dove.com/python_logging.html#config) or use manual logging.Filters ?
 log.addHandler(logging.StreamHandler(sys.stdout))
-log.setLevel(logging.DEBUG) #jorgeorpinel: for now, change DEBUG to INFO here to reduce verbosity
+log.setLevel(logging.DEBUG) #jorgeorpinel: for now, change DEBUG to INFO here to reduce verbosity (at production)
 
 
 def _store_annotations(audiofile, track):
@@ -167,7 +167,7 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
         track.secs= -1
         try :
             a = AudioFile(filename)
-            [ignore_fs,ignore_chans,track.secs] = a.read_stats()
+            [ignore_fs,ignore_chans,track.secs] = a.read_stats() #@UnusedVariable
         except :
             log.warn("    Could not read stats from", filename) #               warnning
             
@@ -414,7 +414,7 @@ def _empty_tags():
     tags['compilation'] = ''
     return tags
 
-def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, prompt_aname = False, fast_import = False):
+def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, prompt_aname = False, fast_import = False): #@UnusedVariable
     """Add a directory with audio files
         * when we do an album we need to read all files in before trying anything
         * we can't just add each track individually. We have to make Artist ids for all artists
@@ -523,7 +523,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
         log.debug('  Added "%s"!', file) #                                      debug
 
     #now update our track counts
-    for aname, artist in artist_dict.iteritems() :
+    for aname, artist in artist_dict.iteritems() : #@UnusedVariable
         artist.update_trackcount()
         log.debug('  * Updated trackcount for artist %s', artist) #             debug
     albumrec.update_trackcount()
@@ -572,7 +572,7 @@ def add_collection(location, source = str(datetime.date.today()), prompt_incompl
             add_album('.', gordonDir = gordonDir, source = source, prompt_aname = prompt_incompletes, fast_import = fast_import)
             log.debug('Proccessed %s.', os.sep) #                               debug
 
-    for root, dirs, files in os.walk('.') :
+    for root, dirs, files in os.walk('.') : #@UnusedVariable
         if iTunesDir and len(root.split(os.sep)) <> 2 :
             print 'iTunesDir skipping (artists) directories under root', root
             continue
@@ -637,7 +637,7 @@ if __name__ == '__main__':
         pass
     doit = True if doit is None else True   #jorgeorpinel: just trying Python's ternary opperator :p
 
-    log.info('audio_intake.py: using <source>', '"'+source+'",', '<dir>', dir) #info
+    log.info('audio_intake.py: using <source>'+' "'+source+'", '+'<dir> %s'%dir) #info
     if doit is False: log.info(' * No <doit> (3rd) argument given. Thats 0K. (Pass no args for script usage.)') #info
     add_collection(location = dir, source = source, prompt_incompletes = prompt_incompletes, doit = doit, fast_import = fast_import)
     

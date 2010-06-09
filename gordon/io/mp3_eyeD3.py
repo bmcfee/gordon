@@ -25,7 +25,6 @@ import os
 def mp3_gettime(mp3) :
     return eyeD3.tag.Mp3AudioFile(mp3).getPlayTime()
 
-
 def mp3_get_itunes_cddb(mp3) :
     cs = id3v2_getval(mp3,'comments')
     return eyeD3.tag.Mp3AudioFile(mp3).getPlayTime()
@@ -64,8 +63,7 @@ def id3v2_getval(mp3,tagstr) :
         #    val=''
         #    os.sys.stderr.write('eyeD3 unable to read id3 tag %s from file %s\n' % (tagstr,mp3))
         return val
-
-                          
+                    
 def id3v2_getval_sub(tag,tagstr) :
     #eyeD3 throws lots of exceptions. We will ignore most of them
     #can't figure out how to do this the right way ...

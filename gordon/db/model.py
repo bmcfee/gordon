@@ -16,7 +16,7 @@
 # along with Gordon.  If not, see <http://www.gnu.org/licenses/>.
 """Gordon database model"""
 
-import os, glob
+import os, glob, logging, sys.stdout
 
 from sqlalchemy import Table, Column, ForeignKey, String, Unicode, Integer, Index, Float, SmallInteger, Boolean, DateTime#,text,PassiveDefault,ForeignKeyConstraint,MetaData,Text #jorgeorpinel: unused
 #from sqlalchemy.databases.postgres import PGArray #jorgeorpinel: unused
@@ -27,16 +27,20 @@ from gordon.io import AudioFile #todo: this imports itself ultimately... code in
 
 from gordon.db import config
 
+log = logging.getLogger('Gordon.AudioIntake')
+log.addHandler(logging.StreamHandler(sys.stdout))
+log.setLevel(logging.DEBUG) #jorgeorpinel: for now, change DEBUG to INFO here to reduce verbosity (at production)
+
 
 
 #Connects to PostgreSQL: #is this done 2ice??? are 2 connections opened?
 
 try :     #this will try to use turbogears if we are already in the middle of a turbogears session
-    import turbogears.database
+    import turbogears.database #@UnresolvedImport (for projects running only cmd-line)
     engine = turbogears.database.get_engine() #this should generate an exception if we have not properly configured via dev.cfg or prod.cfg
-    from turbogears.database import mapper, metadata 
+    from turbogears.database import mapper, metadata #@UnresolvedImport (for projects running only cmd-line)
     session = turbogears.database.session
-    print 'model.py: initialized turbogears connection to gordon database'
+    log.info('model.py: initialized turbogears connection to gordon database')  # debug (info)
     AUTOCOMMIT=False  
 
 except :  #this will set up a scoped session using native sqlalchemy (no turbogears!)
@@ -60,7 +64,7 @@ except :  #this will set up a scoped session using native sqlalchemy (no turboge
     import sqlalchemy.schema
     metadata = sqlalchemy.schema.MetaData(None)
 #    mapper = Session.mapper #jorgeorpinel: SQLA 0.5. This is deprecated... (see 4 lines down)
-    print 'model.py: intialized external connection to gordon database on %s  (SQL Alchemy ver. %s)' % (config.DEF_DBHOST, sqlalchemy.__version__)
+    log.info('model.py: intialized external connection to gordon database on %s  (SQL Alchemy ver. %s)' % (config.DEF_DBHOST, sqlalchemy.__version__)) #debug (info)
     AUTOCOMMIT=True
     
     #jorgeorpinel: this is a SQLA 0.5+ legacy workaround found at http://www.sqlalchemy.org/trac/wiki/UsageRecipes/SessionAwareMapper
@@ -314,13 +318,14 @@ class Track(object) :
     fn_audio = property(fget=_get_fn_audio,doc="""returns absolute path to audio file.  Does *not* verify that the file is actually present!""")
 
     def _get_fn_audio_extension(self) :
-        root,ext = os.path.splitext(self.path)
+        root,ext = os.path.splitext(self.path) #@UnusedVariable
         return ext[1:]
 
     fn_audio_extension = property(fget=_get_fn_audio_extension,doc="""returns file extension of the audio file.  Does *not* verify that the file is actually present!""")
 
     def _get_fn_feature(self,gordonDir='') :
         return os.path.join(config.DEF_GORDON_DIR,'data','features',_get_shortfile(self.id,'h5'))
+    
     fn_feature= property(fget=_get_fn_feature,doc="""returns absolute path to feature file.  Does *not* verify that feature file is actually present!""")
 
     def audio(self,stripzeros='none',mono=False) :
@@ -348,12 +353,12 @@ class Track(object) :
         #we tried to do this using cascading deletes but it didn't work. 
         #if we are the last track for an album, delete that album
         for a in self.albums :
-            #print "I am connected to album",a
+            # "I am connected to album",a
             if a.trackcount :
                 a.trackcount-=1
 
         for a in self.artists :
-            #print "I am connected to artist",a
+            #log.debug("I am connected to artist", a)                            # debug
             if a.trackcount :
                 a.trackcount-=1
                 
@@ -367,7 +372,7 @@ class Track(object) :
         if os.path.exists(srcMp3Path) :
 #            S.make_subdirs_and_move(srcMp3Path, dstMp3Path)
             make_subdirs_and_move(srcMp3Path, dstMp3Path)
-            print 'Moved',srcMp3Path,'to',dstMp3Path
+            log.debug('Moved', srcMp3Path, 'to', dstMp3Path)                    # debug
             
         #move corresponding features to GORDON_DIR/data/features_offline
 #        srcFeatPath = os.path.join(gordonDir, 'data', 'features', S.get_tiddirectory(tid))
@@ -376,11 +381,11 @@ class Track(object) :
         dstFeatPath = os.path.join(gordonDir, 'data', 'features_offline', get_tiddirectory(tid))
         featFiles =  glob.glob('%s/T%i.*' % (srcFeatPath,tid))
         for srcF in featFiles :
-            (pth,fl) = os.path.split(srcF)
+            (pth,fl) = os.path.split(srcF) #@UnusedVariable
             dstF = os.path.join(dstFeatPath,fl)
 #            S.make_subdirs_and_move(srcF, dstF)
             make_subdirs_and_move(srcF, dstF)
-            print 'Moved',srcF,'to',dstF
+            log.debug('Moved', srcF, 'to', dstF)                                # debug
 
 #jorgeorpinel: for psycopg (used by SQL Alchemy) to know how to adapt (used in SQL queries) the numpy.float64 type
 #              ...here since this is first used with track data (when running audio_intake.py)
@@ -445,7 +450,7 @@ class Album(object) :
     def update_trackcount(self) :
         tc = session.query(AlbumTrack).filter(AlbumTrack.album_id==self.id).count()
         if self.trackcount <> tc :
-            print "Updating track count to",tc
+            log.debug("Updating track count to", tc)                            # debug
             self.trackcount=tc
 
 
