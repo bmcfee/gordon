@@ -504,6 +504,7 @@ class Annotation(object):
     def __repr__(self) :
         if not self.id: return '<Empty Annotation>'
         value = self.value
+        long=False
         if len(value) > 32: long=True
         return '<Annotation %s.%s: %s%s>' % (self.type, self.annotation, value[:16], '...' if long else '') #return
     
