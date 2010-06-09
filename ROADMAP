@@ -1,26 +1,30 @@
 Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
 
-- Current work on audio_intake.py : APR 5-12 WEEK                             OK
+- Current work on audio_intake.py : APR 5-12 WEEK                             OK v0.2
 
  * read text file to extract wav tags - this means work wavs with ffmpeg      OK
  * work with aif                                                              OK
  * extract all tags from all taggy formats                                 EXTRA see 2.1 as well
 
-1 Immediate future : projected APR 23                                         OK
+1 Immediate future : projected APR 23                                         OK v0.3
 
  * support multiple collections with the same audio files                     OK
 
-2 Late spring : projected MAY                                               LATE
+2 Late spring : projected MAY                                                 OK v.04
 
- * implement _annotation_ file association to tracks                        LATE
-   annotation types: (add track_annotation table OK)
+ * implement _annotation_ file association to tracks                          OK
+   annotation types: (add track_annotation table)
   0 DB structure (create annotation table)                                    OK
-  1 all (metadata) tags * normalize with annotation_type table?
-  2 time-values (eg HTK .lab) files *check psql variable length coltypes - do not parse
+  1 all (metadata) tags * normalize with annotation_type table?	              OK
+  2 time-values (eg HTK .lab) files *check psql variable length coltypes - do not parse OK
+  2.2 function to add arbitrary text files as annotations                  EXTRA
   3 inter-relationships (eg covers) - create add_to_collection(tracks) function OK
 
 3 Summer I : projected 2ish of JUNE                                      CURRENT
 
- * implement/clean-up _feature_ extraction                                   ...
- * integrate with Ho-Hsiang Flash app (socket server, see http://blog.pettomato.com/?p=9)
+ * implement/clean-up _feature_ extraction                                   ???
  
+Future
+
+ * integrate with Ho-Hsiang Flash app (socket server, see http://blog.pettomato.com/?p=9)
+

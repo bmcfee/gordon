@@ -16,7 +16,7 @@
 # along with Gordon.  If not, see <http://www.gnu.org/licenses/>.
 """Gordon database model"""
 
-import os, glob, logging, sys.stdout
+import os, glob, logging, sys
 
 from sqlalchemy import Table, Column, ForeignKey, String, Unicode, Integer, Index, Float, SmallInteger, Boolean, DateTime#,text,PassiveDefault,ForeignKeyConstraint,MetaData,Text #jorgeorpinel: unused
 #from sqlalchemy.databases.postgres import PGArray #jorgeorpinel: unused
