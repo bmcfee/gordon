@@ -57,15 +57,20 @@ def _store_annotations(audiofile, track):
     track is the already stored track record in the database, represented by a gordon.db.model.Track class (SQL Alchemy)
     
     returns number of annotations (0 to *) stored"""
-    #todo: chek if file is mp3. if so:
-        #extract all ID3 tags
-        #store each tag value as an annotation type id3.[tagname]
+    
+    #todo: log.debug tags/annotations found
+    annots = 0
+    
+    #chek if file is mp3. if so:
+    if(id3.isValidMP3(audiofile)):
+        #extract all ID3 tags, store each tag value as an annotation type id3.[tagname]
+        for tag in id3.getAllTags(audiofile):
+            track.annotations.append(Annotation(type='id3', annotation=tag[0], value=tag[1]))
     
     #future todo: apply tagpy or other method to extract more tag types from more audiofile types
     
     # check text file annotations
     (pathandbase, ext) = os.path.splitext(audiofile)
-    annots = 0
     simfiles = list()
     if os.path.exists(pathandbase): simfiles.append(pathandbase)
     for s in glob(pathandbase+'.*'): simfiles.append(s)

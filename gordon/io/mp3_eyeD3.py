@@ -287,6 +287,75 @@ def id3v2_putval(mp3,tagstr,txt='') :
     tag.update(eyeD3.ID3_V2_3)
     return retval
 
+def isValidMP3(filePath):
+    """Uses eyeD3.tag.link to determine whether a file is a vliad MP3"""
+    tag=eyeD3.Tag()
+    return True if tag.link(filePath) else False # ---------------------- return
+
+def getAllTags(mp3fn):
+    """Return a list with all tags:
+    [description, content]
+    Returns False if mp3fn is not an MP3 file.
+    
+    These are the Frame types and their instance fields (see eyeD3.frame)
+    *Text*: text, date_str, (description)
+    *URL*: url, (description)
+    Comment|Lyrics: (lang), (description), comment|lyrics
+    Image: (mimeType), (pictureType), (description), imageData, imageURL
+    Object: (mimeType), (description), filename, objectData
+    PlayCount: count
+    UniqueFileID: owner_id, id
+    Unknown: data
+    MusicCDId: toc
+    """
+    
+    tag=eyeD3.Tag()
+    if not tag.link(mp3fn): return False # ------------------------------ return False
+    
+    tags = list()
+    for frame in tag.frames:
+        thisTag=list()
+        # gets tag description
+        thisTag.append(frame.getFrameDesc()+' ')
+        try: thisTag[0] += '- '+frame.description
+        except: pass
+        try: thisTag[0] += ' (' + frame.lang + ')'
+        except: pass
+        try: thisTag[0] += frame.mimeType
+        except: pass
+        try: thisTag[0] += frame.pictureType
+        except: pass
+        thisTag[0]=thisTag[0].strip()
+        # gets tag content
+        thisTag.append(str())
+        try: thisTag[1] += frame.text+' '
+        except: pass
+        try: thisTag[1] += frame.date_str
+        except: pass
+        try: thisTag[1] += frame.url
+        except: pass
+        try: thisTag[1] += frame.comment
+        except: pass
+        try: thisTag[1] += frame.lyrics
+        except: pass
+        try: thisTag[1] += frame.imageURL #jorgeorpinel: images contain data in bytes: frame.imageData
+        except: pass
+        try: thisTag[1] += frame.filename #jorgeorpinel: objects contain data in bytes: frame.objectData
+        except: pass
+        try: thisTag[1] += frame.count
+        except: pass
+        try: thisTag[1] += frame.owner_id + ': ' + frame.id
+        except: pass
+        try: thisTag[1] += frame.data
+        except: pass
+        try: thisTag[1] += frame.toc
+        except: pass
+        thisTag[1]=thisTag[1].strip()
+        
+        tags.append(thisTag)
+        
+    return tags
+
 
 if __name__=='__main__' :
     import sys
