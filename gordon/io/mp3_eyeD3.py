@@ -288,7 +288,8 @@ def id3v2_putval(mp3,tagstr,txt='') :
     return retval
 
 def isValidMP3(filePath):
-    """Uses eyeD3.tag.link to determine whether a file is a vliad MP3"""
+    """Uses eyeD3.tag.link to determine whether a file is a vliad MP3
+    @author Jorge Orpinel <jorge@orpinel.com>"""
     tag=eyeD3.Tag()
     return True if tag.link(filePath) else False # ---------------------- return
 
@@ -296,8 +297,7 @@ def getAllTags(mp3fn):
     """Return a list with all tags:
     [description, content]
     Returns False if mp3fn is not an MP3 file.
-    
-    These are the Frame types and their instance fields (see eyeD3.frame)
+    These are the Frame types and their instance fields (see eyeD3.frame) :
     *Text*: text, date_str, (description)
     *URL*: url, (description)
     Comment|Lyrics: (lang), (description), comment|lyrics
@@ -307,7 +307,8 @@ def getAllTags(mp3fn):
     UniqueFileID: owner_id, id
     Unknown: data
     MusicCDId: toc
-    """
+    See also http://www.id3.org/id3v2.3.0#head-e4b3c63f836c3eb26a39be082065c21fba4e0acc (6/11/2010)
+    @author Jorge Orpinel <jorge@orpinel.com>"""
     
     tag=eyeD3.Tag()
     if not tag.link(mp3fn): return False # ------------------------------ return False
@@ -316,14 +317,14 @@ def getAllTags(mp3fn):
     for frame in tag.frames:
         thisTag=list()
         # gets tag description
-        thisTag.append(frame.getFrameDesc()+' ')
-        try: thisTag[0] += '- '+frame.description
+        thisTag.append(frame.render()[:4] + ' - ' + frame.getFrameDesc())
+        try: thisTag[0] += ' - ' + frame.description
         except: pass
         try: thisTag[0] += ' (' + frame.lang + ')'
         except: pass
-        try: thisTag[0] += frame.mimeType
+        try: thisTag[0] += ' ' + frame.mimeType
         except: pass
-        try: thisTag[0] += frame.pictureType
+        try: thisTag[0] += ' ' + frame.pictureType
         except: pass
         thisTag[0]=thisTag[0].strip()
         # gets tag content

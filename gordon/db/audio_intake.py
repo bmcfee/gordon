@@ -48,7 +48,7 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.setLevel(logging.DEBUG) #jorgeorpinel: for now, change DEBUG to INFO here to reduce verbosity (at production)
 
 
-def _store_annotations(audiofile, track):
+def _store_annotations(audiofile, track, all_md=False):
     """Searches for more tags on the audiofile (for now only ID3 in MP3): type <id3> annotation [tagname];
     Searches for text-files with the same base-name whithin the folder (any [ext]ension): type <txt> annotation [ext];
     Stores these annotation values in the track_annotation DB table
@@ -62,12 +62,14 @@ def _store_annotations(audiofile, track):
     annots = 0
     
     #chek if file is mp3. if so:
-    if(id3.isValidMP3(audiofile)):
-        #extract all ID3 tags, store each tag value as an annotation type id3.[tagname]
-        for tag in id3.getAllTags(audiofile):
-            track.annotations.append(Annotation(type='id3', annotation=tag[0], value=tag[1]))
+    if all_md:
+        if id3.isValidMP3(audiofile):
+            #extract all ID3 tags, store each tag value as an annotation type id3.[tagname]
+            for tag in id3.getAllTags(audiofile): #todo: skip basic tags already in track
+                #todo: skip track.fields?
+                track.annotations.append(Annotation(type='id3', annotation=tag[0], value=tag[1]))
     
-    #future todo: apply tagpy or other method to extract more tag types from more audiofile types
+        #future todo: apply tagpy or other method to extract more metadata formats
     
     # check text file annotations
     (pathandbase, ext) = os.path.splitext(audiofile)
@@ -76,6 +78,7 @@ def _store_annotations(audiofile, track):
     for s in glob(pathandbase+'.*'): simfiles.append(s)
     txt=None
 
+    #todo: shouldn't use similar named files, let script user specify txt files in csv
     for simfile in simfiles: # for every file sharing base-name (any or no extension)
         try:
             if not is_binary(simfile): # if its a text file
@@ -91,16 +94,18 @@ def _store_annotations(audiofile, track):
             
     commit() #saves all appended annotations in the track
     
-    return annots
+    log.debug('    store %s annotations overall', annots)
+    return annots # ----------------------------------------------------- return annots
 
-def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, id3_dict = dict(), artist = None, album = None, fast_import = False) :
+def add_mp3(mp3, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR, id3_dict=dict(), artist=None, album=None, fast_import=False, import_id3=False):
     '''Add mp3 with filename <mp3> to database
-         source -- audio files data source
-         gordonDir -- main Gordon directory
-         id3_dict -- dictionary of key,val ID3 tags pairs - See add_album(...).
-         artist -- The artist for this track. An instance of Artist. None if not present
-         album  -- The album for this track. An instance of Album. None if not present
-         fast_import -- If true, do not calculate strip_zero length. Defaults to False
+         @param source: audio files data source - Collection object
+         @param gordonDir: main Gordon directory
+         @param tag_dict: dictionary of key,val ID3 tags pairs - See add_album(...).
+         @param artist: The artist for this track. An instance of Artist. None if not present
+         @param album: The album for this track. An instance of Album. None if not present
+         @param fast_import: If true, do not calculate strip_zero length. Defaults to False
+         @param import_id3: Specifies if we want to get the id3 tags from the file. Defaults to True
     '''
     (filepath, filename) = os.path.split(mp3)
     log.debug('    Adding mp3 file "%s" of "%s" album by %s - add_mp3()', filename,
@@ -224,16 +229,17 @@ def add_mp3(mp3, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR
     
     #search for other annotations and store them in the database
     
-    _store_annotations(mp3, track)
+    _store_annotations(mp3, track, import_id3)
 
-def add_uncomp(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, tag_dict = dict(), artist = None, album = None, fast_import = False) :
+def add_uncomp(wav, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR, tag_dict=dict(), artist=None, album=None, fast_import=False, import_md=False):
     """Add uncompressed wav/aif with filename <wav> to database
-         source -- audio files data source - Collection object
-         gordonDir -- main Gordon directory
-         tag_dict -- dictionary of key,val tag pairs - See add_album(...).
-         artist -- The artist for this track. An instance of Artist. None if not present
-         album  -- The album for this track. An instance of Album. None if not present
-         fast_import -- If true, do not calculate strip_zero length. Defaults to False
+         @param source: audio files data source - Collection object
+         @param gordonDir: main Gordon directory
+         @param tag_dict: dictionary of key,val tag pairs - See add_album(...).
+         @param artist: The artist for this track. An instance of Artist. None if not present
+         @param album: The album for this track. An instance of Album. None if not present
+         @param fast_import: If true, do not calculate strip_zero length. Defaults to False
+         @param import_md: Specifies if we want to get the metadata tags from the file. Defaults to True
     """
     (xxx, filename) = os.path.split(wav) #@UnusedVariable
     (xxx, ext) = os.path.splitext(filename) #@UnusedVariable
@@ -320,7 +326,7 @@ def add_uncomp(wav, source = str(datetime.date.today()), gordonDir = DEF_GORDON_
     
     #search for other annotations and store them in the database
     
-    _store_annotations(wav, track)
+    _store_annotations(wav, track, import_md)
 
 
 def _prompt_aname(albumDir, tags_dicts, albums, cwd) :
@@ -419,7 +425,7 @@ def _empty_tags():
     tags['compilation'] = ''
     return tags
 
-def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, prompt_aname = False, fast_import = False): #@UnusedVariable
+def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, prompt_aname = False, fast_import = False, import_md=False): #@UnusedVariable
     """Add a directory with audio files
         * when we do an album we need to read all files in before trying anything
         * we can't just add each track individually. We have to make Artist ids for all artists
@@ -524,7 +530,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     for file in tags_dicts.keys() :
         # calls add_mp3(), add_uncomp(), or other...
         addfunction = tags_dicts[file].pop('func')
-        eval(addfunction + "(file, collection, gordonDir, tags_dicts[file], artist_dict[tags_dicts[file]['artist']], albumrec, fast_import)")
+        eval(addfunction + "(file, collection, gordonDir, tags_dicts[file], artist_dict[tags_dicts[file]['artist']], albumrec, fast_import, import_md)")
         log.debug('  Added "%s"!', file) #                                      debug
 
     #now update our track counts
@@ -538,7 +544,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     os.chdir(cwd)
 
 
-def add_collection(location, source = str(datetime.date.today()), prompt_incompletes = False, doit = False, iTunesDir = False, gordonDir = DEF_GORDON_DIR, fast_import = False):
+def add_collection(location, source = str(datetime.date.today()), prompt_incompletes = False, doit = False, iTunesDir = False, gordonDir = DEF_GORDON_DIR, fast_import = False, import_md=False):
     """recursively adds mp3s from a directory tree.
     treats all files in same directory as being in same album!
      
@@ -557,7 +563,7 @@ def add_collection(location, source = str(datetime.date.today()), prompt_incompl
     
 #    #todo: if location sent is a tags.csv file
 #    if os.path.isfile(location) and location.lower().endswith('.csv'):
-#        add_album(location, source, gordonDir, prompt_incompletes, fast_import)
+#        add_album(location, source, gordonDir, prompt_incompletes, fast_import, import_md)
 #        print 'audio_intake.py: Finished! (import from csv file)'
 #        return # -------------------------------------------------------- return
     
@@ -574,7 +580,7 @@ def add_collection(location, source = str(datetime.date.today()), prompt_incompl
         if not doit :
             print 'Would import .' + os.sep
         else :
-            add_album('.', gordonDir = gordonDir, source = source, prompt_aname = prompt_incompletes, fast_import = fast_import)
+            add_album('.', gordonDir=gordonDir, source=source, prompt_aname=prompt_incompletes, fast_import=fast_import, import_md=import_md)
             log.debug('Proccessed %s.', os.sep) #                               debug
 
     for root, dirs, files in os.walk('.') : #@UnusedVariable
@@ -586,7 +592,7 @@ def add_collection(location, source = str(datetime.date.today()), prompt_incompl
             if not doit :
                 print 'Would import', root + os.sep + dir
             else :
-                add_album(os.path.join(root, dir), gordonDir = gordonDir, source = source, prompt_aname = prompt_incompletes, fast_import = fast_import)
+                add_album(os.path.join(root, dir), gordonDir=gordonDir, source=source, prompt_aname=prompt_incompletes, fast_import=fast_import, import_md=import_md)
                 log.debug('Added album %s', os.path.join(root, dir)) #          debug
 
 #    #remove empty dirs #jorgeorpinel: no! why? it only works on linux anyway
@@ -603,14 +609,14 @@ def add_collection(location, source = str(datetime.date.today()), prompt_incompl
 def _die_with_usage() :
     print 'This program imports a directory into the database'
     print 'Usage: '
-    print 'audio_intake [flags] <source> <dir> [doit]'
+    print 'audio_intake [flags] <source> <dir> [doit] [metadata]'
     print 'Flags:' 
     print '  -fast: imports without calculating zero-stripped track times.'
     print '  -noprompt: will not prompt for incomplete albums.  See log for what we skipped'
     print 'Arguments: '
     print '  <source> is the string stored to the database for source e.g. DougDec22'
     print '  <dir> is the directory to be imported'
-    print '  <doit> (default 1) use 0 to test the intake harmlessly'
+    print '  <import_md> (default 0) use 1 to import all metadata tags from the file'
     print 'More options are available by using the function add_collection()'
     sys.exit(0)                                                    # sys.exit(0)
 
@@ -635,14 +641,16 @@ if __name__ == '__main__':
     source = sys.argv[1]
     dir = sys.argv[2]
     doit = None
-    try :
+    try:
         if sys.argv[3] == 0: doit = False
         else: doit = True
-    except Exception :
-        pass
+    except: pass
     doit = True if doit is None else True   #jorgeorpinel: just trying Python's ternary opperator :p
+    import_md = None
+    try: import_md = True if sys.argv[4] == 1 else False
+    except: import_md = False
 
     log.info('audio_intake.py: using <source>'+' "'+source+'", '+'<dir> %s'%dir) #info
     if doit is False: log.info(' * No <doit> (3rd) argument given. Thats 0K. (Pass no args for script usage.)') #info
-    add_collection(location = dir, source = source, prompt_incompletes = prompt_incompletes, doit = doit, fast_import = fast_import)
+    add_collection(location=dir, source=source, prompt_incompletes=prompt_incompletes, doit=doit, fast_import=fast_import, import_md=import_md)
     

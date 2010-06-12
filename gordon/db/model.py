@@ -110,7 +110,7 @@ mbalbum_recommend =  Table('mbalbum_recommend', metadata,
     Column(u'conf_album', Float(precision=53, asdecimal=False), primary_key=False),
     Column(u'conf_track', Float(precision=53, asdecimal=False), primary_key=False),
     Column(u'conf_time', Float(precision=53, asdecimal=False), primary_key=False),
-    Column(u'trackorder', String(length=None, convert_unicode=False, assert_unicode=None), primary_key=False),
+    Column(u'order', String(length=None, convert_unicode=False, assert_unicode=None), primary_key=False),
 #    ForeignKeyConstraint([u'album_id'], [u'public.album.id'], name=u'album_id_exists'),
     )
 Index('mbalbum_recommend_album_id_key', mbalbum_recommend.c.album_id, unique=True)
@@ -203,15 +203,15 @@ Index('track_artist_idx', track.c.artist, unique=False)
 Index('track_mb_id_idx', track.c.mb_id, unique=False)
 Index('track_title_idx', track.c.title, unique=False)
 
-track_annotation =  Table('track_annotation', metadata,
+annotation =  Table('annotation', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
     Column(u'track_id', Integer(), ForeignKey('track.id'),  nullable=False),
     Column(u'type', Unicode(length=256), default=u'', primary_key=False),
     Column(u'annotation', Unicode(length=256),default=u'',  primary_key=False),
     Column(u'value', Unicode(length=512), default=u'', primary_key=False),
     )
-Index('track_annotation_pkey', track_annotation.c.id, unique=True)
-Index('track_annotation_track_idx', track_annotation.c.track_id, unique=False)
+Index('annotation_pkey', annotation.c.id, unique=True)
+Index('annotation_track_idx', annotation.c.track_id, unique=False)
 
 
 album_collection =  Table('album_collection', metadata,
@@ -312,9 +312,10 @@ class Track(object) :
             return '<Empty Track>'
         st= '<Track %i %s by %s from %s>' % (self.id,self.title,self.artist,self.album)
         return st.encode('utf-8')
+    
     def _get_fn_audio(self) :
         return os.path.join(config.DEF_GORDON_DIR,'audio','main', self.path)
-
+    
     fn_audio = property(fget=_get_fn_audio,doc="""returns absolute path to audio file.  Does *not* verify that the file is actually present!""")
 
     def _get_fn_audio_extension(self) :
@@ -387,6 +388,25 @@ class Track(object) :
             make_subdirs_and_move(srcF, dstF)
             log.debug('Moved', srcF, 'to', dstF)                                # debug
 
+    def addAnnotation(self, type, annotation, value):
+        """Creates an Annotation for the track (returns the annotation)
+        Returns False if the annotation wasn't stored (the session is expunged)
+        @param type: annotation.type field [varchar(256)]
+        @param annotation: annotation.annotation field [varchar(256)]
+        @param value: annotation.value field [text]"""
+        annot = Annotation(type, annotation, value)
+        self.annotations.append(annot)
+        try: commit()
+        except: return False # ------------------------------------------ return False
+        return annot # -------------------------------------------------- return annot
+        
+    def addAnnotationInstance(self, annotation):
+        """Adds an Annotation to the track
+        Returns False if <annotation> is not a valid Annotation class instance
+        @param annotation: Annotation class instance to add to the track's annotations"""
+        self.annotations.append(annotation)
+    
+
 #jorgeorpinel: for psycopg (used by SQL Alchemy) to know how to adapt (used in SQL queries) the numpy.float64 type
 #              ...here since this is first used with track data (when running audio_intake.py)
 #              found @ http://initd.org/psycopg/docs/advanced.html#adapting-new-python-types-to-sql-syntax
@@ -394,7 +414,7 @@ from psycopg2.extensions import register_adapter, AsIs
 import numpy
 def addapt_numpy_float64(numpy_float64):
     return AsIs(numpy_float64)
-register_adapter(numpy.float64, addapt_numpy_float64)
+register_adapter(numpy.float64, addapt_numpy_float64) #@UndefinedVariable Eclipse vs numpy
 
 
 class Artist(object) :
@@ -563,13 +583,13 @@ mapper(Collection, collection,
     }
 )
 
-mapper(Annotation, track_annotation,
+mapper(Annotation, annotation,
     properties={
-       'track': relation(Track, backref=backref('annotations', order_by='track_annotation.type')),
+       'track': relation(Track, backref=backref('annotations', order_by='annotation.type')),
     }
 )
 
-#jorgeorpinel: this didn't work (again)... no track_annotationn table is created with metadata.create_all(engine)...
+#jorgeorpinel: this didn't work (again)... no annotationn table is created with metadata.create_all(engine)...
 # before, used to create Collection, when calling metadata.create_all(engine), no table is found at album_collection (et al) foreign key (ie collection.id) declaration
 ##jorgeorpinel: trying out the declarative way to create table, class and mapper (@ http://www.sqlalchemy.org/docs/05/ormtutorial.html#creating-table-class-and-mapper-all-at-once-declaratively)
 ##from sqlalchemy import ForeignKey # don't need this...
@@ -578,7 +598,7 @@ mapper(Annotation, track_annotation,
 #Base = declarative_base()
 #
 #class Annotation (Base):
-#    __tablename__ = 'track_annotation'
+#    __tablename__ = 'annotation'
 #    
 #    id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
 #    track_id = Column(Integer, ForeignKey('track.id'), nullable=False)
