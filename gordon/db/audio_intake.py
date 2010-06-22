@@ -29,16 +29,16 @@ place, only verbose would-dos
 '''
 
 import os, datetime, logging, stat, sys
-from glob import glob
 
 from csv import reader
+from glob import glob
 
-from gordon.db.model import add, commit, Album, Artist, Track, Collection, Annotation
-from gordon.db.gordon_db import get_tidfilename, make_subdirs_and_copy, is_binary
-from gordon.io import mp3_eyeD3 as id3
 from gordon.io import AudioFile
-
+from gordon.io import mp3_eyeD3 as id3
 from gordon.db.config import DEF_GORDON_DIR
+from gordon.db.gordon_db import get_tidfilename, make_subdirs_and_copy, is_binary
+from gordon.db.model import add, commit, Album, Artist, Track, Collection, Annotation
+
 
 
 log = logging.getLogger('Gordon.AudioIntake')
@@ -49,12 +49,13 @@ log.setLevel(logging.DEBUG) #jorgeorpinel: for now, change DEBUG to INFO here to
 
 
 def _store_annotations(audiofile, track, all_md=False):
-    """Searches for more tags on the audiofile (for now only ID3 in MP3): type <id3> annotation [tagname];
+    """Searches for metadata related to the audio-file (v 1.0; for now only ID3 in MP3): type <id3> annotation [tagname];
     Searches for text-files with the same base-name whithin the folder (any [ext]ension): type <txt> annotation [ext];
     Stores these annotation values in the track_annotation DB table
     
-    audiofile is the file (should be previously verified as an actual audio file)
-    track is the already stored track record in the database, represented by a gordon.db.model.Track class (SQL Alchemy)
+    @param audiofile: the file (should be previously verified as an actual audio file)
+    @param track: previously stored track record in the database, represented by a gordon.db.model.Track class (SQL Alchemy)
+    @param all_md: use True to extract all tags from the audio-file (defaults to False) 
     
     returns number of annotations (0 to *) stored"""
     
@@ -66,7 +67,6 @@ def _store_annotations(audiofile, track, all_md=False):
         if id3.isValidMP3(audiofile):
             #extract all ID3 tags, store each tag value as an annotation type id3.[tagname]
             for tag in id3.getAllTags(audiofile): #todo: skip basic tags already in track
-                #todo: skip track.fields?
                 track.annotations.append(Annotation(type='id3', annotation=tag[0], value=tag[1]))
     
         #future todo: apply tagpy or other method to extract more metadata formats
@@ -108,8 +108,7 @@ def add_mp3(mp3, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR, id
          @param import_id3: Specifies if we want to get the id3 tags from the file. Defaults to True
     '''
     (filepath, filename) = os.path.split(mp3)
-    log.debug('    Adding mp3 file "%s" of "%s" album by %s - add_mp3()', filename,
-              album, artist)    
+    log.debug('    Adding mp3 file "%s" of "%s" album by %s - add_mp3()', filename, album, artist)    
     
     # validations
     
@@ -388,11 +387,13 @@ def _get_id3_dict(mp3) :
     return id3_dict
 
 def _read_csv_tags(cwd, csv):
-    '''Reads a csv text file with tags for WAV files
+    '''Reads a csv text file with tags for WAV files (v 1.0)
     
     # may use py comments in tags.csv file (in album-folder)
     filename, title, artist, album, tracknum, compilation
-    per line'''
+    per line
+    
+    Returns a 2D dict in the form dict[<filename>][<tag>]'''
     
     tags = dict()
     
@@ -403,7 +404,7 @@ def _read_csv_tags(cwd, csv):
             line[0] = line[0].strip()
             if not line[0] or line[0][0] == '#' : continue # if name empty or comment line
             
-            #save title, artist, album, tracknum, compilation in tags[<file name>]
+            #save title, artist, album, tracknum, compilation in tags[<file-name>]
             tags[line[0]] = dict()
             tags[line[0]]['title']  = line[1].strip()
             tags[line[0]]['artist'] = line[2].strip()
@@ -426,12 +427,12 @@ def _empty_tags():
     return tags
 
 def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, prompt_aname = False, fast_import = False, import_md=False): #@UnusedVariable
-    """Add a directory with audio files
+    """Add a directory with audio files v 1.2
         * when we do an album we need to read all files in before trying anything
         * we can't just add each track individually. We have to make Artist ids for all artists
         * we will presume that 2 songs by same artist string are indeed same artist
     """
-    log.debug('  Adding album %s - add_album()', albumDir) #                    debug
+    log.debug('  Adding album "%s" - add_album()', albumDir) #                    debug
     
     tags_dicts = dict()
     albums = set()
@@ -439,14 +440,14 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     
     cwd = os.getcwd()
     os.chdir(albumDir)
-    #todo: check the actual MIME/type, not only the extensions, or somehow confirm content (eg with ffmpeg error)
     for filename in os.listdir('.') :
         (xxx, ext) = os.path.splitext(filename) #@UnusedVariable
         if not os.path.isdir(os.path.join(cwd, filename)) :
             log.debug('  Checking "%s" ...', filename) #                        debug
             csvtags = False
             
-            if ext.lower() == '.mp3' : # gets ID3 tags from mp3s
+#            if ext.lower() == '.mp3' : # gets ID3 tags from mp3s
+            if id3.isValidMP3(os.path.join(cwd, filename)):
                 log.debug('  %s is MP3', filename) #                            debug
                 tags_dicts[filename] = _get_id3_dict(filename)
                 if not tags_dicts[filename]['empty']: # non empty tags obtained :)
@@ -456,6 +457,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
                 albums.add(tags_dicts[filename]['album'])
                 artists.add(tags_dicts[filename]['artist'])
             elif ext.lower() in ['.wav', '.aif', '.aiff']: # since this is wav/aif, use possible csv tags file
+            #todo: check for file binary content to determine wether it is wav/aiff instead of extension check...
                 if not csvtags : csvtags = _read_csv_tags(os.getcwd(), 'tags.csv')
                 log.debug('  %s is %s', filename, ext) #                        debug
                 try: # if csvtags[filename] is not empty:
@@ -541,11 +543,11 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     log.debug('  * Updated trackcount for album %s', albumrec) #                debug
     commit()
 
-    os.chdir(cwd)
+    os.chdir(cwd) # and return to original working dir
 
 
 def add_collection(location, source = str(datetime.date.today()), prompt_incompletes = False, doit = False, iTunesDir = False, gordonDir = DEF_GORDON_DIR, fast_import = False, import_md=False):
-    """recursively adds mp3s from a directory tree.
+    """Recursively adds mp3s from a directory tree.
     treats all files in same directory as being in same album!
      
     Only imports if all songs actually have same album name. 
@@ -553,20 +555,10 @@ def add_collection(location, source = str(datetime.date.today()), prompt_incompl
 
     When iTunesDir==True, add only directories of the form <location>/<artist>/<album>
     This does *not* import all songs in the tree but only those two plys deep...
-#    TODO:
-#    However, if <location> is a .csv file, its treated as a tag (meta-data) file
-#    pointing at a group of audiofiles in arbitrary disc locations which form a
-#    potential album; in this case <iTunesDir> is ignored.
 
     Use doit=True to actually commit the addition of songs
     """
-    
-#    #todo: if location sent is a tags.csv file
-#    if os.path.isfile(location) and location.lower().endswith('.csv'):
-#        add_album(location, source, gordonDir, prompt_incompletes, fast_import, import_md)
-#        print 'audio_intake.py: Finished! (import from csv file)'
-#        return # -------------------------------------------------------- return
-    
+        
     try:
         os.chdir(location)
     except Exception:
@@ -604,8 +596,6 @@ def add_collection(location, source = str(datetime.date.today()), prompt_incompl
 
 
 
-
-
 def _die_with_usage() :
     print 'This program imports a directory into the database'
     print 'Usage: '
@@ -614,9 +604,10 @@ def _die_with_usage() :
     print '  -fast: imports without calculating zero-stripped track times.'
     print '  -noprompt: will not prompt for incomplete albums.  See log for what we skipped'
     print 'Arguments: '
-    print '  <source> is the string stored to the database for source e.g. DougDec22'
+    print '  <source> is the string stored to the database for source (to identify the collection) e.g. DougDec22'
     print '  <dir> is the directory to be imported'
-    print '  <import_md> (default 0) use 1 to import all metadata tags from the file'
+    print '  optional [doit] (default 1) use 0 to test the intake harmlessly'
+    print '  optional [metadata] (default 0) use 1 to import all metadata tags from the file'
     print 'More options are available by using the function add_collection()'
     sys.exit(0)                                                    # sys.exit(0)
 
@@ -637,7 +628,7 @@ if __name__ == '__main__':
             break
         sys.argv.pop(1)
 
-    # pase arguments
+    # parse arguments
     source = sys.argv[1]
     dir = sys.argv[2]
     doit = None
@@ -651,6 +642,5 @@ if __name__ == '__main__':
     except: import_md = False
 
     log.info('audio_intake.py: using <source>'+' "'+source+'", '+'<dir> %s'%dir) #info
-    if doit is False: log.info(' * No <doit> (3rd) argument given. Thats 0K. (Pass no args for script usage.)') #info
     add_collection(location=dir, source=source, prompt_incompletes=prompt_incompletes, doit=doit, fast_import=fast_import, import_md=import_md)
     

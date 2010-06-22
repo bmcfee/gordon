@@ -394,7 +394,7 @@ def update_features(tid=-1,gordonDir=DEF_GORDON_DIR,force=False):
     else :
         pass# print 'Skipping',tid,'because it is <15sec'
         
-def update_secs_zsecs(tid_or_track,gordonDir=DEF_GORDON_DIR,force=False,fast=False,do_commit=True):
+def update_secs_zsecs(tid_or_track,force=False,fast=False,do_commit=True):
     """Updates the seconds and optionally zero-stripped seconds (sec,zsec) for a track
     Takes either a Track object or a track id.  
     If force is False (default) then only computes if values are missing
@@ -458,7 +458,7 @@ def update_audio_features(tid,gordonDir=DEF_GORDON_DIR,force=False,params=dict()
     C.calc_feat(fullMp3,fnOutStub=shortMp3,fnOutDir=featDir,params=params)        
     set_feature_perms(tid,gordonDir)
 
-def set_feature_perms(tid,gordonDir=DEF_GORDON_DIR) :
+def set_feature_perms(tid) :
     """Sets permissions for newly-created files"""
     fn= Track.query.get(tid).fn_feature #@UndefinedVariable (Eclipse vs. SQLA)
     if os.path.exists(fn) :
@@ -705,7 +705,7 @@ def update_album_trackcounts() :
             print 'Processed album',ctr
     session.flush()
 
-def delete_duplicate_mb_albums(gordonDir=DEF_GORDON_DIR) :
+def delete_duplicate_mb_albums() :
     """Identify and delete duplicate albums
     Only delete those albums labeled by musicbrainz.  We always keep
     the biggest (in bytes) complete album songs / features are
@@ -760,7 +760,7 @@ def delete_duplicate_mb_albums(gordonDir=DEF_GORDON_DIR) :
                     delete_album(a)
     dbmb.close()
 
-def check_nulls(gordonDir=DEF_GORDON_DIR) :
+def check_nulls() :
     """Finds instances where trackcount, Artist.mb_id, Track.mb_id, Album.mb_id are null.
     This should not be the case and causes problems.
     """
@@ -873,7 +873,7 @@ def get_albumcover_urltxt(asin) :
         urltxt = '/static/images/emptyalbum.jpg'
     return urltxt
 
-def cache_albumcovers(gordonDir=DEF_GORDON_DIR,aid=None) :
+def cache_albumcovers(aid=None) :
     """Caches album cover jpgs to directory DEF_GORDON_DIR/data/covers/K/A<aid>_cover.jpg
 
     TODO: needs a minor fix to keep from downloading empty jpgs from
