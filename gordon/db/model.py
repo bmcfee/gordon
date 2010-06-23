@@ -389,9 +389,9 @@ class Track(object) :
             make_subdirs_and_move(srcF, dstF)
             log.debug('Moved', srcF, 'to', dstF)                                # debug
 
-    def addAnnotation(self, type, annotation, value):
-        """Creates an Annotation for the track (returns the annotation)
-        Returns False if the annotation wasn't stored (the session is expunged)
+    def add_annotation(self, type, annotation, value):
+        """Creates an Annotation for the track
+        @return: the annotation or False if it wasn't stored (the session is expunged)
         @param type: annotation.type field [varchar(256)]
         @param annotation: annotation.annotation field [varchar(256)]
         @param value: annotation.value field [text]"""
@@ -404,9 +404,9 @@ class Track(object) :
         
         return annot # -------------------------------------------------- return annot
         
-    def addAnnotationInstance(self, annotation):
-        """Adds an Annotation to the track
-        Returns False if <annotation> is not a valid Annotation class instance
+    def add_annotation_from_instance(self, annotation):
+        """Adds an Annotation object to the track
+        @return: False if <annotation> is not a valid Annotation class instance
         @param annotation: Annotation class instance to add to the track's annotations"""
         
         self.annotations.append(annotation)
@@ -416,10 +416,11 @@ class Track(object) :
         
         return True # --------------------------------------------------- return True
         
-    def addAnnotationFile(self, filepath):
-        """
-        @return False if filepath invalid or unreadable
-        """
+    def add_annotation_from_file(self, filepath):
+        """Adds a text file as an annotation to this track
+        @return: False if filepath invalid or unreadable
+        @param filepath: path to the ext file in the file system"""
+        
         if not os.path.isfile(filepath) or\
         not is_binary(filepath): return False # not a text file --------- return False
         
