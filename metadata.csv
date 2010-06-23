@@ -1,0 +1,34 @@
+# Gordon CSV metadata file example - for audio-files in arbitrary paths using:
+# audio_intake_from_csv.py (Specify this file's path to the script.)
+
+# _General syntaxis_
+# Python styled WHOLE-LINE comments are respected. White lines are ignored (e.g. below)
+	 
+# All exterior spaces are trimmed for every CS value.
+# TODO: Escapable chars: \, (comma) and \\ (backslash, except in paths)
+#  * NOTE: Excel will not display a line correcly if any \<comma> is used
+
+ ,2,3,4,5,6 ... this line is skipped since there's no value before the fist comma
+ 
+#
+# _Headers_ are contained in the first uncommented, non-blank (valid) line.
+#  It must include the first 6 in the order below shown, + any optional annotation headers
+
+filepath, title, artist, album, tracknum, compilation,		HTK chords, HTK segments
+
+#
+# _Values_
+#  TODO: * The escaped word \embedded is substituted with the corresponfing audiofile
+#  tag if any (only works with certain headers including the first 5 (after
+#  filepath). See audio_intake_from_csv._read_csv_tags doc)
+#  TODO: * when not using \embedded, compilation is taken as False if its not '1' or
+#  'true' (regardless of case) once trimmed
+#  Optional values are stored as annotations. They're ignored if empty;
+#  if path, read as txt files (path stored if binary, debug logged)
+#
+
+C:\Documents and Settings\Giorgio\My Documents\My Music\Cafe Tacuba\1999 Reves & Yo Soy\1999 Yo soy\02 La Locomotora.mp3, \embedded, \embedded, Yo Soy, \embedded, FALSE, C:\Documents and Settings\Giorgio\My Documents\csdfafdvadf\2010 NYU pygmy (MIR)\public repo (bitbucket-dev)\01_-_I_Saw_Her_Standing_There.lab, C:\Documents and Settings\Giorgio\My Documents\csdfafdvadf\2010 NYU pygmy (MIR)\public repo (bitbucket-dev)\02_-_Misery.lab
+
+C:\Documents and Settings\Giorgio\My Documents\My Music\Cafe Tacuba\1999 Reves & Yo Soy\1999 Yo soy\06 Muerte Chiquita.mp3, Muerte Chiquita\<comma> \\esc chars test (\\embedded), the artist is "\embedded", Yo Soy, \embedded, 0 (false), , C:\Documents and Settings\Giorgio\My Documents\csdfafdvadf\2010 NYU pygmy (MIR)\public repo (bitbucket-dev)\02_-_Misery.lab
+#  * NOTE: repeated filepaths replace previous lines (with the exaple below, the line above is useless)
+C:\Documents and Settings\Giorgio\My Documents\My Music\Cafe Tacuba\1999 Reves & Yo Soy\1999 Yo soy\06 Muerte Chiquita.mp3, \embedded, \embedded, \embedded, \embedded, \embedded

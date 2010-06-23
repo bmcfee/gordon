@@ -35,8 +35,8 @@ from csv import reader
 from gordon.io import AudioFile
 from gordon.db.model import add, commit, Album, Artist, Track, Collection, Annotation
 from gordon.db.config import DEF_GORDON_DIR
-from gordon.db.gordon_db import get_tidfilename, make_subdirs_and_copy
-from gordon.io.mp3_eyeD3 import isValidMP3, getAllTags
+from gordon.db.gordon_db import get_tidfilename, make_subdirs_and_copy, is_binary
+from gordon.io.mp3_eyeD3 import isValidMP3, getAllTags, id3v2_getval
 
 
 
@@ -102,6 +102,7 @@ def add_track(trackpath, source=str(datetime.date.today()), gordonDir=DEF_GORDON
                   ofilename = fn_recoded,
                   source = str(source),
                   bytes = bytes)
+    
     # add "source" collection <-> track
     if isinstance(source, Collection):
         track.collections.append(source)
@@ -130,7 +131,7 @@ def add_track(trackpath, source=str(datetime.date.today()), gordonDir=DEF_GORDON
         track.album = album.name
         track.albums.append(album)
 
-    commit() # save (again) the track record (this time having the track id)
+#    commit() # save (again) the track record (this time having the track id)
     log.debug('    Wrote album and artist additions to track into database') #  debug
 
     # copy the file to the Gordon audio/feature data directory
@@ -138,56 +139,101 @@ def add_track(trackpath, source=str(datetime.date.today()), gordonDir=DEF_GORDON
     make_subdirs_and_copy(trackpath, tgt)
     log.debug('    Copied "%s" to %s', trackpath, tgt) #                        debug
     
-    #chek if file is mp3. if so:
+    # add annotations
+    
+    del(tag_dict['title'])
+    del(tag_dict['artist'])
+    del(tag_dict['album'])
+    del(tag_dict['tracknum'])
+    del(tag_dict['compilation'])
+    for tagkey, tagval in tag_dict.iteritems(): # create remaining annotations
+        track.annotations.append(Annotation(type='txt', annotation=tagkey, value=tagval))
+    
     if all_md:
+        #chek if file is mp3. if so:
         if isValidMP3(trackpath):
             #extract all ID3 tags, store each tag value as an annotation type id3.[tagname]
-            for tag in getAllTags(trackpath): #todo: skip basic tags already in track
+            for tag in getAllTags(trackpath):
                 track.annotations.append(Annotation(type='id3', annotation=tag[0], value=tag[1]))
+        
+        #todo: work with more metadata formats (use tagpy?)
+    
+    commit() # store the annotations
 
 
 def _read_csv_tags(cwd, csv=None):
-    '''Reads a csv file containing track metadata (v 1.1)
+    '''Reads a csv file containing track metadata and annotations (v 2.0)
     
-    # may use py comments in collection.csv file
-    filename, title, artist, album, tracknum, compilation
-    per line
+    # may use py comments in metadata .csv file. Must include a header:
+    filename, title, artist, album, tracknum, compilation, [optional1], [optional2]...
+    and then corresponding values per line (see example metadata.csv file in project root)
     
-    Returns a 2D dict in the form dict[<file-name>][<tag>]'''
-
-    #todo: add a header so that the fields need not be predefined?
-    #jorgeorpinel: except we do need 4 predefined or required tags to comply with the track table fields
-    #              but it would be nice.
-
-    if csv is None:
-        filename = cwd
-    else:
-        filename = os.path.join(cwd, csv)
+    @return: a 2D dict in the form dict[<file-name>][<tag>] or False if an error occurs
     
-    try:
-        csvfile = reader(open(filename))
-    except IOError:
-        log.error("  Couldn't open '%s'", csv)
+    @param cwd: complete csv file-path (if no <csv> sent) or path to directory to work in  
+    @param csv: csv file-name (in <cwd> dir). Defaults to None
+    
+    @todo: csv values (after header) may include "\embedded" to try getting it from the audio file.
+    Currently only ID3 tags names understood by gordon.io.mp3_eyeD3.id3v2_getval_sub are usable in this manner.
+    @todo: include other metadata formats (use tagpy?)'''
 
+    # open csv file
+    if csv is None: filename = cwd
+    else: filename = os.path.join(cwd, csv)
+    try: csvfile = reader(open(filename))
+    except IOError: log.error("  Couldn't open '%s'", csv) #                log error
+    
     tags = dict()
+    headers = False
     for line in csvfile: # each record (file rows)
-        if len(line) < 6 : continue
+        if len(line) < 6 : continue # skip bad lines (blank or too short)
         line[0] = line[0].strip()
-        if not line[0] or line[0][0] == '#' : continue # if name empty or comment line
+        if not line[0] or line[0][0] == '#' : continue # skip if filepath empty or comment line
+        
+        # read and validate header
+        if not headers: # first valid line is the header
+            line=[l.strip() for l in line] # strip header names
+            if not line[:6]==['filepath','title','artist','album','tracknum','compilation']:
+                log.error('  CSV headers are incorrect at l:%d.', csvfile.line_num) #                  log error
+                return False # ------------------------------------------ return False
+            headers = line
+            continue
             
-        #save title, artist, album, tracknum, compilation in tags[<file-name>]
-        tags[line[0]] = dict()
-        tags[line[0]]['filename'] = line[0] #joreorpinel: unnecessary ...
-        tags[line[0]]['title']  = u'%s' % line[1].strip()
-        tags[line[0]]['artist'] = u'%s' % line[2].strip()
-        tags[line[0]]['album']  = u'%s' % line[3].strip()
-        try:
-            tags[line[0]]['tracknum'] = int(line[4])
-        except:
-            tags[line[0]]['tracknum'] = 0
-        tags[line[0]]['compilation'] = u'%s' % line[5].strip()
+        # save title, artist, album, tracknum, compilation in tags[<file-name>]
+        
+        filepath=line[0]
+        tags[filepath] = dict() #jorgeorpinel: this deletes previous lines if filepath is repeated ...
+        col = 1 #jorgeorpinel: col 0 is 'filepath' so skip it
+        while col < len(headers):
+            if col >= len(line): break # stop loop if there's nothing left in the line
+            value = line[col].strip()
+            
+            if headers[col] == 'tracknum': # prepare for smallint in the DB
+                try: tags[filepath]['tracknum'] = int(value)
+                except: tags[filepath]['tracknum'] = 0
+                
+            elif headers[col] == 'compilation': # prepare for bool in the DB
+                line[col] = value.lower()
+                tags[filepath]['compilation'] = True if value=='true' or value=='1' else False
+                
+            elif os.path.isfile(value): # it's a file!
+                if not is_binary(value): # it seems to be a text file
+                    try:
+                        txt=open(value)
+                        tags[filepath][headers[col]] = txt.read() # text file contents stored
+                        txt.close()
+                    except:
+                        log.error('  Error opening %s file in $s annotation at l:%d', (value, headers[col], csvfile.line_num)) # log error
+                        tags[filepath][headers[col]] = value # path stored
+                else:
+                    log.debug('  File %s in $s annotation is not text at l:%d', (value, headers[col], csvfile.line_num)) # log error
+                    tags[filepath][headers[col]] = value # path stored
+                    
+            else: tags[filepath][headers[col]]  = u'%s' % value # CSV stored :)
+            
+            col+=1
 
-    return tags
+    return tags # ------------------------------------------------------- return tags
 
 def add_album(album_name, tags_dicts, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR, prompt_aname=False, import_md=False):
     """Add an album from a list of metadata in <tags_dicts> v "1.0 CSV"
@@ -270,7 +316,7 @@ def add_collection_from_csv_file(csvfile, source=str(datetime.date.today()), pro
     # Turn metadata into a list of albums:
     albums = collections.defaultdict(dict)
     for filename, x in metadata.iteritems():
-        albums[x['album']][filename] = x    #jogeorpinel: so x[<album>][<filename>] has the metadata including x[<album>][<filename>]['filename'], the file name ...
+        albums[x['album']][filename] = x
 
     for albumname, tracks in albums.iteritems(): # iterate album-ordered metadata (so "for each album:")
         if not doit:
@@ -322,6 +368,6 @@ if __name__ == '__main__':
     try: import_md = True if sys.argv[4] == 1 else False
     except: import_md = False
 
-    log.info('audio_intake_from_csv.py: using <source>', '"'+source+'",', '<csvfile>', csvfile) #info
+    log.info('audio_intake_from_csv.py: using <source>'+' "'+source+'", <csvfile> %s'%csvfile) #info
     add_collection_from_csv_file(csvfile, source=source, prompt_incompletes=prompt_incompletes, doit=doit, fast_import=fast_import, import_md=import_md)
     

@@ -64,7 +64,7 @@ def id3v2_getval(mp3,tagstr) :
         #    os.sys.stderr.write('eyeD3 unable to read id3 tag %s from file %s\n' % (tagstr,mp3))
         return val
                     
-def id3v2_getval_sub(tag,tagstr) :
+def id3v2_getval_sub(tag,tagstr):
     #eyeD3 throws lots of exceptions. We will ignore most of them
     #can't figure out how to do this the right way ...
     if tagstr=='album' :
@@ -162,7 +162,7 @@ def id3v2_getval_sub(tag,tagstr) :
         print 'Unknown tag:',tagstr
         return ''
     
-def id3v2_putval(mp3,tagstr,txt='') :
+def id3v2_putval(mp3,tagstr,txt=''):
     tag=eyeD3.Tag()
     tag.link(mp3)
     tag.update(eyeD3.ID3_V2_4) # writes on file
@@ -293,10 +293,10 @@ def isValidMP3(filePath):
     tag=eyeD3.Tag()
     return True if tag.link(filePath) else False # ---------------------- return
 
-def getAllTags(mp3fn):
-    """Return a list with all tags:
-    [description, content]
-    Returns False if mp3fn is not an MP3 file.
+def getAllTags(mp3fp, skipTrackFields=True):
+    """Return a list with all tags in the form [description, content]
+    or False if mp3fp is not an MP3 file (path).
+    
     These are the Frame types and their instance fields (see eyeD3.frame) :
     *Text*: text, date_str, (description)
     *URL*: url, (description)
@@ -308,16 +308,29 @@ def getAllTags(mp3fn):
     Unknown: data
     MusicCDId: toc
     See also http://www.id3.org/id3v2.3.0#head-e4b3c63f836c3eb26a39be082065c21fba4e0acc (6/11/2010)
+    
     @author Jorge Orpinel <jorge@orpinel.com>"""
     
     tag=eyeD3.Tag()
-    if not tag.link(mp3fn): return False # ------------------------------ return False
+    if not tag.link(mp3fp): return False # ------------------------------ return False
     
     tags = list()
     for frame in tag.frames:
+        frameCode = frame.render()[:4]
+        
+        #skip basic tags already in track (employ skipTrackFields)
+        if skipTrackFields and\
+        frameCode in [eyeD3.TITLE_FID,     # title #jorgeorpinel: trying py '\' 4 continuing a code instruction line
+                      eyeD3.ARTIST_FID,    # artist
+                      eyeD3.ALBUM_FID,     # album
+                      eyeD3.TRACKNUM_FID,  # track #
+                      "TCP"]:              # iTunes "compilation"
+            continue
+        
         thisTag=list()
+        
         # gets tag description
-        thisTag.append(frame.render()[:4] + ' - ' + frame.getFrameDesc())
+        thisTag.append(frameCode + ' - ' + frame.getFrameDesc())
         try: thisTag[0] += ' - ' + frame.description
         except: pass
         try: thisTag[0] += ' (' + frame.lang + ')'
@@ -327,6 +340,7 @@ def getAllTags(mp3fn):
         try: thisTag[0] += ' ' + frame.pictureType
         except: pass
         thisTag[0]=thisTag[0].strip()
+        
         # gets tag content
         thisTag.append(str())
         try: thisTag[1] += frame.text+' '

@@ -10,21 +10,21 @@ Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
 
  * support multiple collections with the same audio files                     OK
 
-2 Late spring : projected MAY                                                 OK v.04
+2 Late spring : MAY-JUNE                                                      OK v0.4
 
  * implement _annotation_ file association to tracks                          OK
    annotation types: (add track_annotation table)
   0 DB structure (create annotation table)                                    OK
-  1 all (metadata) tags * normalize with annotation_type table?	              OK
-  2 time-values (eg HTK .lab) files *check psql variable length coltypes - do not parse OK
+  1 all (metadata) tags * normalize with annotation_type table?	             ...
+  2 time-values (eg HTK .lab) files *check psql variable length coltypes      OK
   2.2 function to add arbitrary text files as annotations                  EXTRA
-  3 inter-relationships (eg covers) - create add_to_collection(tracks) function OK
+  3 inter-relationships (eg covers) - create add_to_collection(tracks)        OK
 
-3 Summer I : projected 2ish of JUNE                                      CURRENT
+3 Summer I : projected JUNE                                              CURRENT v0.5
 
- * implement/clean-up _feature_ extraction                                   ???
+ * implement/clean-up _feature_ extraction                                   ...
  
-Future
+Future (JULY?)                                                                   v2?
 
  * integrate with Ho-Hsiang Flash app (socket server, see http://blog.pettomato.com/?p=9)
-
+ 

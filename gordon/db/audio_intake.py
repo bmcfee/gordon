@@ -59,17 +59,19 @@ def _store_annotations(audiofile, track, all_md=False):
     
     returns number of annotations (0 to *) stored"""
     
-    #todo: log.debug tags/annotations found
     annots = 0
     
     #chek if file is mp3. if so:
     if all_md:
         if id3.isValidMP3(audiofile):
             #extract all ID3 tags, store each tag value as an annotation type id3.[tagname]
-            for tag in id3.getAllTags(audiofile): #todo: skip basic tags already in track
+            for tag in id3.getAllTags(audiofile, skipTrackFields=True): # this skips the 4 basic tags already in track
                 track.annotations.append(Annotation(type='id3', annotation=tag[0], value=tag[1]))
+                annots += 1
     
         #future todo: apply tagpy or other method to extract more metadata formats
+    
+    if annots == 0: log.debug('    No ID3 metadata found.')
     
     # check text file annotations
     (pathandbase, ext) = os.path.splitext(audiofile)
@@ -78,7 +80,6 @@ def _store_annotations(audiofile, track, all_md=False):
     for s in glob(pathandbase+'.*'): simfiles.append(s)
     txt=None
 
-    #todo: shouldn't use similar named files, let script user specify txt files in csv
     for simfile in simfiles: # for every file sharing base-name (any or no extension)
         try:
             if not is_binary(simfile): # if its a text file
@@ -94,7 +95,7 @@ def _store_annotations(audiofile, track, all_md=False):
             
     commit() #saves all appended annotations in the track
     
-    log.debug('    store %s annotations overall', annots)
+    log.debug('    Stored %s annotations overall', annots)
     return annots # ----------------------------------------------------- return annots
 
 def add_mp3(mp3, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR, id3_dict=dict(), artist=None, album=None, fast_import=False, import_id3=False):
@@ -393,7 +394,10 @@ def _read_csv_tags(cwd, csv):
     filename, title, artist, album, tracknum, compilation
     per line
     
-    Returns a 2D dict in the form dict[<filename>][<tag>]'''
+    Returns a 2D dict in the form dict[<filename>][<tag>]
+    
+    @param cwd: path to directory to work in
+    @param csv: csv file-name (in <cwd> dir)'''
     
     tags = dict()
     
@@ -411,7 +415,8 @@ def _read_csv_tags(cwd, csv):
             tags[line[0]]['album']  = line[3].strip()
             try: tags[line[0]]['tracknum'] = int(line[4])
             except: tags[line[0]]['tracknum'] = 0
-            tags[line[0]]['compilation'] = line[5].strip()
+            line[5] = line[5].strip().lower()
+            tags[line[0]]['compilation'] = True if line[5]=='true' or line[5]=='1' else False
     except IOError:
         log.error('  Couldn\'t open "%s"', csv)
 
@@ -641,6 +646,6 @@ if __name__ == '__main__':
     try: import_md = True if sys.argv[4] == 1 else False
     except: import_md = False
 
-    log.info('audio_intake.py: using <source>'+' "'+source+'", '+'<dir> %s'%dir) #info
+    log.info('audio_intake.py: using <source>'+' "'+source+'", <dir> %s'%dir) #info
     add_collection(location=dir, source=source, prompt_incompletes=prompt_incompletes, doit=doit, fast_import=fast_import, import_md=import_md)
     

@@ -27,7 +27,7 @@ from gordon.io import AudioFile #todo: this imports itself ultimately... code in
 
 from gordon.db import config
 
-log = logging.getLogger('Gordon.AudioIntake')
+log = logging.getLogger('Gordon.Model')
 log.addHandler(logging.StreamHandler(sys.stdout))
 log.setLevel(logging.DEBUG) #jorgeorpinel: for now, change DEBUG to INFO here to reduce verbosity (at production)
 
