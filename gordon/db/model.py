@@ -14,6 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Gordon.  If not, see <http://www.gnu.org/licenses/>.
+
 """Gordon database model"""
 
 import os, glob, logging, sys
@@ -23,9 +24,9 @@ from sqlalchemy import Table, Column, ForeignKey, String, Unicode, Integer, Inde
 from sqlalchemy.orm import relation, sessionmaker, MapperExtension, backref#,dynamic_loader,column_property,deferred #jorgeorpinel: unused
 from datetime import datetime #from sqlalchemy.sql.expression import text
 
-from gordon.io import AudioFile #todo: this imports itself ultimately... code in this file is executed twice.
-
 from gordon.db import config
+from gordon.db.gordon_db import is_binary
+from gordon.io import AudioFile
 
 log = logging.getLogger('Gordon.Model')
 log.addHandler(logging.StreamHandler(sys.stdout))
@@ -394,17 +395,45 @@ class Track(object) :
         @param type: annotation.type field [varchar(256)]
         @param annotation: annotation.annotation field [varchar(256)]
         @param value: annotation.value field [text]"""
+        
         annot = Annotation(type, annotation, value)
         self.annotations.append(annot)
+        
         try: commit()
-        except: return False # ------------------------------------------ return False
+        except: return False # couldn't store in the DB ----------------- return False
+        
         return annot # -------------------------------------------------- return annot
         
     def addAnnotationInstance(self, annotation):
         """Adds an Annotation to the track
         Returns False if <annotation> is not a valid Annotation class instance
         @param annotation: Annotation class instance to add to the track's annotations"""
+        
         self.annotations.append(annotation)
+        
+        try: commit()
+        except: return False # couldn't store in the DB ----------------- return False
+        
+        return True # --------------------------------------------------- return True
+        
+    def addAnnotationFile(self, filepath):
+        """
+        @return False if filepath invalid or unreadable
+        """
+        if not os.path.isfile(filepath) or\
+        not is_binary(filepath): return False # not a text file --------- return False
+        
+        try:
+            text = open(filepath)
+            annot = Annotation(type, annotation, text.read())
+            self.annotations.append(annot)
+            text.close()
+        except: return False # file unreadable -------------------------- return False
+        
+        try: commit()
+        except: return False # couldn't store in the DB ----------------- return False
+        
+        return annot # -------------------------------------------------- return annot
     
 
 #jorgeorpinel: for psycopg (used by SQL Alchemy) to know how to adapt (used in SQL queries) the numpy.float64 type

@@ -15,10 +15,11 @@ Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
  * implement _annotation_ file association to tracks                          OK
    annotation types: (add track_annotation table)
   0 DB structure (create annotation table)                                    OK
-  1 all (metadata) tags * normalize with annotation_type table?	             ...
+  1 all (metadata) tags * normalize with annotation_type table?	           EXTRA
   2 time-values (eg HTK .lab) files *check psql variable length coltypes      OK
-  2.2 function to add arbitrary text files as annotations                  EXTRA
+  2.2 function to add arbitrary text files as annotations                     OK
   3 inter-relationships (eg covers) - create add_to_collection(tracks)        OK
+  * script to auto-generate tracklist csv files from object sets           EXTRA
 
 3 Summer I : projected JUNE                                              CURRENT v0.5
 
@@ -27,4 +28,5 @@ Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
 Future (JULY?)                                                                   v2?
 
  * integrate with Ho-Hsiang Flash app (socket server, see http://blog.pettomato.com/?p=9)
+ * add annotation edition from webapp
  
