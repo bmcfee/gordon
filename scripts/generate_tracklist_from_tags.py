@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Generates a tracklist file use by gordon's audio_intake scripts
+"""Generates a tracklist file for use by gordon's audio_intake scripts
 
 Usage:  generate_tracklist_from_tags <dir> [outputfilename]
 
@@ -55,6 +55,13 @@ def read_tags_using_eyeD3(filename):
     tagdict = dict((x, mp3_eyeD3.id3v2_getval(filename, x)) for x in tagnames)
     return tagdict
 
+def read_tags(filename):
+    try:
+        tagdict = read_tags_using_tagpy(filename)
+    except ValueError:
+        tagdict = read_tags_using_eyeD3(filename)
+    return tagdict
+
 def walk_music_dir(musicdir, outfile):
     keys = ('title', 'artist', 'album', 'tracknum', 'compilation')
     outfile.write('# Header:\nfilepath,%s\n# Tracklist:\n' % ','.join(keys))
@@ -65,15 +72,11 @@ def walk_music_dir(musicdir, outfile):
             fn = os.path.join(dirpath, filename)
             try:
                 print >> sys.stderr, 'Processing %s' % fn
-                try:
-                    tagdict = read_tags_using_tagpy(fn)
-                except ValueError:
-                    tagdict = read_tags_using_eyeD3(fn)
-
+                tagdict = read_tags(fn)
                 outfile.write('%s,%s\n'
                               % (fn, ','.join(str(tagdict[k]) for k in keys)))
             except (ValueError, NameError):
-                print >> sys.stderr, 'Error reading %s' % filename
+                print >> sys.stderr, 'Error reading %s' % fn
 
 
 def main(musicdir='.', outputfilename=None):
