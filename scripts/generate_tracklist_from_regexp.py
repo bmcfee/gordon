@@ -14,6 +14,9 @@ For example, the pattern:
 will match filenames of the form:
 /path/to/artist name-album name-track number-title.mp3
 
+For more information about Python regular expressions, see the
+documentation for the re module at http://docs.python.org/library/re.html
+
 Note that this script *does not* support gordon annotations.  You must
 added them to the generated tracklist manually using e.g. sed.
 
