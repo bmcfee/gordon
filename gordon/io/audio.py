@@ -18,7 +18,7 @@
 # along with Gordon.  If not, see <http://www.gnu.org/licenses/>.
 '''ffmpeg wrapper for reading audio files'''
 
-import os, sys, string
+import os, sys
 import numpy
 
 

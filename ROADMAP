@@ -1,6 +1,6 @@
 Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
 
-- Current work on audio_intake.py : APR 5-12 WEEK                             OK v0.2
+0 Initial work on audio_intake.py : APR 5-12 WEEK                             OK v0.2
 
  * read text file to extract wav tags - this means work wavs with ffmpeg      OK
  * work with aif                                                              OK
@@ -15,12 +15,12 @@ Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
  * implement _annotation_ file association to tracks                          OK
    annotation types: (add track_annotation table)
   0 DB structure (create annotation table)                                    OK
-  1 all (metadata) tags * normalize with annotation_type table?	           EXTRA
+  1 all (metadata) tags * normalize with annotation_type table?	           EXTRA see 0 3rd *
   2 time-values (eg HTK .lab) files *check psql variable length coltypes      OK
   2.2 function to add arbitrary text files as annotations                     OK
   3 inter-relationships (eg covers) - create add_to_collection(tracks)        OK
-  * script to auto-generate base tracklist csv file from set & embedded md   ... tagpy
   * add track.getAnnotation('name')                                          ...
+  * improve tracklist format (see bitbucket issue #11)
   + think about MIDI (binary) annotations
   + consider using textual python dictionaries / JSON instead of CSV textfiles
 

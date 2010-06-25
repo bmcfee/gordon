@@ -17,24 +17,23 @@
 
 """Gordon database model"""
 
-import os, glob, logging, sys
+import os, glob, logging
 
 from sqlalchemy import Table, Column, ForeignKey, String, Unicode, Integer, Index, Float, SmallInteger, Boolean, DateTime#,text,PassiveDefault,ForeignKeyConstraint,MetaData,Text #jorgeorpinel: unused
 #from sqlalchemy.databases.postgres import PGArray #jorgeorpinel: unused
 from sqlalchemy.orm import relation, sessionmaker, MapperExtension, backref#,dynamic_loader,column_property,deferred #jorgeorpinel: unused
 from datetime import datetime #from sqlalchemy.sql.expression import text
 
-from gordon.db import config
-from gordon.db.gordon_db import is_binary
+#NOTICE model SHOULDN't BE IMPORTING FROM MANY OTHE Gordon PLACES... THEY ALL IMPORT FROM MODEL FIRST!
 from gordon.io import AudioFile
+from gordon.db import config
+#todo: since model is imported by gordon_db (imported by gordon at line 27) we have a circular reference:
+#from gordon.db.gordon_db import is_binary
+
+
 
 log = logging.getLogger('Gordon.Model')
-log.addHandler(logging.StreamHandler(sys.stdout))
-log.setLevel(logging.DEBUG) #jorgeorpinel: for now, change DEBUG to INFO here to reduce verbosity (at production)
 
-
-
-#Connects to PostgreSQL: #is this done 2ice??? are 2 connections opened?
 
 try :     #this will try to use turbogears if we are already in the middle of a turbogears session
     import turbogears.database #@UnresolvedImport (for projects running only cmd-line)
@@ -415,36 +414,60 @@ class Track(object) :
         except: return False # couldn't store in the DB ----------------- return False
         
         return True # --------------------------------------------------- return True
+    
+    def _is_binary(self, filename):
+        """Return true if the given filename is binary (copied from gordon_db)
+        @raise EnvironmentError: if the file does not exist or cannot be accessed.
+        @attention: found @ http://bytes.com/topic/python/answers/21222-determine-file-type-binary-text on 6/08/2010
+        @author: Trent Mick <TrentM@ActiveState.com>
+        @author: Jorge Orpinel <jorge@orpinel.com>"""
         
+        fin = open(filename, 'rb')
+        try:
+            CHUNKSIZE = 1024
+            while 1:
+                chunk = fin.read(CHUNKSIZE)
+                if '\0' in chunk: # found null byte
+                    return True # --------------------------------------- return True
+                if len(chunk) < CHUNKSIZE:
+                    break # done
+        # A-wooo! Mira, python no necesita el "except:". Achis... Que listo es.
+        finally:
+            fin.close()
+        
+        return False # -------------------------------------------------- return False
+    
     def add_annotation_from_file(self, filepath):
         """Adds a text file as an annotation to this track
         @return: False if filepath invalid or unreadable
         @param filepath: path to the ext file in the file system"""
         
         if not os.path.isfile(filepath) or\
-        not is_binary(filepath): return False # not a text file --------- return False
+        self._is_binary(filepath): return False # not a text file ------------- return False
         
         try:
             text = open(filepath)
-            annot = Annotation(type, annotation, text.read())
+            (path, filename) = os.path.split(filepath)
+            annot = Annotation(type='txt', annotation=filename, value=text.read())
             self.annotations.append(annot)
             text.close()
-        except: return False # file unreadable -------------------------- return False
+        except: return -2 # file unreadable -------------------------- return False
         
         try: commit()
-        except: return False # couldn't store in the DB ----------------- return False
+        except: return -3 # couldn't store in the DB ----------------- return False
         
         return annot # -------------------------------------------------- return annot
-    
 
-#jorgeorpinel: for psycopg (used by SQL Alchemy) to know how to adapt (used in SQL queries) the numpy.float64 type
-#              ...here since this is first used with track data (when running audio_intake.py)
-#              found @ http://initd.org/psycopg/docs/advanced.html#adapting-new-python-types-to-sql-syntax
+
+
+pass #jorgeorpinel: for psycopg (used by SQL Alchemy) to know how to adapt (used in SQL queries) the numpy.float64 type
+#     ...here since this is first used with track data (when running audio_intake.py)
+#     found @ http://initd.org/psycopg/docs/advanced.html#adapting-new-python-types-to-sql-syntax
 from psycopg2.extensions import register_adapter, AsIs
 import numpy
 def addapt_numpy_float64(numpy_float64):
     return AsIs(numpy_float64)
-register_adapter(numpy.float64, addapt_numpy_float64) #@UndefinedVariable Eclipse vs numpy
+register_adapter(numpy.float64, addapt_numpy_float64)
 
 
 class Artist(object) :

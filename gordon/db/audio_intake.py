@@ -42,10 +42,6 @@ from gordon.db.model import add, commit, Album, Artist, Track, Collection, Annot
 
 
 log = logging.getLogger('Gordon.AudioIntake')
-#todo: use a logging.config ini file for the gordon package loggers (see
-# http://www.red-dove.com/python_logging.html#config) or use manual logging.Filters ?
-log.addHandler(logging.StreamHandler(sys.stdout))
-log.setLevel(logging.DEBUG) #jorgeorpinel: for now, change DEBUG to INFO here to reduce verbosity (at production)
 
 
 def _store_annotations(audiofile, track, all_md=False):
@@ -503,7 +499,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     log.debug('  Album has %d recordings', len(tags_dicts)) #                   debug
     albumrec = Album(name = album_name, trackcount = len(tags_dicts))
 #    collection = None
-    match = Collection.query.filter_by(source = source) #@UndefinedVariable #stupid Eclipse
+    match = Collection.query.filter_by(source = source)
     if match.count() == 1:
         log.debug('  Matched source %s in database', match[0]) #                debug
         collection = match[0]
@@ -514,7 +510,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     #if we have an *exact* string match we will use the existing artist
     artist_dict = dict()
     for artist in set(artists) :
-        match = Artist.query.filter_by(name = artist) #@UndefinedVariable #stupid Eclipse
+        match = Artist.query.filter_by(name = artist)
         if match.count() == 1 :
             log.debug('  Matched %s %s in database', artist, match[0]) #        debug
             artist_dict[artist] = match[0]

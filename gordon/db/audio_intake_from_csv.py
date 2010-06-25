@@ -41,8 +41,6 @@ from gordon.io.mp3_eyeD3 import isValidMP3, getAllTags, id3v2_getval
 
 
 log = logging.getLogger('Gordon.AudioIntake')
-log.addHandler(logging.StreamHandler(sys.stdout))
-log.setLevel(logging.DEBUG) #jorgeorpinel: for now, change DEBUG to INFO here to reduce verbosity (at production)
 
 
 def add_track(trackpath, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR, tag_dict=dict(), artist=None, album=None, fast_import=False, all_md=False):
@@ -255,7 +253,7 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()), gordonD
     #add album to Album table
     log.debug('  Album has %d tracks', len(tags_dicts))
     albumrec = Album(name = album_name, trackcount = len(tags_dicts))
-    match = Collection.query.filter_by(source=source) #@UndefinedVariable (Eclipse vs SQLA)
+    match = Collection.query.filter_by(source=source)
     if match.count() == 1:
         log.debug('  Matched source %s in database', match[0])
         collection = match[0]
@@ -266,7 +264,7 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()), gordonD
     #if we have an *exact* string match we will use the existing artist
     artist_dict = dict()
     for artist in artists:
-        match = Artist.query.filter_by(name=artist) #@UndefinedVariable (Eclipse vs SQLA)
+        match = Artist.query.filter_by(name=artist)
         if match.count() == 1 :
             log.debug('Matched %s to %s in database', artist, match[0])
             artist_dict[artist] = match[0]

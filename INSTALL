@@ -51,10 +51,11 @@ Gordon setup
 
 2. Run gordon/db/gordon_initialize.py to build the database tables.
 
-3. Run gordon/db/audio_intake.py to import music into the database.
+3. Use gordon/db/audio_intake(_from_csv).py and metadata .csv files to import 
+   music into the database.
 
 4. Create a local copy of the musicbrainz database using
-   gordon/db/mbrainz_import.py 
+   gordon/db/mbrainz_import.py
 
    This involves checking out the mb_server SVN repository, filling in
    some configuration details, then downloading a few gigabytes of the

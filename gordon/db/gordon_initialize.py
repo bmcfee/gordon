@@ -13,7 +13,7 @@ nexceptions = 0
 done = False
 while not done:
     try: 
-        model.metadata.create_all(model.engine) #@UndefinedVariable #Eclipse doesn't know about SQL Alchemy
+        model.metadata.create_all(model.engine)
         done = True
     except sqlalchemy.exceptions.ProgrammingError:
         nexceptions += 1

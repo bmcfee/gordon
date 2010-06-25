@@ -45,7 +45,6 @@ Author: Ron Weiss <ronw@nyu.edu>
 """
 
 import re
-import os
 import sys
 
 
