@@ -21,6 +21,7 @@ import os, glob, logging
 
 from sqlalchemy import Table, Column, ForeignKey, String, Unicode, Integer, Index, Float, SmallInteger, Boolean, DateTime, UnicodeText, Binary#,PassiveDefault,ForeignKeyConstraint,MetaData,Text #jorgeorpinel: unused
 #from sqlalchemy.databases.postgres import PGArray #jorgeorpinel: unused
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import relation, sessionmaker, MapperExtension, backref#,dynamic_loader,column_property,deferred #jorgeorpinel: unused
 from datetime import datetime #from sqlalchemy.sql.expression import text
 
@@ -44,20 +45,23 @@ try :     #this will try to use turbogears if we are already in the middle of a 
     AUTOCOMMIT=False  
 
 except :  #this will set up a scoped session using native sqlalchemy (no turbogears!)
-#    import traceback,sys
+#    import traceback, sys
 #    traceback.print_exc(file=sys.stdout)
 
     from sqlalchemy.orm import scoped_session
     import sqlalchemy
     # works in SQLAlchemy 0.6
-    dburl = 'postgresql://%s:%s@%s/%s' % (config.DEF_DBUSER, config.DEF_DBPASS,
-                                          config.DEF_DBHOST, config.DEF_DBNAME)
+    dburl = 'postgresql://%s:%s@%s/%s' % (config.DEF_DBUSER, config.DEF_DBPASS, config.DEF_DBHOST, config.DEF_DBNAME)
     try:
         engine = sqlalchemy.create_engine(dburl)
     except ImportError:
         # Works in sqlalchemy 0.5.5
         dburl = dburl.replace('postgresql', 'postgres')
         engine = sqlalchemy.create_engine(dburl)
+        
+    #test connection:
+    try: engine.connect()
+    except OperationalError: log.info('model.py: WARNING - PostgreSQL DB {0}/{1} not running...'.format(config.DEF_DBHOST, config.DEF_DBNAME))
 
     Session = scoped_session(sessionmaker(bind=engine,autoflush=True, autocommit=True))
     session = Session()
@@ -81,8 +85,6 @@ except :  #this will set up a scoped session using native sqlalchemy (no turboge
             return sqla_mapper(cls, *arg, **kw)
         return mapper
     mapper = session_mapper(Session)
-
-#todo: test database connection!
 
 
 
