@@ -429,6 +429,12 @@ class Track(object) :
         
         return annot
 
+    @property
+    def annotation_dict(self):
+        """Dictionary of this track's annotations, keyed by Annotation.name."""
+        return dict((x.annotation, x.value) for x in self.annotations)
+
+
 
 pass #jorgeorpinel: for psycopg (used by SQL Alchemy) to know how to adapt (used in SQL queries) the numpy.float64 type
 #     ...here since this is first used with track data (when running audio_intake.py)
