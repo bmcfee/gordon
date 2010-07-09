@@ -291,7 +291,7 @@ def isValidMP3(filePath):
     """Uses eyeD3.tag.link to determine whether a file is a vliad MP3
     @author Jorge Orpinel <jorge@orpinel.com>"""
     tag=eyeD3.Tag()
-    return True if tag.link(filePath) else False # ---------------------- return
+    return True if tag.link(filePath) else False
 
 def getAllTags(mp3fp, skipTrackFields=True):
     """Return a list with all tags in the form [description, content]
@@ -312,7 +312,7 @@ def getAllTags(mp3fp, skipTrackFields=True):
     @author Jorge Orpinel <jorge@orpinel.com>"""
     
     tag=eyeD3.Tag()
-    if not tag.link(mp3fp): return False # ------------------------------ return False
+    if not tag.link(mp3fp): return False
     
     tags = list()
     for frame in tag.frames:
@@ -320,7 +320,7 @@ def getAllTags(mp3fp, skipTrackFields=True):
         
         #skip basic tags already in track (employ skipTrackFields)
         if skipTrackFields and\
-        frameCode in [eyeD3.TITLE_FID,     # title #jorgeorpinel: trying py '\' 4 continuing a code instruction line
+        frameCode in [eyeD3.TITLE_FID,     # title
                       eyeD3.ARTIST_FID,    # artist
                       eyeD3.ALBUM_FID,     # album
                       eyeD3.TRACKNUM_FID,  # track #
@@ -353,9 +353,9 @@ def getAllTags(mp3fp, skipTrackFields=True):
         except: pass
         try: thisTag[1] += frame.lyrics
         except: pass
-        try: thisTag[1] += frame.imageURL #jorgeorpinel: images contain data in bytes: frame.imageData
+        try: thisTag[1] += frame.imageURL # images contain data in bytes: frame.imageData
         except: pass
-        try: thisTag[1] += frame.filename #jorgeorpinel: objects contain data in bytes: frame.objectData
+        try: thisTag[1] += frame.filename # objects contain data in bytes: frame.objectData
         except: pass
         try: thisTag[1] += frame.count
         except: pass
