@@ -24,7 +24,8 @@ Includes the database model and a set of utility functions for
 validating the contents of the database, removing duplicates, etc.
 '''
 
-import numpy, os
+import numpy, os, logging
+
 from shutil import move, copy
 from sqlalchemy import func, select
 from string import join, replace
@@ -39,8 +40,10 @@ from gordon.db.model import (Artist, Album, Track, Collection,
 from gordon.db.config import DEF_GORDON_DIR, DEF_DBUSER, DEF_DBPASS, DEF_DBHOST
 from gordon.io import AudioFile
 
-#todo: use a "Gordon" Logger
-print 'gordon_db.py: using gordon directory',DEF_GORDON_DIR
+
+log = logging.getLogger('gordon')
+log.info('gordon_db.py: using gordon directory', DEF_GORDON_DIR)
+#todo: replace all prints with logging
 
 
 
@@ -216,7 +219,7 @@ class unaccented_map(dict):
         __getitem__ = mapchar
 
 def _set_perms(path, perm, groupName=None) :
-    if os.name == 'nt': return #jorgeorpinel: may render file unreadable on Windows ... check out cacls cmd.exe (any need?)
+    if os.name == 'nt': return #jorgeorpinel: may render file unreadable on Windows ... check out cacls for cmd.exe
     os.system('chmod %d "%s"' % (perm, path))
     #if os.system("chmod %d %s" % (perm, path))>0 :
     #    print "Error executing chmod %d on %s" % (perm, path)
@@ -244,9 +247,9 @@ def make_subdirs(tgt) :
     for part in parts[1:len(parts)-1] :
         subdir = subdir + os.sep + part
         if not os.path.isdir(subdir) :
-            print 'gordon_db.py: creating dir', subdir # debug ----------------
+            print 'creating dir', subdir
             os.mkdir(subdir)
-            _set_perms(subdir, 775) #jorgeorpinel: this has no effect on Windows
+            _set_perms(subdir, 775) #jorgeorpinel: no effect on Windows
 
 def get_albumcover_filename(aid) :
     return '%s/A%s_cover.jpg' % (get_tiddirectory(aid), str(aid))
@@ -287,7 +290,7 @@ def get_tidfilename(tid, ext='mp3', featurestub='') :
     else:   # retrieves the path from DB (ignoring <ext>)
         fn = fn[0]
     
-    if featurestub <> '' : #jorgeorpinel: unused as of now
+    if featurestub <> '' :
         fn = '%s.%s' % (fn, featurestub)
     return fn
 
@@ -956,7 +959,7 @@ def add_to_collection(tracks, source):
     
     commit()
         
-    return collection # ------------------------------------------------- return the collection found
+    return collection
 
 def is_binary(filename):
 
