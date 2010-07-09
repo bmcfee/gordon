@@ -222,7 +222,11 @@ def _read_csv_tags(cwd, csv=None):
                     log.debug('  File %s in $s annotation is not text at l:%d', (value, headers[col], csvfile.line_num)) # log error
                     tags[filepath][headers[col]] = unicode(value) # path stored
                     
-            else: tags[filepath][headers[col]]  = u'%s' % value # CSV stored :)
+            else:
+                try:
+                    tags[filepath][headers[col]]  = u'%s' % value # CSV stored :)
+                except UnicodeDecodeError:
+                    tags[filepath][headers[col]]  = value.decode("utf-8")
             
             col+=1
 
@@ -292,22 +296,21 @@ def add_collection_from_csv_file(csvfile, source=str(datetime.date.today()), pro
 
     Use doit=True to actually commit the addition of songs
     """
-    try:
-        metadata = _read_csv_tags(csvfile)
-    except:
-        log.error('Error opening %s' % csvfile)
-        sys.exit(1)
+    metadata = _read_csv_tags(csvfile)
 
     # Turn metadata into a list of albums:
     albums = collections.defaultdict(dict)
     for filename, x in metadata.iteritems():
         albums[x['album']][filename] = x
 
+    ntracks = 1
     for albumname, tracks in albums.iteritems(): # iterate album-ordered metadata (so "for each album:")
         if not doit:
             print 'Would import album "%s"' % albumname
             for track in tracks:
-                print '  Would import file "%s"' % track
+                print ('  Would import file %d: "%s" (metadata: %s)'
+                       % (ntracks, track, albums[albumname][track]))
+                ntracks += 1
         else:                  # tracks is a 2D dict[<file-name>][<tag>] only for that album
             add_album(albumname, tracks, source, gordonDir, prompt_incompletes, fast_import)
     
