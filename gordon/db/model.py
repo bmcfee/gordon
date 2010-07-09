@@ -400,76 +400,34 @@ class Track(object) :
             make_subdirs_and_move(srcF, dstF)
             log.debug('Moved', srcF, 'to', dstF)                                # debug
 
-    def add_annotation(self, type, annotation, value):
+    def add_annotation(self, annotation, value, type='text'):
         """Creates an Annotation for the track
-        @return: the annotation or False if it wasn't stored (the session is expunged)
-        @param type: annotation.type field [varchar(256)]
+
+        @return: the annotation
         @param annotation: annotation.annotation field [varchar(256)]
-        @param value: annotation.value field [text]"""
-        
+        @param value: annotation.value field [text]
+        @param type: annotation.type field [varchar(256)]"""
         annot = Annotation(type, annotation, value)
         self.annotations.append(annot)
         
-        try: commit()
-        except: return False # couldn't store in the DB ----------------- return False
+        commit()
         
-        return annot # -------------------------------------------------- return annot
+        return annot
         
-    def add_annotation_from_instance(self, annotation):
-        """Adds an Annotation object to the track
-        @return: False if <annotation> is not a valid Annotation class instance
-        @param annotation: Annotation class instance to add to the track's annotations"""
-        
-        self.annotations.append(annotation)
-        
-        try: commit()
-        except: return False # couldn't store in the DB ----------------- return False
-        
-        return True # --------------------------------------------------- return True
-    
-    def _is_binary(self, filename):
-        """Return true if the given filename is binary (copied from gordon_db)
-        @raise EnvironmentError: if the file does not exist or cannot be accessed.
-        @attention: found @ http://bytes.com/topic/python/answers/21222-determine-file-type-binary-text on 6/08/2010
-        @author: Trent Mick <TrentM@ActiveState.com>
-        @author: Jorge Orpinel <jorge@orpinel.com>"""
-        
-        fin = open(filename, 'rb')
-        try:
-            CHUNKSIZE = 1024
-            while 1:
-                chunk = fin.read(CHUNKSIZE)
-                if '\0' in chunk: # found null byte
-                    return True # --------------------------------------- return True
-                if len(chunk) < CHUNKSIZE:
-                    break # done
-        # A-wooo! Mira, python no necesita el "except:". Achis... Que listo es.
-        finally:
-            fin.close()
-        
-        return False # -------------------------------------------------- return False
-    
-    def add_annotation_from_file(self, filepath):
+    def add_annotation_from_text_file(self, filepath):
         """Adds a text file as an annotation to this track
-        @return: False if filepath invalid or unreadable
-        @param filepath: path to the ext file in the file system"""
-        
-        if not os.path.isfile(filepath) or\
-        self._is_binary(filepath): return False # not a text file ------------- return False
-        
-        try:
-            text = open(filepath)
-            (path, filename) = os.path.split(filepath)
-            annot = Annotation(type='txt', annotation=filename, value=text.read())
-            self.annotations.append(annot)
-            text.close()
-        except: return -2 # file unreadable -------------------------- return False
-        
-        try: commit()
-        except: return -3 # couldn't store in the DB ----------------- return False
-        
-        return annot # -------------------------------------------------- return annot
 
+        @return: the annotation
+        @param filepath: path to the external file in the file system"""
+        text = open(filepath)
+        (path, filename) = os.path.split(filepath)
+        annot = Annotation(type='text', annotation=filename, value=text.read())
+        self.annotations.append(annot)
+        text.close()
+        
+        commit()
+        
+        return annot
 
 
 pass #jorgeorpinel: for psycopg (used by SQL Alchemy) to know how to adapt (used in SQL queries) the numpy.float64 type
