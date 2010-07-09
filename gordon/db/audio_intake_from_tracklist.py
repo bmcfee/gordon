@@ -56,21 +56,21 @@ def add_track(trackpath, source=str(datetime.date.today()), gordonDir=DEF_GORDON
     (path, filename) = os.path.split(trackpath) #@UnusedVariable
     (fname, ext) = os.path.splitext(filename) #@UnusedVariable
 
-    log.debug('    Adding file "%s" of "%s" album by %s', filename, album, artist) # debug
+    log.debug('    Adding file "%s" of "%s" album by %s', filename, album, artist)
     
     # validations
     if 'album' not in tag_dict:
         #todo: currently cannot add singleton files. Need an album which is defined in tag_dict
-        log.error('    Cannot add "%s" because it is not part of an album', filename) # error
-        return -1 # didn't add ------------------------------------------ return
+        log.error('    Cannot add "%s" because it is not part of an album', filename)
+        return -1 # didn't add
     if not os.path.isfile(trackpath):
-        log.info('    Skipping %s because it is not a file', filename) #        info
-        return -1 # not a file ------------------------------------------ return
+        log.info('    Skipping %s because it is not a file', filename)
+        return -1 # not a file
     try:
         AudioFile(trackpath).read(tlen_sec=0.01)
     except:
-        log.error('    Skipping "%s" because it is not a valid audio file', filename) # error
-        return -1 # not an audio file ----------------------------------- return
+        log.error('    Skipping "%s" because it is not a valid audio file', filename)
+        return -1 # not an audio file
 
     # required data
     bytes = os.stat(trackpath)[stat.ST_SIZE]
@@ -103,7 +103,7 @@ def add_track(trackpath, source=str(datetime.date.today()), gordonDir=DEF_GORDON
     # add data
     add(track) # needed to get a track id
     commit() #to get our track id we need to write this record
-    log.debug('    Wrote track record %s to database', track.id) #              debug
+    log.debug('    Wrote track record %s to database', track.id)
 
     if fast_import :
         track.secs = -1
@@ -116,21 +116,21 @@ def add_track(trackpath, source=str(datetime.date.today()), gordonDir=DEF_GORDON
 
     # links track to artist & album in DB
     if artist:
-        log.debug('    Linking %s to artist %s', track, artist) #               debug
+        log.debug('    Linking %s to artist %s', track, artist)
         track.artist = artist.name
         track.artists.append(artist)
     if album:
-        log.debug('    Linking %s to album %s', track, album) #                 debug
+        log.debug('    Linking %s to album %s', track, album)
         track.album = album.name
         track.albums.append(album)
 
 #    commit() # save (again) the track record (this time having the track id)
-    log.debug('    Wrote album and artist additions to track into database') #  debug
+    log.debug('    Wrote album and artist additions to track into database')
 
     # copy the file to the Gordon audio/feature data directory
     tgt = os.path.join(gordonDir, 'audio', 'main', track.path)
     make_subdirs_and_copy(trackpath, tgt)
-    log.debug('    Copied "%s" to %s', trackpath, tgt) #                        debug
+    log.debug('    Copied "%s" to %s', trackpath, tgt)
     
     # add annotations
     
@@ -174,7 +174,7 @@ def _read_csv_tags(cwd, csv=None):
     if csv is None: filename = cwd
     else: filename = os.path.join(cwd, csv)
     try: csvfile = reader(open(filename))
-    except IOError: log.error("  Couldn't open '%s'", csv) #                log error
+    except IOError: log.error("  Couldn't open '%s'", csv)
     
     tags = dict()
     headers = False
@@ -187,16 +187,16 @@ def _read_csv_tags(cwd, csv=None):
         if not headers: # first valid line is the header
             line=[l.strip() for l in line] # strip header names
             if not line[:6]==['filepath','title','artist','album','tracknum','compilation']:
-                log.error('  CSV headers are incorrect at l:%d.', csvfile.line_num) #                  log error
-                return False # ------------------------------------------ return False
+                log.error('  CSV headers are incorrect at l:%d.', csvfile.line_num)
+                return False
             headers = [unicode(x) for x in line]
             continue
             
         # save title, artist, album, tracknum, compilation in tags[<file-name>]
         
         filepath=line[0]
-        tags[filepath] = dict() #jorgeorpinel: this deletes previous lines if filepath is repeated ...
-        col = 1 #jorgeorpinel: col 0 is 'filepath' so skip it
+        tags[filepath] = dict() # this deletes previous lines if filepath is repeated ...
+        col = 1 # col 0 is 'filepath' so skip it
         while col < len(headers):
             if col >= len(line): break # stop loop if there's nothing left in the line
             value = line[col].strip()
@@ -216,22 +216,22 @@ def _read_csv_tags(cwd, csv=None):
                         tags[filepath][headers[col]] = unicode(txt.read()) # text file contents stored
                         txt.close()
                     except:
-                        log.error('  Error opening %s file in $s annotation at l:%d', (value, headers[col], csvfile.line_num)) # log error
+                        log.error('  Error opening %s file in $s annotation at l:%d', (value, headers[col], csvfile.line_num))
                         tags[filepath][headers[col]] = unicode(value) # path stored
                 else:
-                    log.debug('  File %s in $s annotation is not text at l:%d', (value, headers[col], csvfile.line_num)) # log error
+                    log.debug('  File %s in $s annotation is not text at l:%d', (value, headers[col], csvfile.line_num))
                     tags[filepath][headers[col]] = unicode(value) # path stored
                     
             else: tags[filepath][headers[col]]  = u'%s' % value # CSV stored :)
             
             col+=1
 
-    return tags # ------------------------------------------------------- return tags
+    return tags
 
 def add_album(album_name, tags_dicts, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR, prompt_aname=False, import_md=False):
     """Add an album from a list of metadata in <tags_dicts> v "1.0 CSV"
     """
-    log.debug('  Adding album "%s" - add_album()', album_name) #                debug
+    log.debug('  Adding album "%s" - add_album()', album_name)
     
     # create set of artists from tag_dicts
     
@@ -240,10 +240,10 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()), gordonD
         artists.add(track['artist'])
     
     if len(artists) == 0:
-        log.debug('  Nothing to add') #                                         debug
-        return  # no songs ---------------------------------------------- return
+        log.debug('  Nothing to add')
+        return # no songs
     else:
-        log.debug('  %d artists in directory: %s', len(artists), artists) #     debug
+        log.debug('  %d artists in directory: %s', len(artists), artists)
     
     #add album to Album table
     log.debug('  Album has %d tracks', len(tags_dicts))
@@ -273,14 +273,14 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()), gordonD
     #now add our tracks to album
     for filename in tags_dicts.keys() :
         add_track(filename, source, gordonDir, tags_dicts[filename], artist_dict[tags_dicts[filename][u'artist']], albumrec, fast_import, import_md)
-        log.debug('  Added "%s"!', filename) #                                  debug
+        log.debug('  Added "%s"!', filename)
 
     #now update our track counts
     for aname, artist in artist_dict.iteritems() : #@UnusedVariable
         artist.update_trackcount()
-        log.debug('  * Updated trackcount for artist %s', artist) #             debug
+        log.debug('  * Updated trackcount for artist %s', artist)
     albumrec.update_trackcount()
-    log.debug('  * Updated trackcount for album %s', albumrec) #                debug
+    log.debug('  * Updated trackcount for album %s', albumrec)
     commit()
 
 
@@ -356,6 +356,6 @@ if __name__ == '__main__':
     try: import_md = True if int(sys.argv[4]) == 1 else False
     except: import_md = False
 
-    log.info('audio_intake_from_csv.py: using <source>'+' "'+source+'", <csvfile> %s'%csvfile) #info
+    log.info('audio_intake_from_csv.py: using <source>'+' "'+source+'", <csvfile> %s'%csvfile)
     add_collection_from_csv_file(csvfile, source=source, prompt_incompletes=prompt_incompletes, doit=doit, fast_import=fast_import, import_md=import_md)
     
