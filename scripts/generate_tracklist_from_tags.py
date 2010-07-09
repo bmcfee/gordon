@@ -73,8 +73,9 @@ def walk_music_dir(musicdir, outfile):
             try:
                 print >> sys.stderr, 'Processing %s' % fn
                 tagdict = read_tags(fn)
-                outfile.write('%s,%s\n'
-                              % (fn, ','.join(str(tagdict[k]) for k in keys)))
+                outfile.write('"%s",%s\n' % (filename,
+                                             ','.join('"%s"' % str(tagdict[k])
+                                                      for k in keys)))
             except (ValueError, NameError):
                 print >> sys.stderr, 'Error reading %s' % fn
 

@@ -68,8 +68,8 @@ def process_files(filenames, pattern, outfile):
     for filename in filenames:
         print >> sys.stderr, 'Processing %s' % filename
         tagdict = extract_metadata_from_filename(filename, pattern)
-        outfile.write('%s,%s\n' % (filename,
-                                   ','.join(str(tagdict[k]) for k in keys)))
+        outfile.write('"%s",%s\n' % (filename, ','.join('"%s"' % str(tagdict[k])
+                                                        for k in keys)))
 
 def main(pattern, outputfilename, files):
     outfile = open(outputfilename, 'w')
