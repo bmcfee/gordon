@@ -409,21 +409,22 @@ class Track(object) :
         @param annotation: annotation.annotation field [varchar(256)]
         @param value: annotation.value field [text]
         @param type: annotation.type field [varchar(256)]"""
-        annot = Annotation(type, annotation, value)
+        annot = Annotation(type=type, annotation=annotation, value=value)
         self.annotations.append(annot)
         
         commit()
         
         return annot
         
-    def add_annotation_from_text_file(self, filepath):
+    def add_annotation_from_text_file(self, annotation, filepath):
         """Adds a text file as an annotation to this track
 
         @return: the annotation
+        @param annotation: annotation.annotation field [varchar(256)]
         @param filepath: path to the external file in the file system"""
         text = open(filepath)
         (path, filename) = os.path.split(filepath)
-        annot = Annotation(type='text', annotation=filename, value=text.read())
+        annot = Annotation(type='text', annotation=annotation, value=text.read())
         self.annotations.append(annot)
         text.close()
         
@@ -561,7 +562,7 @@ class Annotation(object):
         if not self.id: return '<Empty Annotation>'
         long=False
         if len(self.value) > 32: long=True
-        return '<Annotation %s.%s: %s%s>' % (self.type, self.annotation, self.value[:16], '...' if long else '')
+        return '<Annotation (type=%s) %s: %s%s>' % (self.type, self.annotation, self.value[:16], '...' if long else '')
     
 
 class FeatureExtractor(object):
