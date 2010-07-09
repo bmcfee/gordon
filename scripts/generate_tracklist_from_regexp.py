@@ -18,7 +18,7 @@ For more information about Python regular expressions, see the
 documentation for the re module at http://docs.python.org/library/re.html
 
 Note that this script *does not* support gordon annotations.  You must
-added them to the generated tracklist manually using e.g. sed.
+add them to the generated tracklist manually using e.g. sed.
 
 
 Example Usage:

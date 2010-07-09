@@ -22,14 +22,15 @@
 from numpy import *
 import pg
 from gordon.db.model import *
+from gordon.db.gordon_db import *
 from sqlalchemy import *
 import heapq,time,shutil,os,string,datetime,stat,copy,sys,glob,random # unused
 #from sqlalchemy.databases.postgres import PGArray # try from sqlalchemy.dialects.postgresql.base import PGArray
 from collections import defaultdict
 import traceback
 
+
 import gordon.db.dse_difflib as DL #short term replacement until 200-char limit is addressed
-from gordon.db.gordon_db import *
 from gordon.io.mp3_eyeD3 import * 
 
 #---------------------
@@ -1086,7 +1087,7 @@ def die_with_usage() :
 pass
 ##----MAIN ----
 if __name__=='__main__' :
-    if len(sys.argv)<3 :
+    if len(sys.argv)<2 :
         die_with_usage()
 
 
