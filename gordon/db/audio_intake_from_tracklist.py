@@ -42,7 +42,9 @@ from gordon.io.mp3_eyeD3 import isValidMP3, getAllTags, id3v2_getval
 log = logging.getLogger('gordon.audio_intake_from_tracklist')
 
 
-def add_track(trackpath, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR, tag_dict=dict(), artist=None, album=None, fast_import=False, all_md=False):
+def add_track(trackpath, source=str(datetime.date.today()),
+              gordonDir=DEF_GORDON_DIR, tag_dict=dict(), artist=None,
+              album=None, fast_import=False, all_md=False):
     """Add track with given filename <trackpath> to database
     
          @param source: audio files data source (string)
@@ -53,24 +55,24 @@ def add_track(trackpath, source=str(datetime.date.today()), gordonDir=DEF_GORDON
          @param fast_import: If true, do not calculate strip_zero length. Defaults to False
          @param all_md: use True to try to extract all metadata tags embedded in the auudio-file. Defaults to False
     """
-    (path, filename) = os.path.split(trackpath) #@UnusedVariable
-    (fname, ext) = os.path.splitext(filename) #@UnusedVariable
+    (path, filename) = os.path.split(trackpath) 
+    (fname, ext) = os.path.splitext(filename)
 
-    log.debug('    Adding file "%s" of "%s" album by %s', filename, album, artist) # debug
+    log.debug('    Adding file "%s" of "%s" album by %s', filename, album, artist)
     
     # validations
     if 'album' not in tag_dict:
         #todo: currently cannot add singleton files. Need an album which is defined in tag_dict
-        log.error('    Cannot add "%s" because it is not part of an album', filename) # error
-        return -1 # didn't add ------------------------------------------ return
+        log.error('    Cannot add "%s" because it is not part of an album', filename) 
+        return -1 
     if not os.path.isfile(trackpath):
-        log.info('    Skipping %s because it is not a file', filename) #        info
-        return -1 # not a file ------------------------------------------ return
+        log.info('    Skipping %s because it is not a file', filename) 
+        return -1 
     try:
         AudioFile(trackpath).read(tlen_sec=0.01)
     except:
-        log.error('    Skipping "%s" because it is not a valid audio file', filename) # error
-        return -1 # not an audio file ----------------------------------- return
+        log.error('    Skipping "%s" because it is not a valid audio file', filename) 
+        return -1 
 
     # required data
     bytes = os.stat(trackpath)[stat.ST_SIZE]
@@ -103,7 +105,7 @@ def add_track(trackpath, source=str(datetime.date.today()), gordonDir=DEF_GORDON
     # add data
     add(track) # needed to get a track id
     commit() #to get our track id we need to write this record
-    log.debug('    Wrote track record %s to database', track.id) #              debug
+    log.debug('    Wrote track record %s to database', track.id)
 
     if fast_import :
         track.secs = -1
@@ -112,25 +114,25 @@ def add_track(trackpath, source=str(datetime.date.today()), gordonDir=DEF_GORDON
         a = AudioFile(trackpath)
         [track.secs, track.zsecs] = a.get_secs_zsecs()
         
-    track.path = u'%s' % get_tidfilename(track.id, ext[1:]) # creates path to insert in track
+    track.path = u'%s' % get_tidfilename(track.id, ext[1:])
 
     # links track to artist & album in DB
     if artist:
-        log.debug('    Linking %s to artist %s', track, artist) #               debug
+        log.debug('    Linking %s to artist %s', track, artist)
         track.artist = artist.name
         track.artists.append(artist)
     if album:
-        log.debug('    Linking %s to album %s', track, album) #                 debug
+        log.debug('    Linking %s to album %s', track, album)
         track.album = album.name
         track.albums.append(album)
 
 #    commit() # save (again) the track record (this time having the track id)
-    log.debug('    Wrote album and artist additions to track into database') #  debug
+    log.debug('    Wrote album and artist additions to track into database')
 
     # copy the file to the Gordon audio/feature data directory
     tgt = os.path.join(gordonDir, 'audio', 'main', track.path)
     make_subdirs_and_copy(trackpath, tgt)
-    log.debug('    Copied "%s" to %s', trackpath, tgt) #                        debug
+    log.debug('    Copied "%s" to %s', trackpath, tgt)
     
     # add annotations
     
@@ -174,7 +176,7 @@ def _read_csv_tags(cwd, csv=None):
     if csv is None: filename = cwd
     else: filename = os.path.join(cwd, csv)
     try: csvfile = reader(open(filename))
-    except IOError: log.error("  Couldn't open '%s'", csv) #                log error
+    except IOError: log.error("  Couldn't open '%s'", csv) 
     
     tags = dict()
     headers = False
@@ -185,10 +187,10 @@ def _read_csv_tags(cwd, csv=None):
         
         # read and validate header
         if not headers: # first valid line is the header
-            line=[l.strip() for l in line] # strip header names
+            line=[l.strip() for l in line]
             if not line[:6]==['filepath','title','artist','album','tracknum','compilation']:
-                log.error('  CSV headers are incorrect at l:%d.', csvfile.line_num) #                  log error
-                return False # ------------------------------------------ return False
+                log.error('  CSV headers are incorrect at l:%d.', csvfile.line_num)
+                return False 
             headers = [unicode(x) for x in line]
             continue
             
@@ -198,7 +200,8 @@ def _read_csv_tags(cwd, csv=None):
         tags[filepath] = dict() #jorgeorpinel: this deletes previous lines if filepath is repeated ...
         col = 1 #jorgeorpinel: col 0 is 'filepath' so skip it
         while col < len(headers):
-            if col >= len(line): break # stop loop if there's nothing left in the line
+            if col >= len(line):
+                break 
             value = line[col].strip()
             
             if headers[col] == u'tracknum': # prepare for smallint in the DB
@@ -209,33 +212,35 @@ def _read_csv_tags(cwd, csv=None):
                 line[col] = value.lower()
                 tags[filepath][u'compilation'] = True if value=='true' or value=='1' else False
                 
-            elif os.path.isfile(value): # it's a file!
-                if not is_binary(value): # it seems to be a text file
+            elif os.path.isfile(value):
+                if not is_binary(value):
                     try:
                         txt=open(value)
-                        tags[filepath][headers[col]] = unicode(txt.read()) # text file contents stored
+                        tags[filepath][headers[col]] = unicode(txt.read())
                         txt.close()
                     except:
-                        log.error('  Error opening %s file in $s annotation at l:%d', (value, headers[col], csvfile.line_num)) # log error
-                        tags[filepath][headers[col]] = unicode(value) # path stored
+                        log.error('  Error opening %s file in $s annotation at l:%d',
+                                  value, headers[col], csvfile.line_num)
+                        tags[filepath][headers[col]] = unicode(value)
                 else:
-                    log.debug('  File %s in $s annotation is not text at l:%d', (value, headers[col], csvfile.line_num)) # log error
-                    tags[filepath][headers[col]] = unicode(value) # path stored
-                    
+                    log.debug('  File %s in $s annotation is not text at l:%d',
+                              value, headers[col], csvfile.line_num)
+                    tags[filepath][headers[col]] = unicode(value)
             else:
                 try:
-                    tags[filepath][headers[col]]  = u'%s' % value # CSV stored :)
+                    tags[filepath][headers[col]]  = u'%s' % value
                 except UnicodeDecodeError:
                     tags[filepath][headers[col]]  = value.decode("utf-8")
             
             col+=1
 
-    return tags # ------------------------------------------------------- return tags
+    return tags
 
-def add_album(album_name, tags_dicts, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR, prompt_aname=False, import_md=False):
+def add_album(album_name, tags_dicts, source=str(datetime.date.today()),
+              gordonDir=DEF_GORDON_DIR, prompt_aname=False, import_md=False):
     """Add an album from a list of metadata in <tags_dicts> v "1.0 CSV"
     """
-    log.debug('  Adding album "%s" - add_album()', album_name) #                debug
+    log.debug('  Adding album "%s" - add_album()', album_name)
     
     # create set of artists from tag_dicts
     
@@ -244,10 +249,10 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()), gordonD
         artists.add(track['artist'])
     
     if len(artists) == 0:
-        log.debug('  Nothing to add') #                                         debug
-        return  # no songs ---------------------------------------------- return
+        log.debug('  Nothing to add')
+        return
     else:
-        log.debug('  %d artists in directory: %s', len(artists), artists) #     debug
+        log.debug('  %d artists in directory: %s', len(artists), artists)
     
     #add album to Album table
     log.debug('  Album has %d tracks', len(tags_dicts))
@@ -272,23 +277,30 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()), gordonD
         #add artist to album (album_artist table)
         albumrec.artists.append(artist_dict[artist])
 
-    commit() #commit these changes in order to have access to this album record when adding tracks
+    # Commit these changes in order to have access to this album
+    # record when adding tracks.
+    commit()
 
-    #now add our tracks to album
+    # Now add our tracks to album.
     for filename in tags_dicts.keys() :
-        add_track(filename, source, gordonDir, tags_dicts[filename], artist_dict[tags_dicts[filename][u'artist']], albumrec, fast_import, import_md)
-        log.debug('  Added "%s"!', filename) #                                  debug
+        add_track(filename, source, gordonDir, tags_dicts[filename],
+                  artist_dict[tags_dicts[filename][u'artist']], albumrec,
+                  fast_import, import_md)
+        log.debug('  Added "%s"!', filename)
 
     #now update our track counts
     for aname, artist in artist_dict.iteritems() : #@UnusedVariable
         artist.update_trackcount()
-        log.debug('  * Updated trackcount for artist %s', artist) #             debug
+        log.debug('  * Updated trackcount for artist %s', artist)
     albumrec.update_trackcount()
-    log.debug('  * Updated trackcount for album %s', albumrec) #                debug
+    log.debug('  * Updated trackcount for album %s', albumrec)
     commit()
 
 
-def add_collection_from_csv_file(csvfile, source=str(datetime.date.today()), prompt_incompletes=False, doit=False, gordonDir=DEF_GORDON_DIR, fast_import=False, import_md=False):
+def add_collection_from_csv_file(csvfile, source=str(datetime.date.today()),
+                                 prompt_incompletes=False, doit=False,
+                                 gordonDir=DEF_GORDON_DIR, fast_import=False,
+                                 import_md=False):
     """Adds tracks from a CSV (file) list of file-paths.
      
     Only imports if all songs actually have same album name. 
@@ -304,14 +316,15 @@ def add_collection_from_csv_file(csvfile, source=str(datetime.date.today()), pro
         albums[x['album']][filename] = x
 
     ntracks = 1
-    for albumname, tracks in albums.iteritems(): # iterate album-ordered metadata (so "for each album:")
+    for albumname, tracks in albums.iteritems():
+        # tracks is a 2D dict[<file-name>][<tag>] for a single album.
         if not doit:
             print 'Would import album "%s"' % albumname
             for track in tracks:
                 print ('  Would import file %d: "%s" (metadata: %s)'
                        % (ntracks, track, albums[albumname][track]))
                 ntracks += 1
-        else:                  # tracks is a 2D dict[<file-name>][<tag>] only for that album
+        else:
             add_album(albumname, tracks, source, gordonDir, prompt_incompletes, fast_import)
     
     log.info('audio_intake.py: Finished!')
@@ -331,11 +344,11 @@ def _die_with_usage() :
     print '  <doit> (default 1) use 0 to test the intake harmlessly'
     print '  <metadata> (default 0) use 1 to import all metadata tags from the file'
     print 'More options are available by using the function add_collection()'
-    sys.exit(0)                                                    # sys.exit(0)
+    sys.exit(0)
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        _die_with_usage()                                       # -> sys.exit(0)
+        _die_with_usage()
 
     prompt_incompletes=True
     fast_import=False
@@ -359,6 +372,9 @@ if __name__ == '__main__':
     try: import_md = True if int(sys.argv[4]) == 1 else False
     except: import_md = False
 
-    log.info('audio_intake_from_csv.py: using <source>'+' "'+source+'", <csvfile> %s'%csvfile) #info
-    add_collection_from_csv_file(csvfile, source=source, prompt_incompletes=prompt_incompletes, doit=doit, fast_import=fast_import, import_md=import_md)
+    log.info('Using <source>'+' "'+source+'", <csvfile> %s'%csvfile)
+    add_collection_from_csv_file(csvfile, source=source,
+                                 prompt_incompletes=prompt_incompletes,
+                                 doit=doit, fast_import=fast_import,
+                                 import_md=import_md)
     
