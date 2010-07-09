@@ -211,7 +211,7 @@ annotation =  Table('annotation', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
     Column(u'track_id', Integer(), ForeignKey('track.id'),  nullable=False),
     Column(u'type', Unicode(length=256), default=u'', primary_key=False),
-    Column(u'annotation', Unicode(length=256),default=u'',  primary_key=False),
+    Column(u'name', Unicode(length=256),default=u'',  primary_key=False),
     Column(u'value', UnicodeText()),
     )
 Index('annotation_pkey', annotation.c.id, unique=True)
@@ -241,7 +241,7 @@ collection_track =  Table('collection_track', metadata,
 
 collection = Table('collection', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-    Column(u'source', Unicode(length=256)),
+    Column(u'name', Unicode(length=256)),
     Column(u'description', Unicode(length=256)),
     )
 #Index('collection_pkey', collection.c.id, unique=True)
@@ -249,7 +249,7 @@ collection = Table('collection', metadata,
 
 feature_extractor =  Table('feature_extractor', metadata,
     Column(u'id', Integer(), autoincrement=True, nullable=False, primary_key=True, index=True, unique=True),
-    Column(u'identifier', Unicode(length=256)),
+    Column(u'name', Unicode(length=256)),
     Column(u'description', UnicodeText()),
     Column(u'function', Binary(), ),
     Column(u'code', UnicodeText()),
@@ -402,29 +402,29 @@ class Track(object) :
             make_subdirs_and_move(srcF, dstF)
             log.debug('Moved', srcF, 'to', dstF)
 
-    def add_annotation(self, annotation, value, type='text'):
+    def add_annotation(self, name, value, type='text'):
         """Creates an Annotation for the track
 
         @return: the annotation
-        @param annotation: annotation.annotation field [varchar(256)]
+        @param name: annotation.name field [varchar(256)]
         @param value: annotation.value field [text]
         @param type: annotation.type field [varchar(256)]"""
-        annot = Annotation(type=type, annotation=annotation, value=value)
+        annot = Annotation(name, value, type)
         self.annotations.append(annot)
         
         commit()
         
         return annot
         
-    def add_annotation_from_text_file(self, annotation, filepath):
+    def add_annotation_from_text_file(self, name, filepath):
         """Adds a text file as an annotation to this track
 
         @return: the annotation
-        @param annotation: annotation.annotation field [varchar(256)]
+        @param annotation: annotation.name field [varchar(256)]
         @param filepath: path to the external file in the file system"""
         text = open(filepath)
         (path, filename) = os.path.split(filepath)
-        annot = Annotation(type='text', annotation=annotation, value=text.read())
+        annot = Annotation(name=name, value=text.read(), type='text')
         self.annotations.append(annot)
         text.close()
         
@@ -435,7 +435,7 @@ class Track(object) :
     @property
     def annotation_dict(self):
         """Dictionary of this track's annotations, keyed by Annotation.name."""
-        return dict((x.annotation, x.value) for x in self.annotations)
+        return dict((x.name, x.value) for x in self.annotations)
 
 
 
@@ -549,12 +549,12 @@ class Mbalbum_recommend(object) :
 
 
 class Collection(object):
-#    def __init__(self, source):
-#        self.source = source
+#    def __init__(self, name):
+#        self.name = name
     
     def __repr__(self) :
         if not self.id: return '<Empty Collection>'
-        else: return '<Collection %s "%s">' % (self.source, self.description)
+        else: return '<Collection %s "%s">' % (self.name, self.description)
     
 
 class Annotation(object):
@@ -562,7 +562,9 @@ class Annotation(object):
         if not self.id: return '<Empty Annotation>'
         long=False
         if len(self.value) > 32: long=True
-        return '<Annotation (type=%s) %s: %s%s>' % (self.type, self.annotation, self.value[:16], '...' if long else '')
+        return ('<Annotation (type=%s) %s: %s%s>' 
+                 % (self.type, self.name, self.value[:16],
+                    '...' if long else ''))
     
 
 class FeatureExtractor(object):
@@ -645,7 +647,7 @@ mapper(Annotation, annotation,
 #    id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
 #    track_id = Column(Integer, ForeignKey('track.id'), nullable=False)
 #    type = Column(Unicode(length=256), default=u'', nullable=False)
-#    annotation = Column(Unicode(length=256),default=u'')
+#    name = Column(Unicode(length=256),default=u'')
 #    value = Column(Unicode(length=512), default=u'')
 #
 #    # these are the mapper relationships (and backref "collections" at Album, Artist, and Track)
@@ -654,7 +656,7 @@ mapper(Annotation, annotation,
 #
 #    def __repr__(self) :
 #        if not self.id: return '<Empty Annotation>'
-#        else: return '<Annotation (%s) %s: %s>' % (self.type, self.annotation, self.value) #return
+#        else: return '<Annotation (type=%s) %s: %s>' % (self.type, self.name, self.value) #return
     
 mapper(FeatureExtractor, feature_extractor)
 
