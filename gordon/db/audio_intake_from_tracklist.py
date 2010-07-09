@@ -39,8 +39,7 @@ from gordon.db.gordon_db import get_tidfilename, make_subdirs_and_copy, is_binar
 from gordon.io.mp3_eyeD3 import isValidMP3, getAllTags, id3v2_getval
 
 
-
-log = logging.getLogger('Gordon.AudioIntake')
+log = logging.getLogger('gordon.audio_intake_from_tracklist')
 
 
 def add_track(trackpath, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR, tag_dict=dict(), artist=None, album=None, fast_import=False, all_md=False):
@@ -85,26 +84,22 @@ def add_track(trackpath, source=str(datetime.date.today()), gordonDir=DEF_GORDON
 
     # prepare data
     
-    if tag_dict['compilation'] not in [True, False, 'True', 'False'] :
-        tag_dict['compilation'] = False
+    if tag_dict[u'compilation'] not in [True, False, 'True', 'False'] :
+        tag_dict[u'compilation'] = False
 
-    track = Track(title = tag_dict['title'],
-                  artist = tag_dict['artist'],
-                  album = tag_dict['album'],
-                  tracknum = tag_dict['tracknum'],
-                  compilation = tag_dict['compilation'],
-                  otitle = tag_dict['title'],
-                  oartist = tag_dict['artist'],
-                  oalbum = tag_dict['album'],
-                  otracknum = tag_dict['tracknum'],
+    track = Track(title = tag_dict[u'title'],
+                  artist = tag_dict[u'artist'],
+                  album = tag_dict[u'album'],
+                  tracknum = tag_dict[u'tracknum'],
+                  compilation = tag_dict[u'compilation'],
+                  otitle = tag_dict[u'title'],
+                  oartist = tag_dict[u'artist'],
+                  oalbum = tag_dict[u'album'],
+                  otracknum = tag_dict[u'tracknum'],
                   ofilename = fn_recoded,
-                  source = str(source),
+                  source = unicode(source),
                   bytes = bytes)
     
-    # add "source" collection <-> track
-    if isinstance(source, Collection):
-        track.collections.append(source)
-
     # add data
     add(track) # needed to get a track id
     commit() #to get our track id we need to write this record
@@ -139,11 +134,11 @@ def add_track(trackpath, source=str(datetime.date.today()), gordonDir=DEF_GORDON
     
     # add annotations
     
-    del(tag_dict['title'])
-    del(tag_dict['artist'])
-    del(tag_dict['album'])
-    del(tag_dict['tracknum'])
-    del(tag_dict['compilation'])
+    del(tag_dict[u'title'])
+    del(tag_dict[u'artist'])
+    del(tag_dict[u'album'])
+    del(tag_dict[u'tracknum'])
+    del(tag_dict[u'compilation'])
     for tagkey, tagval in tag_dict.iteritems(): # create remaining annotations
         track.annotations.append(Annotation(type='txt', annotation=tagkey, value=tagval))
     
@@ -194,7 +189,7 @@ def _read_csv_tags(cwd, csv=None):
             if not line[:6]==['filepath','title','artist','album','tracknum','compilation']:
                 log.error('  CSV headers are incorrect at l:%d.', csvfile.line_num) #                  log error
                 return False # ------------------------------------------ return False
-            headers = line
+            headers = [unicode(x) for x in line]
             continue
             
         # save title, artist, album, tracknum, compilation in tags[<file-name>]
@@ -206,26 +201,26 @@ def _read_csv_tags(cwd, csv=None):
             if col >= len(line): break # stop loop if there's nothing left in the line
             value = line[col].strip()
             
-            if headers[col] == 'tracknum': # prepare for smallint in the DB
-                try: tags[filepath]['tracknum'] = int(value)
-                except: tags[filepath]['tracknum'] = 0
+            if headers[col] == u'tracknum': # prepare for smallint in the DB
+                try: tags[filepath][u'tracknum'] = int(value)
+                except: tags[filepath][u'tracknum'] = 0
                 
-            elif headers[col] == 'compilation': # prepare for bool in the DB
+            elif headers[col] == u'compilation': # prepare for bool in the DB
                 line[col] = value.lower()
-                tags[filepath]['compilation'] = True if value=='true' or value=='1' else False
+                tags[filepath][u'compilation'] = True if value=='true' or value=='1' else False
                 
             elif os.path.isfile(value): # it's a file!
                 if not is_binary(value): # it seems to be a text file
                     try:
                         txt=open(value)
-                        tags[filepath][headers[col]] = txt.read() # text file contents stored
+                        tags[filepath][headers[col]] = unicode(txt.read()) # text file contents stored
                         txt.close()
                     except:
                         log.error('  Error opening %s file in $s annotation at l:%d', (value, headers[col], csvfile.line_num)) # log error
-                        tags[filepath][headers[col]] = value # path stored
+                        tags[filepath][headers[col]] = unicode(value) # path stored
                 else:
                     log.debug('  File %s in $s annotation is not text at l:%d', (value, headers[col], csvfile.line_num)) # log error
-                    tags[filepath][headers[col]] = value # path stored
+                    tags[filepath][headers[col]] = unicode(value) # path stored
                     
             else: tags[filepath][headers[col]]  = u'%s' % value # CSV stored :)
             
@@ -253,13 +248,6 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()), gordonD
     #add album to Album table
     log.debug('  Album has %d tracks', len(tags_dicts))
     albumrec = Album(name = album_name, trackcount = len(tags_dicts))
-    match = Collection.query.filter_by(source=source)
-    if match.count() == 1:
-        log.debug('  Matched source %s in database', match[0])
-        collection = match[0]
-    else:
-        collection = Collection(source=source)
-    albumrec.collections.append(collection)
 
     #if we have an *exact* string match we will use the existing artist
     artist_dict = dict()
@@ -275,7 +263,6 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()), gordonD
         else :
             # add our Artist to artist table
             newartist = Artist(name = artist)
-            newartist.collections.append(collection)
             artist_dict[artist] = newartist
 
         #add artist to album (album_artist table)
@@ -285,7 +272,7 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()), gordonD
 
     #now add our tracks to album
     for filename in tags_dicts.keys() :
-        add_track(filename, collection, gordonDir, tags_dicts[filename], artist_dict[tags_dicts[filename]['artist']], albumrec, fast_import, import_md)
+        add_track(filename, source, gordonDir, tags_dicts[filename], artist_dict[tags_dicts[filename][u'artist']], albumrec, fast_import, import_md)
         log.debug('  Added "%s"!', filename) #                                  debug
 
     #now update our track counts
@@ -319,6 +306,8 @@ def add_collection_from_csv_file(csvfile, source=str(datetime.date.today()), pro
     for albumname, tracks in albums.iteritems(): # iterate album-ordered metadata (so "for each album:")
         if not doit:
             print 'Would import album "%s"' % albumname
+            for track in tracks:
+                print '  Would import file "%s"' % track
         else:                  # tracks is a 2D dict[<file-name>][<tag>] only for that album
             add_album(albumname, tracks, source, gordonDir, prompt_incompletes, fast_import)
     
@@ -359,11 +348,12 @@ if __name__ == '__main__':
         sys.argv.pop(1)
 
     # parse arguments
-    source = sys.argv[1]
+    source = unicode(sys.argv[1])
     csvfile = sys.argv[2]
-    try: doit = False if sys.argv[3] == 0 else True
+
+    try: doit = False if int(sys.argv[3]) == 0 else True
     except: doit = True
-    try: import_md = True if sys.argv[4] == 1 else False
+    try: import_md = True if int(sys.argv[4]) == 1 else False
     except: import_md = False
 
     log.info('audio_intake_from_csv.py: using <source>'+' "'+source+'", <csvfile> %s'%csvfile) #info
