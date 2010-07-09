@@ -110,7 +110,7 @@ mbalbum_recommend =  Table('mbalbum_recommend', metadata,
     Column(u'conf_album', Float(precision=53, asdecimal=False), primary_key=False),
     Column(u'conf_track', Float(precision=53, asdecimal=False), primary_key=False),
     Column(u'conf_time', Float(precision=53, asdecimal=False), primary_key=False),
-    Column(u'order', String(length=None, convert_unicode=False, assert_unicode=None), primary_key=False),
+    Column(u'trackorder', String(length=None, convert_unicode=False, assert_unicode=None), primary_key=False),
 #    ForeignKeyConstraint([u'album_id'], [u'public.album.id'], name=u'album_id_exists'),
     )
 Index('mbalbum_recommend_album_id_key', mbalbum_recommend.c.album_id, unique=True)
