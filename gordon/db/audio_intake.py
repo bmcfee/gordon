@@ -40,8 +40,7 @@ from gordon.db.gordon_db import get_tidfilename, make_subdirs_and_copy, is_binar
 from gordon.db.model import add, commit, Album, Artist, Track, Collection, Annotation
 
 
-
-log = logging.getLogger('Gordon.AudioIntake')
+log = logging.getLogger('gordon.audio_intake')
 
 
 def _store_annotations(audiofile, track, all_md=False):

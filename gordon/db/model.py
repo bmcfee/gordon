@@ -19,39 +19,41 @@
 
 import os, glob, logging
 
-from sqlalchemy import Table, Column, ForeignKey, String, Unicode, Integer, Index, Float, SmallInteger, Boolean, DateTime, UnicodeText, Binary#,PassiveDefault,ForeignKeyConstraint,MetaData,Text #jorgeorpinel: unused
-#from sqlalchemy.databases.postgres import PGArray #jorgeorpinel: unused
+from sqlalchemy import (Table, Column, ForeignKey, String, Unicode, Integer,
+                        Index, Float, SmallInteger, Boolean, DateTime,
+                        UnicodeText, Binary)
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import relation, sessionmaker, MapperExtension, backref#,dynamic_loader,column_property,deferred #jorgeorpinel: unused
-from datetime import datetime #from sqlalchemy.sql.expression import text
+from sqlalchemy.orm import relation, sessionmaker, MapperExtension, backref
+from datetime import datetime
 
-#NOTICE model SHOULDN't BE IMPORTING FROM MANY OTHE Gordon PLACES... THEY ALL IMPORT FROM MODEL FIRST!
 from gordon.io import AudioFile
 from gordon.db import config
-#todo: since model is imported by gordon_db (imported by gordon at line 27) we have a circular reference:
-#from gordon.db.gordon_db import is_binary
 
 
+log = logging.getLogger('gordon.model')
 
-log = logging.getLogger('Gordon.Model')
 
-
-try :     #this will try to use turbogears if we are already in the middle of a turbogears session
-    import turbogears.database #@UnresolvedImport (for projects running only cmd-line)
-    engine = turbogears.database.get_engine() #this should generate an exception if we have not properly configured via dev.cfg or prod.cfg
-    from turbogears.database import mapper, metadata #@UnresolvedImport (for projects running only cmd-line)
+try :
+     # Try to use turbogears if we are already in the middle of a turbogears session
+    import turbogears.database
+    # This should generate an exception if we have not properly configured via dev.cfg or prod.cfg
+    engine = turbogears.database.get_engine()
+    from turbogears.database import mapper, metadata
     session = turbogears.database.session
-    log.info('model.py: initialized turbogears connection to gordon database')  # debug (info)
+    log.info('model.py: initialized turbogears connection to gordon database')
     AUTOCOMMIT=False  
 
-except :  #this will set up a scoped session using native sqlalchemy (no turbogears!)
-#    import traceback, sys
-#    traceback.print_exc(file=sys.stdout)
+except :
+    # Set up a scoped session using native sqlalchemy (no turbogears!)
 
+    # import traceback, sys
+    # traceback.print_exc(file=sys.stdout)
+    
     from sqlalchemy.orm import scoped_session
     import sqlalchemy
     # works in SQLAlchemy 0.6
-    dburl = 'postgresql://%s:%s@%s/%s' % (config.DEF_DBUSER, config.DEF_DBPASS, config.DEF_DBHOST, config.DEF_DBNAME)
+    dburl = 'postgresql://%s:%s@%s/%s' % (config.DEF_DBUSER, config.DEF_DBPASS,
+                                          config.DEF_DBHOST, config.DEF_DBNAME)
     try:
         engine = sqlalchemy.create_engine(dburl)
     except ImportError:
@@ -61,14 +63,14 @@ except :  #this will set up a scoped session using native sqlalchemy (no turboge
         
     #test connection:
     try: engine.connect()
-    except OperationalError: log.info('model.py: WARNING - PostgreSQL DB {0}/{1} not running...'.format(config.DEF_DBHOST, config.DEF_DBNAME))
+    except OperationalError: log.info('WARNING - PostgreSQL DB {0}/{1} not running...'.format(config.DEF_DBHOST, config.DEF_DBNAME))
 
     Session = scoped_session(sessionmaker(bind=engine,autoflush=True, autocommit=True))
     session = Session()
     import sqlalchemy.schema
     metadata = sqlalchemy.schema.MetaData(None)
 #    mapper = Session.mapper #jorgeorpinel: SQLA 0.5. This is deprecated... (see 4 lines down)
-    log.info('model.py: intialized external connection to gordon database on %s  (SQL Alchemy ver. %s)' % (config.DEF_DBHOST, sqlalchemy.__version__)) #debug (info)
+    log.info('intialized external connection to gordon database on %s  (SQL Alchemy ver. %s)' % (config.DEF_DBHOST, sqlalchemy.__version__))
     AUTOCOMMIT=True
     
     #jorgeorpinel: this is a SQLA 0.5+ legacy workaround found at http://www.sqlalchemy.org/trac/wiki/UsageRecipes/SessionAwareMapper
@@ -325,21 +327,29 @@ class Track(object) :
         st= '<Track %i %s by %s from %s>' % (self.id,self.title,self.artist,self.album)
         return st.encode('utf-8')
     
-    def _get_fn_audio(self) :
+    @property
+    def fn_audio(self) :
+        """Absolute path to audio file.
+
+        Does *not* verify that the file is actually present!"""
         return os.path.join(config.DEF_GORDON_DIR,'audio','main', self.path)
     
-    fn_audio = property(fget=_get_fn_audio,doc="""returns absolute path to audio file.  Does *not* verify that the file is actually present!""")
+    @property
+    def  fn_audio_extension(self) :
+        """File extension of the audio file.
 
-    def _get_fn_audio_extension(self) :
+        Does *not* verify that the file is actually present!"""
         root,ext = os.path.splitext(self.path) #@UnusedVariable
         return ext[1:]
 
-    fn_audio_extension = property(fget=_get_fn_audio_extension,doc="""returns file extension of the audio file.  Does *not* verify that the file is actually present!""")
 
     def _get_fn_feature(self,gordonDir='') :
+        """Returns absolute path to feature file.
+
+        Does *not* verify that feature file is actually present!"""
         return os.path.join(config.DEF_GORDON_DIR,'data','features',_get_shortfile(self.id,'h5'))
     
-    fn_feature= property(fget=_get_fn_feature,doc="""returns absolute path to feature file.  Does *not* verify that feature file is actually present!""")
+    fn_feature= property(_get_fn_feature)
 
     def audio(self,stripzeros='none',mono=False) :
         """Returns audio for file
@@ -371,34 +381,26 @@ class Track(object) :
                 a.trackcount-=1
 
         for a in self.artists :
-            #log.debug("I am connected to artist", a)                            # debug
             if a.trackcount :
                 a.trackcount-=1
                 
-        #jorgeorpinel: what is S supposed to be ? ill import from gordon_db :
         from gordon_db import get_tidfilename as get_tidfilename, get_tiddirectory, make_subdirs_and_move
         #move the corresponding MP3 and features to GORDON_DIR/audio/offline
-#        srcMp3Path = os.path.join(gordonDir, 'audio', 'main', S.get_tidfilename(tid))
-#        dstMp3Path = os.path.join(gordonDir, 'audio', 'offline', S.get_tidfilename(tid))
         srcMp3Path = os.path.join(gordonDir, 'audio', 'main', get_tidfilename(tid))
         dstMp3Path = os.path.join(gordonDir, 'audio', 'offline', get_tidfilename(tid))
         if os.path.exists(srcMp3Path) :
-#            S.make_subdirs_and_move(srcMp3Path, dstMp3Path)
             make_subdirs_and_move(srcMp3Path, dstMp3Path)
-            log.debug('Moved', srcMp3Path, 'to', dstMp3Path)                    # debug
+            log.debug('Moved', srcMp3Path, 'to', dstMp3Path)
             
         #move corresponding features to GORDON_DIR/data/features_offline
-#        srcFeatPath = os.path.join(gordonDir, 'data', 'features', S.get_tiddirectory(tid))
-#        dstFeatPath = os.path.join(gordonDir, 'data', 'features_offline', S.get_tiddirectory(tid))
         srcFeatPath = os.path.join(gordonDir, 'data', 'features', get_tiddirectory(tid))
         dstFeatPath = os.path.join(gordonDir, 'data', 'features_offline', get_tiddirectory(tid))
         featFiles =  glob.glob('%s/T%i.*' % (srcFeatPath,tid))
         for srcF in featFiles :
-            (pth,fl) = os.path.split(srcF) #@UnusedVariable
+            (pth,fl) = os.path.split(srcF)
             dstF = os.path.join(dstFeatPath,fl)
-#            S.make_subdirs_and_move(srcF, dstF)
             make_subdirs_and_move(srcF, dstF)
-            log.debug('Moved', srcF, 'to', dstF)                                # debug
+            log.debug('Moved', srcF, 'to', dstF)
 
     def add_annotation(self, annotation, value, type='text'):
         """Creates an Annotation for the track
@@ -484,18 +486,23 @@ class Album(object) :
 
     def __repr__(self): return self.__str__()
 
-    def _get_fn_albumcover(self) :
-        return os.path.join(config.DEF_GORDON_DIR,'data','covers',_get_filedir(self.id),'A%i_cover.jpg' % self.id)
-    fn_albumcover= property(fget=_get_fn_albumcover,doc="""returns absolute path to album cover.  Does *not* verify that album cover is actually present!""")
+    @property
+    def fn_albumcover(self) :
+        """Absolute path to album cover.
 
-    def _get_asin_url(self) :
+        Does *not* verify that album cover is actually present!"""
+        return os.path.join(config.DEF_GORDON_DIR,'data','covers',
+                            _get_filedir(self.id),'A%i_cover.jpg' % self.id)
+    
+    @property
+    def asin_url(self) :
+        """Amazon URL for album cover for asin stored in self.asin."""
         if self.asin<>None and len(self.asin.strip())>5 :
             urltxt = 'http://ec1.images-amazon.com/images/P/%s.jpg' % self.asin.strip()
         else :
             urltxt = '/static/images/emptyalbum.jpg'
         return urltxt
-    asin_url= property(fget=_get_asin_url,doc="""returns Amazon URL for album cover for asin stored in self.asin.""")
-
+    
     def update_trackcount(self) :
         tc = session.query(AlbumTrack).filter(AlbumTrack.album_id==self.id).count()
         if self.trackcount <> tc :
@@ -546,7 +553,7 @@ class Collection(object):
     
     def __repr__(self) :
         if not self.id: return '<Empty Collection>'
-        else: return '<Collection %s "%s">' % (self.source, self.description) # ------------------ return
+        else: return '<Collection %s "%s">' % (self.source, self.description)
     
 
 class Annotation(object):
@@ -554,13 +561,13 @@ class Annotation(object):
         if not self.id: return '<Empty Annotation>'
         long=False
         if len(self.value) > 32: long=True
-        return '<Annotation %s.%s: %s%s>' % (self.type, self.annotation, self.value[:16], '...' if long else '') #return
+        return '<Annotation %s.%s: %s%s>' % (self.type, self.annotation, self.value[:16], '...' if long else '')
     
 
 class FeatureExtractor(object):
     def repr(self):
         if not self.id: return '<Empty Feature Extractor>'
-        return '<Feature Extractor "{0}">'.format(self.identifier) #jorgeorpnel: trying new py str formatting
+        return '<Feature Extractor "{0}">'.format(self.identifier)
     
 
 mapper(AlbumTrack,album_track)
