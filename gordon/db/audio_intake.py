@@ -83,7 +83,7 @@ def _store_annotations(audiofile, track, all_md=False):
                 # copy text (file content) to new track annotation (type txt.[ext])
                 txt=open(simfile)
                 (xxx, ext) = os.path.splitext(simfile)
-                track.annotations.append(Annotation(type='txt', annotation=ext[1:], value=txt.read()))
+                track.annotations.append(Annotation(type='text', annotation=ext[1:], value=txt.read()))
                 annots += 1
         finally:
             if type(txt)==file: txt.close()

@@ -965,7 +965,6 @@ def add_to_collection(tracks, name):
     return collection
 
 def is_binary(filename):
-
     """Return true if the given filename is binary.
     @raise EnvironmentError: if the file does not exist or cannot be accessed.
     @attention: found @ http://bytes.com/topic/python/answers/21222-determine-file-type-binary-text on 6/08/2010
