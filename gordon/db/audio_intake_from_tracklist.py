@@ -143,14 +143,14 @@ def add_track(trackpath, source=str(datetime.date.today()),
     del(tag_dict[u'tracknum'])
     del(tag_dict[u'compilation'])
     for tagkey, tagval in tag_dict.iteritems(): # create remaining annotations
-        track.annotations.append(Annotation(type='text', annotation=tagkey, value=tagval))
+        track.annotations.append(Annotation(type='text', name=tagkey, value=tagval))
     
     if all_md:
         #chek if file is mp3. if so:
         if isValidMP3(trackpath):
             #extract all ID3 tags, store each tag value as an annotation type id3.[tagname]
             for tag in getAllTags(trackpath):
-                track.annotations.append(Annotation(type='id3', annotation=tag[0], value=tag[1]))
+                track.annotations.append(Annotation(type='id3', name=tag[0], value=tag[1]))
         
         #todo: work with more metadata formats (use tagpy?)
     
