@@ -82,7 +82,7 @@ def _store_annotations(audiofile, track, all_md=False):
 
                 # copy text (file content) to new track annotation (type txt.[ext])
                 txt=open(simfile)
-                (xxx, ext) = os.path.splitext(simfile) #@UnusedVariable
+                (xxx, ext) = os.path.splitext(simfile)
                 track.annotations.append(Annotation(type='txt', annotation=ext[1:], value=txt.read()))
                 annots += 1
         finally:
@@ -168,9 +168,9 @@ def add_mp3(mp3, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR, id
         track.secs= -1
         try :
             a = AudioFile(filename)
-            [ignore_fs,ignore_chans,track.secs] = a.read_stats() #@UnusedVariable
+            [ignore_fs,ignore_chans,track.secs] = a.read_stats()
         except :
-            log.warn("    Could not read stats from", filename) #               warnning
+            log.warn("    Could not read stats from", filename)
             
     else :
         a = AudioFile(filename)
@@ -232,8 +232,8 @@ def add_uncomp(wav, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR,
          @param fast_import: If true, do not calculate strip_zero length. Defaults to False
          @param import_md: Specifies if we want to get the metadata tags from the file. Defaults to True
     """
-    (xxx, filename) = os.path.split(wav) #@UnusedVariable
-    (xxx, ext) = os.path.splitext(filename) #@UnusedVariable
+    (xxx, filename) = os.path.split(wav)
+    (xxx, ext) = os.path.splitext(filename)
     log.debug('    Adding uncompressed file "%s" of "%s" album by %s - add_uncomp()', filename, album, artist)
     
     
@@ -418,7 +418,7 @@ def _empty_tags():
     tags['compilation'] = ''
     return tags
 
-def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, prompt_aname = False, fast_import = False, import_md=False): #@UnusedVariable
+def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GORDON_DIR, prompt_aname = False, fast_import = False, import_md=False):
     """Add a directory with audio files v 1.2
         * when we do an album we need to read all files in before trying anything
         * we can't just add each track individually. We have to make Artist ids for all artists
@@ -433,7 +433,7 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     cwd = os.getcwd()
     os.chdir(albumDir)
     for filename in os.listdir('.') :
-        (xxx, ext) = os.path.splitext(filename) #@UnusedVariable
+        (xxx, ext) = os.path.splitext(filename)
         if not os.path.isdir(os.path.join(cwd, filename)) :
             log.debug('  Checking "%s" ...', filename)
             csvtags = False
@@ -567,7 +567,7 @@ def add_collection(location, source = str(datetime.date.today()), prompt_incompl
             add_album('.', gordonDir=gordonDir, source=source, prompt_aname=prompt_incompletes, fast_import=fast_import, import_md=import_md)
             log.debug('Proccessed %s.', os.sep)
 
-    for root, dirs, files in os.walk('.') : #@UnusedVariable
+    for root, dirs, files in os.walk('.') :
         if iTunesDir and len(root.split(os.sep)) <> 2 :
             print 'iTunesDir skipping (artists) directories under root', root
             continue

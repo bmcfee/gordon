@@ -289,7 +289,7 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()),
         log.debug('  Added "%s"!', filename)
 
     #now update our track counts
-    for aname, artist in artist_dict.iteritems() : #@UnusedVariable
+    for aname, artist in artist_dict.iteritems() :
         artist.update_trackcount()
         log.debug('  * Updated trackcount for artist %s', artist)
     albumrec.update_trackcount()

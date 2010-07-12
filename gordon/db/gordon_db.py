@@ -34,7 +34,7 @@ from time import sleep
 from traceback import print_exc
 from unicodedata import decomposition, normalize
 
-from gordon.db.model import (Artist, Album, Track, Collection,
+from gordon.db.model import (Artist, Album, Track, Collection, FeatureExtractor,
                              session, commit, album, Mbalbum_recommend,
                              execute_raw_sql)
 from gordon.db.config import DEF_GORDON_DIR, DEF_DBUSER, DEF_DBPASS, DEF_DBHOST
@@ -42,7 +42,7 @@ from gordon.io import AudioFile
 
 
 log = logging.getLogger('gordon')
-log.info('gordon_db.py: using gordon directory', DEF_GORDON_DIR)
+log.info('gordon_db.py: using gordon directory {0}'.format(DEF_GORDON_DIR))
 #todo: replace all prints with logging
 
 
@@ -124,23 +124,20 @@ def delete_album(album) :
     commit()
     
 def delete_track(track) :
-    albums = track.albums
-    artists = track.artists
     session.delete(track)
     session.flush()  #should this be a commit?
 
-    print 'Updating albums and artists'
-    for a in albums :
+    # Updating albums and artists too
+    
+    for a in track.albums :
         a.update_trackcount()
         if a.trackcount==0 :
             session.delete(a)
-            #print 'Someone delete me!',a
 
-    for a in artists :
+    for a in track.artists :
         a.update_trackcount()
         if a.trackcount==0 :
             session.delete(a)
-            #print 'Someone delete me!',a
 
     commit()
 
@@ -174,8 +171,8 @@ def postgres_column_to_str(col) :
     try :
         st = unicode(st,'utf-8')
     except :
-        print 'Could not translate string',st,'into unicode'
-    #commented out but maybe necessairy? st = unicode(st,'utf-8')
+        log.warning('Could not translate string '+st+' into utf-8 unicode')
+
     st = st.replace("'",'')
     st = st.replace('"','')
     st = st.replace('\n','')
@@ -379,7 +376,7 @@ def update_features(tid=-1,gordonDir=DEF_GORDON_DIR,force=False):
     #This shoudl update everything of importance. Because force is false, it should be relatively fast
     #when called on files where everything is already done. 
     #if called with no tid, we loop on entire database
-    (secs,zsecs)=update_secs_zsecs(tid,gordonDir=gordonDir,force=force) #@UnusedVariable
+    (secs,zsecs)=update_secs_zsecs(tid,gordonDir=gordonDir,force=force)
     if zsecs>=15:
         update_audio_features(tid,gordonDir=gordonDir,force=force)
         update_summarized_features(tid,gordonDir=gordonDir,force=force)
@@ -418,7 +415,7 @@ def update_secs_zsecs(tid_or_track,force=False,fast=False,do_commit=True):
         a = AudioFile(track.fn_audio)
         if fast :  #update secs but not zsecs based on file header (no decoding)
             zsecs=-1
-            (fs,chans,secs)=a.read_stats() #@UnusedVariable
+            (fs,chans,secs)=a.read_stats()
         else :     #update both secs and zsecs by decoding file and actually working with audio (more accurate)
             secs, zsecs = a.get_secs_zsecs()
         track.secs=secs
@@ -565,7 +562,7 @@ def check_orphans_new(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
         print 'Checking for tracks having no database record'
 #        currDir = os.getcwd()
         os.chdir(os.path.join(gordonDir,'audio','main'))
-        for root,dirs,files in os.walk('.') : #@UnusedVariable
+        for root,dirs,files in os.walk('.') :
             print 'Checking directory',root
             for f in files :
                 if f.endswith('.mp3') :
@@ -591,7 +588,7 @@ def check_orphans_new(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
         print 'Checking for orphan features'
 #        currDir = os.getcwd()
         os.chdir(os.path.join(gordonDir,'data','features'))
-        for root,dirs,files in os.walk('.') : #@UnusedVariable
+        for root,dirs,files in os.walk('.') :
             print 'Checking directory',root
             for f in files :
                 vals = f.split('.')
@@ -616,7 +613,7 @@ def check_orphans(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
         print 'Checking for tracks having no database record'
 #        currDir = os.getcwd()
         os.chdir(os.path.join(gordonDir,'audio','main'))
-        for root,dirs,files in os.walk('.') : #@UnusedVariable
+        for root,dirs,files in os.walk('.') :
             print 'Checking directory',root
             for f in files :
                 if f.endswith('.mp3') :
@@ -634,7 +631,7 @@ def check_orphans(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
         print 'Checking for orphan features'
 #        currDir = os.getcwd()
         os.chdir(os.path.join(gordonDir,'data','features'))
-        for root,dirs,files in os.walk('.') : #@UnusedVariable
+        for root,dirs,files in os.walk('.') :
             print 'Checking directory',root
             for f in files :
                 vals = f.split('.')
@@ -714,7 +711,7 @@ def delete_duplicate_mb_albums() :
     tt_std=200. #hand set in matcher. But not so important..
     import pg
     dbmb = pg.connect('musicbrainz_db',user=DEF_DBUSER,passwd=DEF_DBPASS,host=DEF_DBHOST)
-    for [mb_id,count] in dupes : #@UnusedVariable
+    for [mb_id,count] in dupes :
         if len(mb_id.strip())<10 :
             continue
         dupealbums = Album.query.filter(func.length(Album.mb_id)>10).filter_by(mb_id=mb_id)
@@ -949,14 +946,19 @@ def slashify(fname) :
 
 def add_to_collection(tracks, source):
     """Adds a python collection of SQLA Track objects to a given Gordon collection (by source name)
+    @raise AttributeError: when the <tracks> passed are not gordon.db.model.Track (sqla) instances
     @author: Jorge Orpinel <jorge@orpinel.com>"""
     
     collection = Collection.query.filter_by(source=source).first()
     if not collection: collection = Collection(source=source) # creates the collection if non existant
     
     for track in tracks:
-        collection.tracks.append(track)
-    
+        try:
+            collection.tracks.append(track)
+        except AttributeError:
+            log.warning('Warning: A track sent are not gordon.db.model.Track instances. Skipping {0}'.format(track))
+            raise
+        
     commit()
         
     return collection
@@ -968,7 +970,12 @@ def is_binary(filename):
     @attention: found @ http://bytes.com/topic/python/answers/21222-determine-file-type-binary-text on 6/08/2010
     @author: Trent Mick <TrentM@ActiveState.com>
     @author: Jorge Orpinel <jorge@orpinel.com>"""
-    fin = open(filename, 'rb')
+    
+    try: fin = open(filename, 'rb')
+    except EnvironmentError:
+        log.error("Can't open {0}!".format(filename))
+        raise
+    
     try:
         CHUNKSIZE = 1024
         while 1:
