@@ -30,7 +30,7 @@ from gordon.io import AudioFile
 from gordon.db import config
 
 
-log = logging.getLogger('gordon.models')
+log = logging.getLogger('gordon.model')
 
 
 try :
@@ -62,15 +62,19 @@ except :
         engine = sqlalchemy.create_engine(dburl)
         
     #test connection:
-    try: engine.connect()
-    except OperationalError: log.info('WARNING - PostgreSQL DB {0}/{1} not running...'.format(config.DEF_DBHOST, config.DEF_DBNAME))
-
+    try:
+        engine.connect()
+    except OperationalError:
+        log.warning('Could not connect to PostgreSQL database %s/%s.',
+                    config.DEF_DBHOST, config.DEF_DBNAME)
     Session = scoped_session(sessionmaker(bind=engine,autoflush=True, autocommit=True))
     session = Session()
     import sqlalchemy.schema
     metadata = sqlalchemy.schema.MetaData(None)
 #    mapper = Session.mapper #jorgeorpinel: SQLA 0.5. This is deprecated... (see 4 lines down)
-    log.info('Intialized external connection to gordon database on {0}  (SQL Alchemy ver. {1})'.format(config.DEF_DBHOST, sqlalchemy.__version__))
+    log.info('Intialized external connection to gordon database %s/%s '
+             'using SQLAlchemy version %s', config.DEF_DBHOST,
+             config.DEF_DBNAME, sqlalchemy.__version__)
     AUTOCOMMIT=True
     
     #jorgeorpinel: this is a SQLA 0.5+ legacy workaround found at http://www.sqlalchemy.org/trac/wiki/UsageRecipes/SessionAwareMapper
@@ -360,8 +364,8 @@ class Track(object) :
         feature_extractor = FeatureExtractor.query.filter_by(name=unicode(fe_name)).first()
         
         if not feature_extractor:
-            log.error('No feature extractor named {0}'.format(fe_name))
-            raise NameError('No feature extractor named {0}'.format(fe_name))
+            log.error('No feature extractor named %s', fe_name)
+            raise NameError('No feature extractor named %s', fe_name)
         
         return fe_name
     
@@ -578,7 +582,7 @@ class Annotation(object):
 class FeatureExtractor(object):
     def __repr__(self):
         if not self.id: return '<Empty Feature Extractor>'
-        return '<Feature Extractor "{0}">'.format(self.name)
+        return '<Feature Extractor "%s">' % self.name
     
 
 mapper(AlbumTrack,album_track)
