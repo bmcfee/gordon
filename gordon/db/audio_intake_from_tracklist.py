@@ -219,10 +219,10 @@ def _read_csv_tags(cwd, csv=None):
                         tags[filepath][headers[col]] = unicode(txt.read())
                         txt.close()
                     except:
-                        log.error('  Error opening %s file in $s annotation at l:%d', (value, headers[col], csvfile.line_num))
+                        log.error('  Error opening %s file in $s annotation at l:%d',
                                   value, headers[col], csvfile.line_num)
+
                         tags[filepath][headers[col]] = unicode(value)
-                    log.debug('  File %s in $s annotation is not text at l:%d', (value, headers[col], csvfile.line_num))
                     log.debug('  File %s in $s annotation is not text at l:%d',
                               value, headers[col], csvfile.line_num)
                     tags[filepath][headers[col]] = unicode(value)
