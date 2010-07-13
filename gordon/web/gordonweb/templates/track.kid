@@ -54,8 +54,26 @@ MusicBrainz ID: <span py:replace="track.mb_id"/><br/>
 
 
 <hr/>
+<table cellpadding="0" cellspacing="1" border="0" class="grid">
+  <thead> 
+    <tr> <th>Annotation Name</th> <th>Value</th> <th>Type</th> </tr>
+  </thead>
+  <tbody>
+    <span py:for="a in track.annotations">
+      <tr valign="top" class="even">
+        <td>${a.name}</td>
+        <td>
+          <?python annotation_value = a.value.replace("\n","<br/>") ?>
+          ${XML(annotation_value)}
+        </td>
+        <td>${a.type}</td>
+      </tr>
+    </span>
+  </tbody>
+</table>
 
 
+<br/>
 </div>
 
 
