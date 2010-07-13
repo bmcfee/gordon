@@ -18,6 +18,8 @@
 Main Artist: <span py:replace="track.artist"/><br/>
 Album: <span py:replace="track.album"/> (Track <span py:replace="track.tracknum"/>, <span py:replace="track_time"/>)<br/>
 MusicBrainz ID: <span py:replace="track.mb_id"/><br/>
+<?python import commands; cmd = 'file -b %s' % track.fn_audio; ?>
+Audio file info: <span py:replace="commands.getoutput(cmd)"/> (<br/>
 </h3>
 <hr/>
 
