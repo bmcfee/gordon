@@ -26,6 +26,7 @@ import numpy as N
 import time
 import operator
 import mimetypes
+import collections
 
 
 #artist datagrid ---------------------------------------
@@ -458,8 +459,6 @@ def download(tracks, album='', randomize=0, host=-1)  :
         tmpdir='/tmp'
     tempdir=tempfile.mkdtemp(dir=tmpdir)
 
-
-    
     
     msg=''
     ctr=1
@@ -782,3 +781,52 @@ def itunes_slashify(fname) :
 def get_track_audio_extension(track):
     root, ext = os.path.splitext(track.fn_audio)
     return ext[1:]
+
+
+def generate_htk_annotation_data_for_track(track):
+    header = [('datetime', 'Time')]
+    rows = collections.defaultdict(list)
+    for n, a in enumerate(track.annotations):
+        if a.type.lower() != 'htk':
+            continue
+
+        header.append(('number', a.name))
+        header.append(('string', a.name))
+
+        # Create one-to-one mapping from labels to integers.
+        labels = []
+        for line in a.value.split('\n'):
+            if not line:
+                continue
+            fields = line.split()
+            label = ' '.join(fields[2:])
+            if not label in labels:
+                labels.append(label)
+                
+        for line in a.value.split('\n'):
+            if not line:
+                continue
+            fields = line.split()
+            starttime, endtime = [float(x) for x in fields[:2]]
+            label = ' '.join(fields[2:])
+            yval = labels.index(label)
+            # Event onset
+            rows[starttime].append((n, yval, "'%s'" % label))
+            # Event offset - don't use the exact end time, or the
+            # widget will get confused.
+            rows[endtime-1e-9].append((n, yval, None))
+
+    # Format labels as a javascript array.  See here for an example:
+    # http://code.google.com/apis/visualization/documentation/gallery/annotatedtimeline.html#Example
+    data_strs = ["var data = new google.visualization.DataTable();"]
+    for type, name in header:
+        data_strs.append("data.addColumn('%s', '%s');" % (type, name))
+    data_strs.append("data.addRows(%d)" % len(rows))
+    for n, time in enumerate(sorted(rows)):
+        for plot, yval, label in rows[time]: 
+            data_strs.append("data.setValue(%d,0, new Date(0, 0, 0, 0, 0, %f, 0));"
+                             % (n, time))
+            data_strs.append("data.setValue(%d,%d, %s);" % (n, 2*plot+1, yval))
+            if label:
+                data_strs.append("data.setValue(%d,%d, %s);" % (n, 2*plot+2, label))
+    return "\n".join(data_strs)
