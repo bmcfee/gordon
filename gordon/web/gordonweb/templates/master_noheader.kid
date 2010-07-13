@@ -33,6 +33,7 @@
     <div id="sidebar_padded">
     <a href="/">Gordon Home</a><br/>
     <hr/>
+    <a href="/collections">Browse Collections</a><br/>
     <a href="/artists">Browse Artists</a><br/>
     <a href="/albums">Browse Albums</a><br/>
     <a href="/tracks">Browse Tracks</a><br/>	
@@ -41,8 +42,11 @@
     <a href="/stats">View Statistics</a><br/>
     <a href="/artists_all">All Artists (slow)</a><br/>
     <a href="/albums_all">All Albums (slow)</a><br/>
+    <a href="/collections_all">All Collections (slow)</a><br/>
         <hr/>
     <form action="/query" method="post">
+    <label for="collection" >Collection:</label>
+    <input name="collection" type="text" size="10"/><br/>
     <label for="artist" >Artist:</label>
     <input name="artist" type="text" size="10"/><br/>
     <label for="album" >Album:</label>
