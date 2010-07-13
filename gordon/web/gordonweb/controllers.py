@@ -40,7 +40,7 @@ class Root(controllers.RootController):
     @expose(template="gordonweb.templates.index")
     # @identity.require(identity.in_group("admin"))
     def index(self):
-        """"Show the welcome page."""
+        """Show the welcome page."""
         # log.debug("Happy TurboGears Controller Responding For Duty")
         #flash(_(u"Your application is now running"))
         return dict(now=datetime.datetime.now())
@@ -295,6 +295,7 @@ class Root(controllers.RootController):
         return dict(track_widget=track_widget,track_widget_data=track_widget_data,track=track,afeat_graph=afeat_graph,
                     alternate_action=alternate_action,artist_widget=artist_datagrid,artists=track.artists,track_time=track_time,
                     album_widget=album_datagrid,albums=track.albums,
+                    collection_widget=collection_datagrid,collections=track.collections,
                     yahoo_url=yahoo_url,feat_urllist=feat_urllist,track_mb_id_link=track_mb_id_link)
 
 
@@ -528,11 +529,13 @@ class Root(controllers.RootController):
     #queries -----------------------
     @expose("json")
     @identity.require(identity.has_permission("listen"))
-    def query(self,album='',artist='',track='') :
+    def query(self,album='',artist='',track='',collection='') :
         if album <> '' :
             redirect("/albums",dict(album=album))
         elif artist <> '' :
             redirect("/artists",dict(artist=artist))
+        elif collection <> '' :
+            redirect("/collections",dict(collection=collection))
         elif track <> '' :
             redirect("/tracks",dict(track=track))
         else :
@@ -890,7 +893,8 @@ class Root(controllers.RootController):
     @expose()
     #@identity.require(identity.has_permission("listen"))
     def download(self,params=''):
-        pdict={'track_id':'','artist_id':'','album_id':'','randomize':'0'}
+        pdict={'track_id':'','artist_id':'','album_id':'','collection_id':'',
+               'randomize':'0'}
         pairs = params.split('!') 
         for p in pairs :
             (key,val)=p.split(':')
@@ -898,8 +902,9 @@ class Root(controllers.RootController):
         tracks=''
         album=''
         if pdict['album_id']<>'' :
-            album = gordon_model.Album.query.get(int(pdict['album_id']))
-            tracks = album.tracks
+            tracks = gordon_model.Album.query.get(int(pdict['album_id'])).tracks
+        elif pdict['collection_id']<>'' :
+            tracks = gordon_model.Collection.query.get(int(pdict['collection_id'])).tracks
         elif pdict['artist_id']<>'' :
             tracks = gordon_model.Artist.query.get(int(pdict['artist_id'])).tracks
         elif pdict['track_id']<>'' :
@@ -932,3 +937,46 @@ class Root(controllers.RootController):
         elif pdict['track_id']<>'' :
             tracks = [gordon_model.Track.query.get(int(pdict['track_id']))]
         return widgets.playlist(tracks=tracks,album=album,randomize=int(pdict['randomize']))
+
+
+
+    #collections-----------------------------------------
+    @expose(template="gordonweb.templates.collection")
+    @identity.require(identity.has_permission("listen"))
+    @paginate('tracks', default_order='tracknum',limit=1000000)
+    def collection(self,id=1,action='view',shuffle='') :
+        collection = gordon_model.Collection.query.get(id)
+        if collection==None :
+            flash('gordon_model.Collection %s not found' % str(id))
+            redirect('/')
+
+        tracks = collection.tracks
+        if shuffle<>'' :
+            random.shuffle(tracks)
+
+        return dict(action=action, collection=collection,
+                    collection_datagrid=collection_datagrid,
+                    tracks=tracks, track_datagrid=track_datagrid)
+
+    @expose(template='gordonweb.templates.collections')
+    @paginate('collections', default_order='name',limit=20)
+    @identity.require(identity.has_permission("listen"))
+    def collections(self,collection='') :
+        if collection <> '' :
+            collection=pg.escape_string(collection)
+            print 'Searching for',collection
+            collections = gordon_model.Collection.query.filter("(lower(collection.name) ~ ('%s'))" % collection.lower())
+            if collections.count()==1 :
+                #we only have one collection, redirect to the collection page
+                redirect("/collection/%s/view" % collections[0].id)
+        else :
+            collections = gordon_model.Collection.query()
+
+        return dict(collections=collections, collectionlist=collection_datagrid)
+    
+    @expose(template="gordonweb.templates.collections")
+    @paginate('collections', default_order='name',limit=1000000)
+    @identity.require(identity.has_permission("listen"))
+    def collections_all(self) :
+        collections = gordon_model.Collection.query()
+        return dict(collections=collections, collectionlist=collection_datagrid)

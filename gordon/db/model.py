@@ -563,6 +563,11 @@ class Mbalbum_recommend(object) :
 class Collection(object):
 #    def __init__(self, name):
 #        self.name = name
+
+    @property
+    def trackcount(self):
+        """Return number of tracks in the Collection"""
+        return len(self.tracks)
     
     def __repr__(self) :
         if not self.id: return '<Empty Collection>'

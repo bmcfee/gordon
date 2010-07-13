@@ -35,18 +35,22 @@
     <hr/>
     <a href="/artists">Browse Artists</a><br/>
     <a href="/albums">Browse Albums</a><br/>
+    <a href="/collections">Browse Collections</a><br/>
     <a href="/tracks">Browse Tracks</a><br/>	
     <hr/>		     
     <a href="/admin">Administration</a><br/>
     <a href="/stats">View Statistics</a><br/>
     <a href="/artists_all">All Artists (slow)</a><br/>
     <a href="/albums_all">All Albums (slow)</a><br/>
+    <a href="/collections_all">All Collections (slow)</a><br/>
         <hr/>
     <form action="/query" method="post">
     <label for="artist" >Artist:</label>
     <input name="artist" type="text" size="10"/><br/>
     <label for="album" >Album:</label>
     <input name="album" type="text" size="10"/><br/>
+    <label for="collection" >Collection:</label>
+    <input name="collection" type="text" size="10"/><br/>
     <label for="track" >Track:</label>
     <input name="track" type="text" size="10"/><br/>
     <input type="submit" value="Search"/><br/>

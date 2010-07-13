@@ -166,6 +166,31 @@ album_datagrid = PaginateDataGrid(
     ],
  )
 
+
+#collection datagrid --------------------------------------
+def get_collection_url(row) :
+    link = ET.Element('a',href='/collection/%s' % row.id)
+    link.text = row.name
+    return link
+
+def get_collection_url_for_id(row) :
+    link = ET.Element('a',href='/collection/%s' % row.id)
+    link.text = str(row.id)
+    return link
+
+def get_collection_trackcount(row) :
+    return row.trackcount
+
+collection_datagrid = PaginateDataGrid(
+    fields=[
+    PaginateDataGrid.Column('id', get_collection_url_for_id, 'Collection ID',options=dict(sortable=True)),
+    PaginateDataGrid.Column('name', get_collection_url,'Collection Name',options=dict(sortable=True)),
+    PaginateDataGrid.Column('trackcount', get_collection_trackcount, 'Count',options=dict(sortable=True)),
+    PaginateDataGrid.Column('description', 'description', 'Description',options=dict(sortable=True)),
+    ],
+ )
+
+
 #track datagrid -------------------------------------
 #        id          int4 PRIMARY KEY,  -- Track id
 #        mb_         varchar(64),       -- Musicbrainz track id

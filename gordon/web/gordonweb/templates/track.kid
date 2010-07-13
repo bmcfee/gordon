@@ -50,6 +50,7 @@ MusicBrainz ID: <span py:replace="track.mb_id"/><br/>
 <span py:replace="track_widget(track_widget_data)"/>
 <span py:replace="artist_widget(artists)"/>
 <span py:replace="album_widget(albums)"/>
+<span py:replace="collection_widget(collections)"/>
 
 
 
