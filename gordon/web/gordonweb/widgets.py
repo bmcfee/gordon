@@ -782,53 +782,6 @@ def get_track_audio_extension(track):
     root, ext = os.path.splitext(track.fn_audio)
     return ext[1:]
 
-def generate_htk_annotation_datatable_for_track_old(track):
-    header = [('datetime', 'Time')]
-    rows = collections.defaultdict(list)
-    for n, a in enumerate(track.annotations):
-        if a.type.lower() != 'htk':
-            continue
-
-        header.append(('number', a.name))
-        header.append(('string', a.name))
-
-        # Create one-to-one mapping from labels to integers.
-        labels = []
-        for line in a.value.split('\n'):
-            if not line:
-                continue
-            fields = line.split()
-            label = ' '.join(fields[2:])
-            if not label in labels:
-                labels.append(label)
-                
-        for line in a.value.split('\n'):
-            if not line:
-                continue
-            fields = line.split()
-            starttime, endtime = [float(x) for x in fields[:2]]
-            label = ' '.join(fields[2:])
-            yval = labels.index(label)
-            # Event onset
-            rows[starttime].append((n, yval, "'%s'" % label))
-            # Event offset - don't use the exact end time, or the
-            # widget will get confused.
-            rows[endtime-1e-9].append((n, yval, None))
-
-    # Format labels as a javascript array.  See here for an example:
-    # http://code.google.com/apis/visualization/documentation/gallery/annotatedtimeline.html#Example
-    data_strs = ["var data = new google.visualization.DataTable();"]
-    for type, name in header:
-        data_strs.append("data.addColumn('%s', '%s');" % (type, name))
-    data_strs.append("data.addRows(%d)" % len(rows))
-    for n, time in enumerate(sorted(rows)):
-        for plot, yval, label in rows[time]: 
-            data_strs.append("data.setValue(%d,0, new Date(0, 0, 0, 0, 0, %f, 0));"
-                             % (n, time))
-            data_strs.append("data.setValue(%d,%d, %s);" % (n, 2*plot+1, yval))
-            if label:
-                data_strs.append("data.setValue(%d,%d, %s);" % (n, 2*plot+2, label))
-    return " ".join(data_strs)
 
 def generate_htk_annotation_datatables_for_track(track):
     return dict((x.name, generate_htk_annotation_datatable(x))
@@ -846,8 +799,21 @@ def generate_htk_annotation_datatable(annotation):
         label = ' '.join(fields[2:])
         if not label in labels:
             labels.append(label)
+
+    # Are the labels numbers that we should plot, or should we treat
+    # them as strings?
+    try:
+        for label in labels:
+            tmp = float(label)
+        header.append(('number', annotation.name))
+        header.append(('string', annotation.name))
+        add_points_fun = _add_points_assuming_numeric_labels
+    except ValueError:
+        labels_are_numbers = False
+        for label in labels:
             header.append(('number', label))
             header.append(('string', label))
+        add_points_fun = _add_points_assuming_string_labels
 
     # Group times into repetitions of the same label.
     rows = collections.defaultdict(list)
@@ -858,22 +824,10 @@ def generate_htk_annotation_datatable(annotation):
         starttime, endtime = [float(x) for x in fields[:2]]
         label = ' '.join(fields[2:])
         labelnum = labels.index(label)
-        # Make sure the label is at 0 before the onset.
-        rows[starttime-1e-3].append((labelnum, 0, None))
-        # Event onset.
-        rows[starttime].append((labelnum, 1, "'%s'" % label))
-        # Event offset - don't use the exact end time, or the
-        # widget will get confused if another label starts immediately
-        # after this one ends.
-        if endtime > starttime:
-            rows[endtime-2e-3].append((labelnum, 1, None))
-            rows[endtime-1.5e-3].append((labelnum, 0, None))
-        else:
-            rows[endtime+1e-3].append((labelnum, 0, None))
+        add_points_fun(rows, starttime, endtime, label, labelnum)
 
     # Format labels as a javascript array.  See here for an example:
     # http://code.google.com/apis/visualization/documentation/gallery/annotatedtimeline.html#Example
-
     data_strs = ["var data = new google.visualization.DataTable();"]
     for type, name in header:
         data_strs.append("data.addColumn('%s', '%s');" % (type, name))
@@ -886,3 +840,27 @@ def generate_htk_annotation_datatable(annotation):
                 currpt.append("data.setValue(%d,%d, %s);" % (n, 2*plot+2, label))
         data_strs.append("  ".join(currpt))
     return " ".join(data_strs)
+
+def _add_points_assuming_string_labels(rows, starttime, endtime, label, labelnum):
+    # Make sure the label is at 0 before the onset.
+    rows[starttime-1e-3].append((labelnum, 0, None))
+    # Event onset.
+    rows[starttime].append((labelnum, 1, "'%s'" % label))
+    # Event offset - don't use the exact end time, or the
+    # widget will get confused if another label starts immediately
+    # after this one ends.
+    if endtime > starttime:
+        rows[endtime-2e-3].append((labelnum, 1, None))
+        rows[endtime-1.5e-3].append((labelnum, 0, None))
+    else:
+        rows[endtime+1e-3].append((labelnum, 0, None))
+
+
+def _add_points_assuming_numeric_labels(rows, starttime, endtime, label, labelnum):
+    # Event onset
+    rows[starttime].append((0, labelnum, "'%s'" % label))
+    # Event offset - don't use the exact end time or the widget
+    # will get confused.
+    rows[endtime-1e-9].append((0, labelnum, None))
+
+

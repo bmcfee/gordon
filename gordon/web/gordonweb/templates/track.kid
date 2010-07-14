@@ -66,11 +66,11 @@ Audio file info: <span py:replace="commands.getoutput(cmd)"/> (${track.bytes} by
         <td>${a.name}</td>
         <td>
           <div id="annotation_${a.name}_text">
-          <?python annotation_lines = a.value.split('\n') ?>
-          <span py:for="line in annotation_lines">
-            ${line}
-            <br/>
-          </span>
+            <?python annotation_lines = a.value.split('\n') ?>
+            <span py:for="line in annotation_lines">
+              ${line}
+              <br/>
+            </span>
           </div>
 
           <div py:if="a.name in htk_annotation_datatables">
@@ -97,7 +97,7 @@ Audio file info: <span py:replace="commands.getoutput(cmd)"/> (${track.bytes} by
 </script>
 
 <div id="annotation_${a.name}_widget" style="width: 500px; height: 250px;"/>
-
+<br/>
         </div>
         </td>
 
@@ -106,6 +106,7 @@ Audio file info: <span py:replace="commands.getoutput(cmd)"/> (${track.bytes} by
     </span>
   </tbody>
 </table>
+
 
 
 </div>

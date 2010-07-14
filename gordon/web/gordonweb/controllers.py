@@ -296,7 +296,8 @@ class Root(controllers.RootController):
             htk_annotation_datatables = (
                 widgets.generate_htk_annotation_datatables_for_track(track))
         except:
-            htk_annotation_datatables = False;
+            htk_annotation_datatables = []
+            raise
 
         return dict(track_widget=track_widget,track_widget_data=track_widget_data,track=track,afeat_graph=afeat_graph,
                     alternate_action=alternate_action,artist_widget=artist_datagrid,artists=track.artists,track_time=track_time,
