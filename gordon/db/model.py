@@ -452,7 +452,17 @@ class Track(object) :
         commit()
         
         return annot
-
+    
+    def get_annotation(self, anot_name):
+        '''Get a track's annotation by name
+        @raise NameError: if no annotation matches <anot_name>'''
+        q = Annotation.query.filter_by(track_id=self.id, name=anot_name)
+        if q.count() > 1: log.warning('This track has more than 1 annotation named "%s"', anot_name)
+        anot = q.first()
+        if anot: return anot
+        else: raise NameError('No annotation named "%s" for this track' % anot_name)
+            
+    
     @property
     def annotation_dict(self):
         """Dictionary of this track's annotations, keyed by Annotation.name."""
@@ -615,7 +625,7 @@ class FeatureExtractor(object):
                 exec self.fdefcode # should define the function, import stmts have no effect
             except: # Happens if the code is invalid or causes trouble (eg different Py versions or environments)
                 log.error("Something went wrong while trying to initialize the \
-                           feature extractor {0}".format(self.name))
+                           feature extractor %s" % self.name)
                 raise
         else: raise TypeError("Feature Extractor definition-code is not a string (it's probably empty)")
         
@@ -642,7 +652,7 @@ class FeatureExtractor(object):
         if fe_name:
             fe = FeatureExtractor.query.filter_by(name=unicode(fe_name)).first()
             if fe: return str(fe_name) + ' (' + str(fe.fname) + ') found: ' + str(fe.description)
-            else: return "No feature extractor found with name {0}".format(fe_name)
+            else: return "No feature extractor found with name %s" % fe_name
             
         else:
             fes = FeatureExtractor.query.all()
