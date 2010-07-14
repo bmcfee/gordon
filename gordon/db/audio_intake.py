@@ -61,7 +61,7 @@ def _store_annotations(audiofile, track, all_md=False):
         if id3.isValidMP3(audiofile):
             #extract all ID3 tags, store each tag value as an annotation type id3.[tagname]
             for tag in id3.getAllTags(audiofile, skipTrackFields=True): # this skips the 4 basic tags already in track
-                track.annotations.append(Annotation(type='id3', annotation=tag[0], value=tag[1]))
+                track.annotations.append(Annotation(type='id3', name=tag[0], value=tag[1]))
                 annots += 1
     
         #future todo: apply tagpy or other method to extract more metadata formats
@@ -83,7 +83,7 @@ def _store_annotations(audiofile, track, all_md=False):
                 # copy text (file content) to new track annotation (type txt.[ext])
                 txt=open(simfile)
                 (xxx, ext) = os.path.splitext(simfile)
-                track.annotations.append(Annotation(type='txt', annotation=ext[1:], value=txt.read()))
+                track.annotations.append(Annotation(type='text', name=ext[1:], value=txt.read()))
                 annots += 1
         finally:
             if type(txt)==file: txt.close()

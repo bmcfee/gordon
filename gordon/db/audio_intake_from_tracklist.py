@@ -58,20 +58,21 @@ def add_track(trackpath, source=str(datetime.date.today()),
     (path, filename) = os.path.split(trackpath) 
     (fname, ext) = os.path.splitext(filename)
 
-    log.debug('    Adding file "%s" of "%s" album by %s', filename, album, artist)
+    log.debug('Adding file "%s" of "%s" album by %s', filename, album, artist)
     
     # validations
     if 'album' not in tag_dict:
         #todo: currently cannot add singleton files. Need an album which is defined in tag_dict
-        log.error('    Cannot add "%s" because it is not part of an album', filename)
+        log.error('Cannot add "%s" because it is not part of an album',
+                  filename)
         return -1 # didn't add
     if not os.path.isfile(trackpath):
-        log.info('    Skipping %s because it is not a file', filename)
+        log.info('Skipping %s because it is not a file', filename)
         return -1 # not a file
     try:
         AudioFile(trackpath).read(tlen_sec=0.01)
     except:
-        log.error('    Skipping "%s" because it is not a valid audio file', filename)
+        log.error('Skipping "%s" because it is not a valid audio file', filename)
         return -1 # not an audio file
 
     # required data
@@ -105,7 +106,7 @@ def add_track(trackpath, source=str(datetime.date.today()),
     # add data
     add(track) # needed to get a track id
     commit() #to get our track id we need to write this record
-    log.debug('    Wrote track record %s to database', track.id)
+    log.debug('Wrote track record %s to database', track.id)
 
     if fast_import :
         track.secs = -1
@@ -118,21 +119,21 @@ def add_track(trackpath, source=str(datetime.date.today()),
 
     # links track to artist & album in DB
     if artist:
-        log.debug('    Linking %s to artist %s', track, artist)
+        log.debug('Linking %s to artist %s', track, artist)
         track.artist = artist.name
         track.artists.append(artist)
     if album:
-        log.debug('    Linking %s to album %s', track, album)
+        log.debug('Linking %s to album %s', track, album)
         track.album = album.name
         track.albums.append(album)
 
 #    commit() # save (again) the track record (this time having the track id)
-    log.debug('    Wrote album and artist additions to track into database')
+    log.debug('Wrote album and artist additions to track into database')
 
     # copy the file to the Gordon audio/feature data directory
     tgt = os.path.join(gordonDir, 'audio', 'main', track.path)
     make_subdirs_and_copy(trackpath, tgt)
-    log.debug('    Copied "%s" to %s', trackpath, tgt)
+    log.debug('Copied "%s" to %s', trackpath, tgt)
     
     # add annotations
     
@@ -142,14 +143,14 @@ def add_track(trackpath, source=str(datetime.date.today()),
     del(tag_dict[u'tracknum'])
     del(tag_dict[u'compilation'])
     for tagkey, tagval in tag_dict.iteritems(): # create remaining annotations
-        track.annotations.append(Annotation(type='txt', annotation=tagkey, value=tagval))
+        track.annotations.append(Annotation(type='text', name=tagkey, value=tagval))
     
     if all_md:
         #chek if file is mp3. if so:
         if isValidMP3(trackpath):
             #extract all ID3 tags, store each tag value as an annotation type id3.[tagname]
             for tag in getAllTags(trackpath):
-                track.annotations.append(Annotation(type='id3', annotation=tag[0], value=tag[1]))
+                track.annotations.append(Annotation(type='id3', name=tag[0], value=tag[1]))
         
         #todo: work with more metadata formats (use tagpy?)
     
@@ -189,7 +190,8 @@ def _read_csv_tags(cwd, csv=None):
         if not headers: # first valid line is the header
             line=[l.strip() for l in line]
             if not line[:6]==['filepath','title','artist','album','tracknum','compilation']:
-                log.error('  CSV headers are incorrect at l:%d.', csvfile.line_num)
+                log.error('CSV headers are incorrect at line %d.',
+                          csvfile.line_num)
                 return False
             headers = [unicode(x) for x in line]
             continue
@@ -207,11 +209,12 @@ def _read_csv_tags(cwd, csv=None):
             if headers[col] == u'tracknum': # prepare for smallint in the DB
                 try: tags[filepath][u'tracknum'] = int(value)
                 except: tags[filepath][u'tracknum'] = 0
-                
             elif headers[col] == u'compilation': # prepare for bool in the DB
-                line[col] = value.lower()
-                tags[filepath][u'compilation'] = True if value=='true' or value=='1' else False
-                
+                if value.lower()=='true' or value=='1':
+                    value = True
+                else:
+                    value = False
+                tags[filepath][u'compilation'] = value
             elif os.path.isfile(value):
                 if not is_binary(value):
                     try:
@@ -219,12 +222,13 @@ def _read_csv_tags(cwd, csv=None):
                         tags[filepath][headers[col]] = unicode(txt.read())
                         txt.close()
                     except:
-                        log.error('  Error opening %s file in $s annotation at l:%d', (value, headers[col], csvfile.line_num))
-                                  value, headers[col], csvfile.line_num)
+                        log.error('Error opening %s file %s at line %d',
+                                  headers[col], value, csvfile.line_num)
                         tags[filepath][headers[col]] = unicode(value)
-                    log.debug('  File %s in $s annotation is not text at l:%d', (value, headers[col], csvfile.line_num))
-                    log.debug('  File %s in $s annotation is not text at l:%d',
-                              value, headers[col], csvfile.line_num)
+                else:
+                    log.debug('%s file %s at line %d appears to be binary, '
+                              'not importing', headers[col], value,
+                              csvfile.line_num)
                     tags[filepath][headers[col]] = unicode(value)
             else:
                 try:
@@ -240,7 +244,7 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()),
               gordonDir=DEF_GORDON_DIR, prompt_aname=False, import_md=False):
     """Add an album from a list of metadata in <tags_dicts> v "1.0 CSV"
     """
-    log.debug('  Adding album "%s" - add_album()', album_name)
+    log.debug('Adding album "%s"', album_name)
     
     # create set of artists from tag_dicts
     
@@ -249,13 +253,13 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()),
         artists.add(track['artist'])
     
     if len(artists) == 0:
-        log.debug('  Nothing to add')
+        log.debug('Nothing to add')
         return # no songs
     else:
-        log.debug('  %d artists in directory: %s', len(artists), artists)
+        log.debug('Found %d artists in directory: %s', len(artists), artists)
     
     #add album to Album table
-    log.debug('  Album has %d tracks', len(tags_dicts))
+    log.debug('Album has %d tracks', len(tags_dicts))
     albumrec = Album(name = album_name, trackcount = len(tags_dicts))
 
     #if we have an *exact* string match we will use the existing artist
@@ -282,18 +286,18 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()),
     commit()
 
     # Now add our tracks to album.
-    for filename in tags_dicts.keys() :
+    for filename in sorted(tags_dicts.keys()):
         add_track(filename, source, gordonDir, tags_dicts[filename],
                   artist_dict[tags_dicts[filename][u'artist']], albumrec,
                   fast_import, import_md)
-        log.debug('  Added "%s"!', filename)
+        log.debug('Added "%s"', filename)
 
     #now update our track counts
     for aname, artist in artist_dict.iteritems() :
         artist.update_trackcount()
-        log.debug('  * Updated trackcount for artist %s', artist)
+        log.debug('Updated trackcount for artist %s', artist)
     albumrec.update_trackcount()
-    log.debug('  * Updated trackcount for album %s', albumrec)
+    log.debug('Updated trackcount for album %s', albumrec)
     commit()
 
 
@@ -316,18 +320,23 @@ def add_collection_from_csv_file(csvfile, source=str(datetime.date.today()),
         albums[x['album']][filename] = x
 
     ntracks = 1
-    for albumname, tracks in albums.iteritems():
+    for albumname in sorted(albums):
+        tracks = albums[albumname]
         # tracks is a 2D dict[<file-name>][<tag>] for a single album.
         if not doit:
             print 'Would import album "%s"' % albumname
-            for track in tracks:
-                print ('  Would import file %d: "%s" (metadata: %s)'
-                       % (ntracks, track, albums[albumname][track]))
+            for track in sorted(tracks):
+                print '  Would import file %d: "%s"' % (ntracks, track)
+                for key, value in tracks[track].iteritems():
+                    strvalue = '%s' % value
+                    if '\n' in strvalue:
+                        strvalue = '%s ...' % strvalue.split('\n')[0]
+                    print '    %s: %s' % (key, strvalue)
                 ntracks += 1
         else:
             add_album(albumname, tracks, source, gordonDir, prompt_incompletes, fast_import)
     
-    log.info('audio_intake.py: Finished!')
+    print 'Finished'
 
 
 
@@ -372,7 +381,7 @@ if __name__ == '__main__':
     try: import_md = True if int(sys.argv[4]) == 1 else False
     except: import_md = False
 
-    log.info('audio_intake_from_csv.py: using <source>'+' "'+source+'", <csvfile> %s'%csvfile)
+    log.info('Importing audio from tracklist %s (source=%s)', csvfile, source)
     add_collection_from_csv_file(csvfile, source=source,
                                  prompt_incompletes=prompt_incompletes,
                                  doit=doit, fast_import=fast_import,

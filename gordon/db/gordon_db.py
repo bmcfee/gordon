@@ -42,9 +42,7 @@ from gordon.io import AudioFile
 
 
 log = logging.getLogger('gordon')
-log.info('gordon_db.py: using gordon directory {0}'.format(DEF_GORDON_DIR))
-#todo: replace all prints with logging
-
+log.info('Using gordon directory %s', DEF_GORDON_DIR)
 
 
 #------------------
@@ -944,19 +942,22 @@ def slashify(fname) :
 
 
 
-def add_to_collection(tracks, source):
-    """Adds a python collection of SQLA Track objects to a given Gordon collection (by source name)
+def add_to_collection(tracks, name):
+    """Adds a python collection of SQLA Track objects to a given Gordon collection (by name)
     @raise AttributeError: when the <tracks> passed are not gordon.db.model.Track (sqla) instances
     @author: Jorge Orpinel <jorge@orpinel.com>"""
     
-    collection = Collection.query.filter_by(source=source).first()
-    if not collection: collection = Collection(source=source) # creates the collection if non existant
+    collection = Collection.query.filter_by(name=name).first()
+    if not collection:
+        # Create the collection if non existant.
+        collection = Collection(name=name)
     
     for track in tracks:
         try:
             collection.tracks.append(track)
         except AttributeError:
-            log.warning('Warning: A track sent are not gordon.db.model.Track instances. Skipping {0}'.format(track))
+            log.warning('Track %s does not appear to be a gordon Track. '
+                        'Skipping...', track)
             raise
         
     commit()
@@ -964,7 +965,6 @@ def add_to_collection(tracks, source):
     return collection
 
 def is_binary(filename):
-
     """Return true if the given filename is binary.
     @raise EnvironmentError: if the file does not exist or cannot be accessed.
     @attention: found @ http://bytes.com/topic/python/answers/21222-determine-file-type-binary-text on 6/08/2010
@@ -973,7 +973,7 @@ def is_binary(filename):
     
     try: fin = open(filename, 'rb')
     except EnvironmentError:
-        log.error("Can't open {0}!".format(filename))
+        log.error("Can't open %s.", filename)
         raise
     
     try:
