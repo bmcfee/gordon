@@ -34,7 +34,7 @@ from time import sleep
 from traceback import print_exc
 from unicodedata import decomposition, normalize
 
-from gordon.db.model import (Artist, Album, Track, Collection, FeatureExtractor,
+from gordon.db.model import (Artist, Album, Annotation, Track, Collection, FeatureExtractor,
                              session, commit, album, Mbalbum_recommend,
                              execute_raw_sql)
 from gordon.db.config import DEF_GORDON_DIR, DEF_DBUSER, DEF_DBPASS, DEF_DBHOST
