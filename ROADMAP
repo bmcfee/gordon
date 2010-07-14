@@ -29,11 +29,12 @@ Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
  + add fe.describe()                                                          OK
  + restructure project code?                                                 ... v1.x
  
-Future (JULY? AUG?)                                                               ...
+Future (JULY? AUG?)                                                          ...
 
- * integrate with Ho-Hsiang Flash app (socket server, see http://blog.pettomato.com/?p=9)
+ * integrate with Ho-Hsiang Flash app (see http://blog.pettomato.com/?p=9)   ???
  * full Gordon manual                                                        ???
- + add Annotation support to webapp                                          ???
- + add FeatureExtractor support to webapp                                    ???
+ + Dive into webapp                                                          ...
+   - add Annotation support to webapp                                        
+   - add FeatureExtractor support to webapp                                  
 
  

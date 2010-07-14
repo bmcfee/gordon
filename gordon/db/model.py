@@ -619,13 +619,23 @@ class FeatureExtractor(object):
         @raise TypeError: when a FE property is corrupt
         '''
         
+#        if type(self.imports) in (str, unicode): # only is there's an import-list
+#            try:
+#                modules = map(__import__, list(i.strip() for i in self.imports.split(',')))
+#                log.debug("imported modules:\n%s", modules)
+#            except:
+#                log.error("Something went wrong while trying to import the feature extractor dependencies (%s)" % self.imports)
+#                raise
+#        
         if type(self.fdefcode) in (str, unicode):
             try:
-                # __import__ ???
+#                for m in range(0, len(modules)):
+#                    self.fdefcode = self.fdefcode.replace(modules[m].__name__+'.', 'modules['+str(m)+'].')
+#                log.debug('replaced fdefcode:\n%s', self.fdefcode)
                 exec self.fdefcode # should define the function, import stmts have no effect
             except: # Happens if the code is invalid or causes trouble (eg different Py versions or environments)
-                log.error("Something went wrong while trying to initialize the \
-                           feature extractor %s" % self.name)
+#                #to do: try with the unreplaced one fdefcode
+                log.error("Something went wrong while trying to initialize the feature extractor. Please check definition code.")
                 raise
         else: raise TypeError("Feature Extractor definition-code is not a string (it's probably empty)")
         
@@ -636,10 +646,10 @@ class FeatureExtractor(object):
                 params = [track, args, kwargs]
                 if not args: params.remove(args)
                 if not kwargs: params.remove(kwargs)
+#                log.debug('executing:\n%s(%s)', function.__name__, str(params))
                 return function(*params)
             except: # might happen eg if the fdefcode was not a fname function definition, even when it threw no error
-                log.error("Something didn't work when evaluating the feature \
-                           extractor function name and the given parameters")
+                log.error("Something didn't work when evaluating the feature extractor function name and the given parameters")
                 raise
         else: raise TypeError("Feature Extractor function-name is not a string (it's probably empty)")
     
