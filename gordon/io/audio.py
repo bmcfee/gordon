@@ -300,9 +300,11 @@ class AudioFile(object):
             downsamp=''
             self.fs=self.fs_file    #we trust the sampling rate stored in the file
 
-        cmd = 'ffmpeg -i "%s" %s %s -f s16le 2>/dev/null -' % (self.fn, downsamp, timing)
+        devnul = 'nul' if os.name is 'nt' else '/dev/null'
+        cmd = 'ffmpeg -i "%s" %s %s -f s16le 2>%s -' % (self.fn, downsamp, timing, devnul)
         self.last_cmd = cmd
-        #jorgeorpinel: NOTE - /dev/null in Windows simply make ffmpeg say "The system cannot find the path specified." to stderr
+        #todo: /dev/null doesn't work in Windows.
+        #It make ffmpeg fail and say "The system cannot find the path specified." to stderr
 
         #Doug: This is faster than previous version because it does not allocate twice...
         x=numpy.fromstring(self._command_with_output(cmd),'short').astype('float')/float(32768)

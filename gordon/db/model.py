@@ -254,8 +254,9 @@ feature_extractor =  Table('feature_extractor', metadata,
     Column(u'id', Integer(), autoincrement=True, nullable=False, primary_key=True, index=True, unique=True),
     Column(u'name', Unicode(length=256)),
     Column(u'description', UnicodeText()),
-    Column(u'fname', UnicodeText(), ),
     Column(u'fdefcode', UnicodeText()),
+    Column(u'imports', UnicodeText(), ),
+    Column(u'fname', UnicodeText(256), ),
     )
 
 
@@ -609,7 +610,9 @@ class FeatureExtractor(object):
         '''
         
         if type(self.fdefcode) in (str, unicode):
-            try: exec self.fdefcode # should define the function, dependency imports may be included here
+            try:
+                # __import__ ???
+                exec self.fdefcode # should define the function, import stmts have no effect
             except: # Happens if the code is invalid or causes trouble (eg different Py versions or environments)
                 log.error("Something went wrong while trying to initialize the \
                            feature extractor {0}".format(self.name))
@@ -643,7 +646,9 @@ class FeatureExtractor(object):
             
         else:
             fes = FeatureExtractor.query.all()
-            return '\n'.join(list(str(fe.name) + ' ('+str(fe.fname)+'): ' + str(fe.description) for fe in fes))
+            all = '\n'.join(list(str(fe.name) + ' ('+str(fe.fname)+'): ' + str(fe.description) for fe in fes))
+            print all
+            return all
     
 
 mapper(AlbumTrack,album_track)
