@@ -255,7 +255,6 @@ feature_extractor =  Table('feature_extractor', metadata,
     Column(u'name', Unicode(length=256)),
     Column(u'description', UnicodeText()),
     Column(u'fdefcode', UnicodeText()),
-    Column(u'imports', UnicodeText(), ),
     Column(u'fname', UnicodeText(256), ),
     )
 

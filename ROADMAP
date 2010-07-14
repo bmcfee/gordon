@@ -27,6 +27,7 @@ Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
 
  * implement/clean-up _feature_ extraction                                    OK
  + add fe.describe()                                                          OK
+ + auto extract fname from fdefcode                                          ???
  + restructure project code?                                                 ... v1.x
  
 Future (JULY? AUG?)                                                          ...
