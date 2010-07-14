@@ -65,31 +65,22 @@ Audio file info: <span py:replace="commands.getoutput(cmd)"/> (${track.bytes} by
       <tr valign="top" class="even">
         <td>${a.name}</td>
         <td>
+          <div id="annotation_${a.name}_text">
           <?python annotation_lines = a.value.split('\n') ?>
           <span py:for="line in annotation_lines">
             ${line}
             <br/>
           </span>
-        </td>
-        <td>${a.type}</td>
-      </tr>
-    </span>
-  </tbody>
-</table>
+          </div>
 
-<br/>
-
-<div py:if="htk_annotation_data">
-<hr/>
-<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+          <div py:if="a.name in htk_annotation_datatables">
+     <script type="text/javascript" src="http://www.google.com/jsapi"></script>
 <script type="text/javascript">
   google.load('visualization', '1', {'packages':['annotatedtimeline']});
   
-  google.setOnLoadCallback(drawChart);
-  
-  function drawChart() {
-    <span py:replace="htk_annotation_data"/>
-    var chart = new google.visualization.AnnotatedTimeLine(document.getElementById('htk_annotations_chart'));
+  google.setOnLoadCallback(function () {
+    <span py:replace="htk_annotation_datatables[a.name]"/>
+    var chart = new google.visualization.AnnotatedTimeLine(document.getElementById('annotation_${a.name}_widget'));
     chart.draw(data, {'dateFormat': 'mm:ss', 'thickness': 3, 'fill': 50,
                       'annotationsWidth': 10, 'displayAnnotations': true,
                       'displayZoomButtons': false});
@@ -102,39 +93,20 @@ Audio file info: <span py:replace="commands.getoutput(cmd)"/> (${track.bytes} by
                                           time.getDate(), 0, 0, 0, 0));
       YAHOO.MediaPlayer.play(YAHOO.MediaPlayer.mediaObject, milliseconds)
     }
-
-    // Create controls to toggle different annotations.
-
-    function get_handler(checkbox, x) {
-      return function () {
-        if(checkbox.checked) {
-          chart.showDataColumns(x);
-        } else {
-          chart.hideDataColumns(x);
-        }
-      };
-    }
-
-    form = document.getElementById("htk_annotations_chart_controls");
-    for (var x = 2; x &lt; data.getNumberOfColumns(); x += 2) {
-      var label = data.getColumnLabel(x);
-
-      var checkbox = document.createElement("input");
-      checkbox.name = label;
-      checkbox.type = "checkbox";
-      checkbox.checked = true;
-      checkbox.onclick = get_handler(checkbox, x / 2 - 1);
-
-      form.appendChild(checkbox);
-      form.appendChild(document.createTextNode(label));
-    }
-  }
+  });
 </script>
 
-<form id="htk_annotations_chart_controls">Show: </form>
-<div id="htk_annotations_chart" style="width: 700px; height: 250px;"/>
-<hr/>
-</div>
+<div id="annotation_${a.name}_widget" style="width: 500px; height: 250px;"/>
+
+        </div>
+        </td>
+
+        <td>${a.type}</td>
+      </tr>
+    </span>
+  </tbody>
+</table>
+
 
 </div>
 

@@ -293,16 +293,17 @@ class Root(controllers.RootController):
             track_mb_id_link=''
 
         try:
-            htk_annotation_data = widgets.generate_htk_annotation_data_for_track(track)
+            htk_annotation_datatables = (
+                widgets.generate_htk_annotation_datatables_for_track(track))
         except:
-            htk_annotation_data = False;
+            htk_annotation_datatables = False;
 
         return dict(track_widget=track_widget,track_widget_data=track_widget_data,track=track,afeat_graph=afeat_graph,
                     alternate_action=alternate_action,artist_widget=artist_datagrid,artists=track.artists,track_time=track_time,
                     album_widget=album_datagrid,albums=track.albums,
                     collection_widget=collection_datagrid,collections=track.collections,
                     yahoo_url=yahoo_url,feat_urllist=feat_urllist,track_mb_id_link=track_mb_id_link,
-                    htk_annotation_data=htk_annotation_data)
+                    htk_annotation_datatables=htk_annotation_datatables)
 
 
     @expose(template='gordonweb.templates.tracks')

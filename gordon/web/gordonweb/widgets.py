@@ -782,8 +782,7 @@ def get_track_audio_extension(track):
     root, ext = os.path.splitext(track.fn_audio)
     return ext[1:]
 
-
-def generate_htk_annotation_data_for_track(track):
+def generate_htk_annotation_datatable_for_track_old(track):
     header = [('datetime', 'Time')]
     rows = collections.defaultdict(list)
     for n, a in enumerate(track.annotations):
@@ -829,4 +828,61 @@ def generate_htk_annotation_data_for_track(track):
             data_strs.append("data.setValue(%d,%d, %s);" % (n, 2*plot+1, yval))
             if label:
                 data_strs.append("data.setValue(%d,%d, %s);" % (n, 2*plot+2, label))
-    return "\n".join(data_strs)
+    return " ".join(data_strs)
+
+def generate_htk_annotation_datatables_for_track(track):
+    return dict((x.name, generate_htk_annotation_datatable(x))
+                for x in track.annotations if x.type.lower() == 'htk')
+
+def generate_htk_annotation_datatable(annotation):
+    header = [('datetime', 'Time')]
+
+    # Create one-to-one mapping from labels to integers.
+    labels = []
+    for line in annotation.value.split('\n'):
+        if not line:
+            continue
+        fields = line.split()
+        label = ' '.join(fields[2:])
+        if not label in labels:
+            labels.append(label)
+            header.append(('number', label))
+            header.append(('string', label))
+
+    # Group times into repetitions of the same label.
+    rows = collections.defaultdict(list)
+    for line in annotation.value.split('\n'):
+        if not line:
+            continue
+        fields = line.split()
+        starttime, endtime = [float(x) for x in fields[:2]]
+        label = ' '.join(fields[2:])
+        labelnum = labels.index(label)
+        # Make sure the label is at 0 before the onset.
+        rows[starttime-1e-3].append((labelnum, 0, None))
+        # Event onset.
+        rows[starttime].append((labelnum, 1, "'%s'" % label))
+        # Event offset - don't use the exact end time, or the
+        # widget will get confused if another label starts immediately
+        # after this one ends.
+        if endtime > starttime:
+            rows[endtime-2e-3].append((labelnum, 1, None))
+            rows[endtime-1.5e-3].append((labelnum, 0, None))
+        else:
+            rows[endtime+1e-3].append((labelnum, 0, None))
+
+    # Format labels as a javascript array.  See here for an example:
+    # http://code.google.com/apis/visualization/documentation/gallery/annotatedtimeline.html#Example
+
+    data_strs = ["var data = new google.visualization.DataTable();"]
+    for type, name in header:
+        data_strs.append("data.addColumn('%s', '%s');" % (type, name))
+    data_strs.append("data.addRows(%d);" % (len(rows)))
+    for n, time in enumerate(sorted(rows)):
+        for plot, yval, label in rows[time]: 
+            currpt = ["data.setValue(%d,0, new Date(0,0,0,0,0,%f,0));" % (n, time),
+                      "data.setValue(%d,%d, %s);" % (n, 2*plot+1, yval)]
+            if label:
+                currpt.append("data.setValue(%d,%d, %s);" % (n, 2*plot+2, label))
+        data_strs.append("  ".join(currpt))
+    return " ".join(data_strs)
