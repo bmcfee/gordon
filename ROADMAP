@@ -4,7 +4,7 @@ Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
 
  * read text file to extract wav tags - this means work wavs with ffmpeg      OK
  * work with aif                                                              OK
- * extract all tags from all taggy formats                                   ... see 2.1 as well
+ * extract all tags from all taggy formats (replace eyeD3 w/ TagPy)          ... see 2.1 as well
 
 1 Immediate future : projected APR 23                                         OK v0.3
 
@@ -20,22 +20,37 @@ Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
   2.2 function to add arbitrary text files as annotations                     OK
   3 inter-relationships (eg covers) - create add_to_collection(tracks)        OK
   + add track.get_annotation('name')                                          OK
+  + support Annotations for Albums or Artists                                ...
+  + kill Annotations.type
   * improve tracklist format (see bitbucket issue #11)                       ...
   + think about MIDI (binary) annotations
 
-3 Summer I : projected JUNE                                                   OK v0.5
+3 Summer I : JUNE-JULY                                                        OK v0.5
 
- * implement/clean-up _feature_ extraction                                    OK
+ * implement/clean-up _feature_ extraction                                   ...
  + add fe.describe()                                                          OK
  + auto extract fname from fdefcode                                          ???
+ + cache features (use pytables & a h5 files for all cached features per FE) ...
  + restructure project code?                                                 ... v1.x
+ ? test features with mlabwrap.mlab (apy25) on Win
  
-Future (JULY? AUG?)                                                          ...
+Future (by SEPT ?)                                                          ...
 
  * integrate with Ho-Hsiang Flash app (see http://blog.pettomato.com/?p=9)   ???
- * full Gordon manual                                                        ???
+ * full Gordon 1.0 manual                                                    ???
+ + get PyGreSQL (4 musbrainz), TurboGears (4 webapp)                         ...
+ + get TagPy (4 tracklists) - compile Taglib? and Boost.Python (win);        ???
+   ? get frontend working - compile libsamplerate (SRS) and libsndfile
+   ? compile mlabwrap (1.1+) 4 py26 (http://obasic.net/how-to-install-mlabwrap-on-windows)
  + Dive into webapp                                                          ...
+   - add full Collections support to webapp?                                 
    - add Annotation support to webapp                                        
    - add FeatureExtractor support to webapp                                  
 
+
+
+Version 2 ?
+ 
+ * support auto-make of non-python libraries (4 features)
+ 
  
