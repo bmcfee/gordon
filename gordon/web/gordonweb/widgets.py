@@ -809,7 +809,6 @@ def generate_htk_annotation_datatable(annotation):
         header.append(('string', annotation.name))
         add_points_fun = _add_points_assuming_numeric_labels
     except ValueError:
-        labels_are_numbers = False
         for label in labels:
             header.append(('number', label))
             header.append(('string', label))
@@ -857,10 +856,11 @@ def _add_points_assuming_string_labels(rows, starttime, endtime, label, labelnum
 
 
 def _add_points_assuming_numeric_labels(rows, starttime, endtime, label, labelnum):
+    yval = float(label)
     # Event onset
-    rows[starttime].append((0, labelnum, "'%s'" % label))
+    rows[starttime].append((0, yval, "'%s'" % label))
     # Event offset - don't use the exact end time or the widget
     # will get confused.
-    rows[endtime-1e-9].append((0, labelnum, None))
+    rows[endtime-1e-9].append((0, yval, None))
 
 
