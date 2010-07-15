@@ -220,21 +220,6 @@ annotation =  Table('annotation', metadata,
 Index('annotation_pkey', annotation.c.id, unique=True)
 Index('annotation_track_idx', annotation.c.track_id, unique=False)
 
-
-album_collection =  Table('album_collection', metadata,
-    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-    Column(u'album_id', Integer(), ForeignKey('album.id')),
-    Column(u'collection_id', Integer(), ForeignKey('collection.id')),
-    )
-#Index('album2collection_id_idx', album_collection.c.id, unique=True)
-
-artist_collection =  Table('artist_collection', metadata,
-    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-    Column(u'artist_id', Integer(), ForeignKey('artist.id')),
-    Column(u'collection_id', Integer(), ForeignKey('collection.id')),
-    )
-#Index('artist2collection_id_idx', artist_collection.c.id, unique=True)
-
 collection_track =  Table('collection_track', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
     Column(u'collection_id', Integer(), ForeignKey('collection.id')),
@@ -374,8 +359,8 @@ class Track(object) :
         params = [self, args, kwargs]
         if not args: params.remove(args)
         if not kwargs: params.remove(kwargs)
-        try: return feature_extractor.extract_features(*params)
-        except: raise
+        return feature_extractor.extract_features(*params)
+
     
     def _get_fn_feature(self,gordonDir='') :
         """Returns absolute path to feature file.
@@ -707,15 +692,13 @@ mapper(Mbalbum_recommend,mbalbum_recommend)
 
 mapper(Collection, collection,
     properties={
-       'albums':  relation(Album,  secondary=album_collection,  order_by=Album.name, backref='collections'),
-       'artists': relation(Artist, secondary=artist_collection, order_by=Artist.name, backref='collections'),
        'tracks':  relation(Track,  secondary=collection_track,  order_by=Track.tracknum, backref='collections'),
     }
 )
 
 mapper(Annotation, annotation,
     properties={
-       'track': relation(Track, backref=backref('annotations', order_by='annotation.type')),
+       'track': relation(Track, backref=backref('annotations', order_by='annotation.name')),
     }
 )
 
