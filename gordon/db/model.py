@@ -216,7 +216,6 @@ Index('track_title_idx', track.c.title, unique=False)
 annotation =  Table('annotation', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
     Column(u'track_id', Integer(), ForeignKey('track.id'),  nullable=False),
-    Column(u'type', Unicode(length=256), default=u'', primary_key=False),
     Column(u'name', Unicode(length=256),default=u'',  primary_key=False),
     Column(u'value', UnicodeText()),
     )
@@ -397,14 +396,13 @@ class Track(object) :
             make_subdirs_and_move(srcF, dstF)
             log.debug('Moved', srcF, 'to', dstF)
 
-    def add_annotation(self, name, value, type='text'):
+    def add_annotation(self, name, value):
         """Creates an Annotation for the track
 
         @return: the annotation
         @param name: annotation.name field [varchar(256)]
         @param value: annotation.value field [text]
-        @param type: annotation.type field [varchar(256)]"""
-        annot = Annotation(name, value, type)
+        annot = Annotation(name, value)
         self.annotations.append(annot)
         
         commit()
@@ -419,7 +417,7 @@ class Track(object) :
         @param filepath: path to the external file in the file system"""
         text = open(filepath)
         (path, filename) = os.path.split(filepath)
-        annot = Annotation(name=name, value=text.read(), type='text')
+        annot = Annotation(name=name, value=text.read())
         self.annotations.append(annot)
         text.close()
         
@@ -572,8 +570,8 @@ class Annotation(object):
         if not self.id: return '<Empty Annotation>'
         long=False
         if len(self.value) > 32: long=True
-        return ('<Annotation (type=%s) %s: %s%s>' 
-                 % (self.type, self.name, self.value[:16],
+        return ('<Annotation "%s": %s%s>' 
+                 % (self.name, self.value[:16],
                     '...' if long else ''))
     
 
