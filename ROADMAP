@@ -4,7 +4,7 @@ Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
 
  * read text file to extract wav tags - this means work wavs with ffmpeg      OK
  * work with aif                                                              OK
- * extract all tags from all taggy formats                                 EXTRA see 2.1 as well
+ * extract all tags from all taggy formats                                   ... see 2.1 as well
 
 1 Immediate future : projected APR 23                                         OK v0.3
 
@@ -15,22 +15,27 @@ Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
  * implement _annotation_ file association to tracks                          OK
    annotation types: (add track_annotation table)
   0 DB structure (create annotation table)                                    OK
-  1 all (metadata) tags * normalize with annotation_type table?	           EXTRA see 0 3rd *
+  1 all (metadata) tags * normalize with annotation_type table?	             ... see 0 3rd *
   2 time-values (eg HTK .lab) files *check psql variable length coltypes      OK
   2.2 function to add arbitrary text files as annotations                     OK
   3 inter-relationships (eg covers) - create add_to_collection(tracks)        OK
-  * add track.getAnnotation('name')                                          ...
-  * improve tracklist format (see bitbucket issue #11)
+  + add track.get_annotation('name')                                          OK
+  * improve tracklist format (see bitbucket issue #11)                       ...
   + think about MIDI (binary) annotations
-  + consider using textual python dictionaries / JSON instead of CSV textfiles
 
-3 Summer I : projected JUNE                                              CURRENT v0.5
+3 Summer I : projected JUNE                                                   OK v0.5
 
- * implement/clean-up _feature_ extraction                                   ...
- + restructure project code?                                                 ??? v2.x
+ * implement/clean-up _feature_ extraction                                    OK
+ + add fe.describe()                                                          OK
+ + auto extract fname from fdefcode                                          ???
+ + restructure project code?                                                 ... v1.x
  
-Future (JULY?)                                                               ...
+Future (JULY? AUG?)                                                          ...
 
- * integrate with Ho-Hsiang Flash app (socket server, see http://blog.pettomato.com/?p=9)
- + add annotation edition from webapp
+ * integrate with Ho-Hsiang Flash app (see http://blog.pettomato.com/?p=9)   ???
+ * full Gordon manual                                                        ???
+ + Dive into webapp                                                          ...
+   - add Annotation support to webapp                                        
+   - add FeatureExtractor support to webapp                                  
+
  

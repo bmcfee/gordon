@@ -19,12 +19,12 @@
 
 import os, glob, logging
 
+from datetime import datetime
 from sqlalchemy import (Table, Column, ForeignKey, String, Unicode, Integer,
                         Index, Float, SmallInteger, Boolean, DateTime,
                         UnicodeText, Binary)
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import relation, sessionmaker, MapperExtension, backref
-from datetime import datetime
 
 from gordon.io import AudioFile
 from gordon.db import config
@@ -254,8 +254,8 @@ feature_extractor =  Table('feature_extractor', metadata,
     Column(u'id', Integer(), autoincrement=True, nullable=False, primary_key=True, index=True, unique=True),
     Column(u'name', Unicode(length=256)),
     Column(u'description', UnicodeText()),
-    Column(u'function', Binary(), ),
-    Column(u'code', UnicodeText()),
+    Column(u'fdefcode', UnicodeText()),
+    Column(u'fname', UnicodeText(256), ),
     )
 
 
@@ -327,6 +327,9 @@ class Track(object) :
         st= '<Track %i %s by %s from %s>' % (self.id,self.title,self.artist,self.album)
         return st.encode('utf-8')
     
+    def __repr__(self):
+        return self.__str__()
+        
     def audio(self,stripzeros='none',mono=False) :
         """Returns audio for file
         Param stripzeros can be 'leading','trailing','both','none'
@@ -356,9 +359,10 @@ class Track(object) :
         root,ext = os.path.splitext(self.path)
         return ext[1:]
     
-    def feature(self, fe_name):
-        """Return signal features for this track, using the feature extractor named <fe_name>, version <fe_ver>
+    def features(self, fe_name, *args, **kwargs):
+        """Return signal features for this track, using the feature extractor named <fe_name>
         @raise NameError: if no <fe_name> FE found in the database
+        @raise Error: whatever FeatureExtractor.extract_features may raise
         @return: the extractor function result"""
         
         feature_extractor = FeatureExtractor.query.filter_by(name=unicode(fe_name)).first()
@@ -367,7 +371,11 @@ class Track(object) :
             log.error('No feature extractor named %s', fe_name)
             raise NameError('No feature extractor named %s', fe_name)
         
-        return fe_name
+        params = [self, args, kwargs]
+        if not args: params.remove(args)
+        if not kwargs: params.remove(kwargs)
+        try: return feature_extractor.extract_features(*params)
+        except: raise
     
     def _get_fn_feature(self,gordonDir='') :
         """Returns absolute path to feature file.
@@ -443,7 +451,17 @@ class Track(object) :
         commit()
         
         return annot
-
+    
+    def get_annotation(self, anot_name):
+        '''Get a track's annotation by name
+        @raise NameError: if no annotation matches <anot_name>'''
+        q = Annotation.query.filter_by(track_id=self.id, name=anot_name)
+        if q.count() > 1: log.warning('This track has more than 1 annotation named "%s"', anot_name)
+        anot = q.first()
+        if anot: return anot
+        else: raise NameError('No annotation named "%s" for this track' % anot_name)
+            
+    
     @property
     def annotation_dict(self):
         """Dictionary of this track's annotations, keyed by Annotation.name."""
@@ -588,6 +606,57 @@ class FeatureExtractor(object):
     def __repr__(self):
         if not self.id: return '<Empty Feature Extractor>'
         return '<Feature Extractor "%s">' % self.name
+    
+    def extract_features(self, track, *args, **kwargs):
+        '''
+        Tries to use the DB stored function (sending it a Gordon <track>),
+        executing its definition code first.
+        * This is not an OS safe operation, we have to be able to trust the DB.
+        Python may execute malicious code.
+        
+        @raise Error: when something goes wrong (FE inconsistencies)'
+        @raise TypeError: when a FE property is corrupt
+        '''
+        
+        if type(self.fdefcode) in (str, unicode):
+            try:
+                exec self.fdefcode # should define the function, import stmts have no effect
+                log.debug('running function definition/import code:\n%s', self.fdefcode)
+            except: # Happens if the code is invalid or causes trouble (eg different Py versions or environments)
+                log.error("Something went wrong while trying to initialize the feature extractor. Please check definition code. Remember to include imports INSIDE the function definition.")
+                raise
+        else: raise TypeError("Feature Extractor definition-code is not a string (it's probably empty)")
+        
+        if type(self.fname) in (str, unicode):
+            function = None
+            try:
+                exec 'function = ' + self.fname
+                params = [track, args, kwargs]
+                if not args: params.remove(args)
+                if not kwargs: params.remove(kwargs)
+                log.debug('executing:\n%s(%s)', function.__name__, str(params))
+                return function(*params)
+            except: # might happen eg if the fdefcode was not a fname function definition, even when it threw no error
+                log.error("Something didn't work when evaluating the feature extractor function name and the given parameters")
+                raise
+        else: raise TypeError("Feature Extractor function-name is not a string (it's probably empty)")
+    
+    @staticmethod
+    def describe(fe_name=None):
+        """Describes a feature extractor
+        * Send no arguments to list all FEs in DB
+        @param fe_name: case sensitive feature_extractor.name (DB) search string (defaults to None)"""
+        
+        if fe_name:
+            fe = FeatureExtractor.query.filter_by(name=unicode(fe_name)).first()
+            if fe: return str(fe_name) + ' (' + str(fe.fname) + ') found: ' + str(fe.description)
+            else: return "No feature extractor found with name %s" % fe_name
+            
+        else:
+            fes = FeatureExtractor.query.all()
+            all = '\n'.join(list(str(fe.name) + ' ('+str(fe.fname)+'): ' + str(fe.description) for fe in fes))
+            print all
+            return all
     
 
 mapper(AlbumTrack,album_track)

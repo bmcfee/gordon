@@ -18,8 +18,11 @@
 # along with Gordon.  If not, see <http://www.gnu.org/licenses/>.
 '''ffmpeg wrapper for reading audio files'''
 
-import os, sys
+import os, sys, logging
 import numpy
+
+
+log = logging.getLogger('gordon.audio') #todo: replace all print with logging
 
 
 
@@ -46,6 +49,16 @@ class AudioFile(object):
            Note: these flags are all None rather than, e.g., 0 or False so that we can set them both in constructor and 
            in the read() method. If read() value is None we leave existing value from constructor.  
         """ 
+        
+        if type(fn) not in (str, unicode):
+            raise TypeError('filepath must be a string')
+        
+        try:
+            if not os.path.exists(fn): raise IOError ('File %s not found' % fn)
+        except:
+            log.error('Could not verify the existence of the path %s.' % fn)
+            raise
+        
         self.fn=fn
         self.mono=mono  
         self.tlast=tlast
@@ -141,7 +154,7 @@ class AudioFile(object):
             raise IOError ('File %s not found' %self.fn )
 
         if self.stats_read :
-            return
+            return [self.secs, self.fs_file,self.chans]
         self.stats_read=True
 
         self.fs_file=None
@@ -220,19 +233,17 @@ class AudioFile(object):
         for future calls to read.
         """
 
-
-        #this is for backward compatability. We have some code that uses None rather than -1 to indicate a missing value
-        #but below our code uses -1
+        # This is for backward compatability. We have some code that uses None
+        # rather than -1 to indicate a missing valuebut below our code uses -1.
         if self.fs_target is None: 
             self.fs_target=-1
-
 
         if not os.path.exists(self.fn) :
             raise IOError ('File %s not found' %self.fn )
 
-        #get defaults from our class if they are not passed in here
-        #this strategy allows us to call read multiple times for same instance and get 
-        #different sampling rates, etc
+        # Get defaults from our class if they are not passed in here.
+        # This strategy allows us to call read multiple times for same instance
+        # and get different sampling rates, etc.
         if fs_target is not None :
             self.fs_target=fs_target
         if mono is not None :
@@ -250,6 +261,7 @@ class AudioFile(object):
 
         #get stats
         self.read_stats()  #get stats (read_stats controls to make sure we don't inefficently read stats twice)
+                           #jorgeorpinel: what if the file changes after 1st read_stats() ?
 
         #this is our hash
         hash=self.fn+'fs_target='+str(self.fs_target)+'%mono='+str(self.mono)+'%tstart_sec='+str(self.tstart_sec)
@@ -260,13 +272,9 @@ class AudioFile(object):
             return (self.x,self.fs,self.svals)
 
 
-
-
         (ignore,stub)=os.path.splitext(self.fn.lower())
         if self.filetypes.count(stub)==0:
             raise ValueError('Cannot read file of type %s' % stub)
-
-
 
         # ffmpeg turns out to be not so accurate with respect to timing. So we 
         # are not trying to do tstart_sec in ffmpeg but rather in tstart_sec is 
@@ -284,7 +292,6 @@ class AudioFile(object):
             if self.tlen_sec is not None:
                 timing='%s -t %4.6f' % (timing, self.tlen_sec + ffmpeg_time_offset)
 
-
         #resample if necessary
         if self.fs_target<>-1 and (self.fs_target <> self.fs_file) :
             downsamp=' -ar %i' % self.fs_target
@@ -293,9 +300,11 @@ class AudioFile(object):
             downsamp=''
             self.fs=self.fs_file    #we trust the sampling rate stored in the file
 
-        cmd = 'ffmpeg -i "%s" %s %s -f s16le 2>/dev/null -' % (self.fn, downsamp, timing)
-        #jorgeorpinel: NOTE - /dev/null in Windows simply make ffmpeg say "The system cannot find the path specified." to stderr
-
+        devnul = 'nul' if os.name is 'nt' else '/dev/null'
+        cmd = 'ffmpeg -i "%s" %s %s -f s16le 2>%s -' % (self.fn, downsamp, timing, devnul)
+        self.last_cmd = cmd
+        #todo: /dev/null doesn't work in Windows.
+        #It make ffmpeg fail and say "The system cannot find the path specified." to stderr
 
         #Doug: This is faster than previous version because it does not allocate twice...
         x=numpy.fromstring(self._command_with_output(cmd),'short').astype('float')/float(32768)
@@ -448,8 +457,10 @@ class AudioFile(object):
     def __str__(self) :
         if self.fs is None:
             self.read_stats()
-        return 'AudioFile %s fs_sequence=%s fs_file=%s fs_target=%s channels=%i secs=%4.4f' % (self.fn, str(self.fs),str(self.fs_file),str(self.fs_target), self.chans, self.secs)
-
+        return '<AudioFile %s fs_sequence=%s fs_file=%s fs_target=%s channels=%i secs=%4.4f>' % (self.fn, str(self.fs),str(self.fs_file),str(self.fs_target), self.chans, self.secs)
+    
+    def __repr__(self):
+        return self.__str__()
 
 def die_with_usage() :
     print 'audio.py [flags] file'
