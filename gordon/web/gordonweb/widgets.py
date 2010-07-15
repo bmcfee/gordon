@@ -861,6 +861,6 @@ def _add_points_assuming_numeric_labels(rows, starttime, endtime, label, labelnu
     rows[starttime].append((0, yval, "'%s'" % label))
     # Event offset - don't use the exact end time or the widget
     # will get confused.
-    rows[endtime-1e-9].append((0, yval, None))
+    rows[endtime-1e-3].append((0, yval, None))
 
 
