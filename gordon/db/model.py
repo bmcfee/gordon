@@ -17,7 +17,7 @@
 
 """Gordon database model"""
 
-import os, glob, logging
+import os, glob, logging, shutil, tempfile, atexit, sys, inspect, imp
 
 from datetime import datetime
 from sqlalchemy import (Table, Column, ForeignKey, String, Unicode, Integer,
@@ -93,7 +93,10 @@ except :
     mapper = session_mapper(Session)
 
 
-
+# Create global temporary directory for use by this instance of
+# gordon.  Make sure it gets removed when we exit.
+TEMPDIR = tempfile.mkdtemp()
+atexit.register(shutil.rmtree, TEMPDIR)
 
 
 mbartist_resolve =  Table('mbartist_resolve', metadata,
@@ -234,16 +237,12 @@ collection = Table('collection', metadata,
     )
 #Index('collection_pkey', collection.c.id, unique=True)
 
-
 feature_extractor =  Table('feature_extractor', metadata,
-    Column(u'id', Integer(), autoincrement=True, nullable=False, primary_key=True, index=True, unique=True),
+    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True, unique=True),
     Column(u'name', Unicode(length=256)),
     Column(u'description', UnicodeText()),
-    Column(u'fdefcode', UnicodeText()),
-    Column(u'fname', UnicodeText(256), ),
+    Column(u'module_path', Unicode(length=512), default=u''),
     )
-
-
 
 
 
@@ -337,30 +336,21 @@ class Track(object) :
         return os.path.join(config.DEF_GORDON_DIR,'audio','main', self.path)
     
     @property
-    def  fn_audio_extension(self) :
+    def fn_audio_extension(self) :
         """File extension of the audio file.
 
         Does *not* verify that the file is actually present!"""
         root,ext = os.path.splitext(self.path)
         return ext[1:]
     
-    def features(self, fe_name, *args, **kwargs):
-        """Return signal features for this track, using the feature extractor named <fe_name>
-        @raise NameError: if no <fe_name> FE found in the database
-        @raise Error: whatever FeatureExtractor.extract_features may raise
-        @return: the extractor function result"""
-        
-        feature_extractor = FeatureExtractor.query.filter_by(name=unicode(fe_name)).first()
-        
+    def features(self, name, *args, **kwargs):
+        """Computes features for this track using the named feature extractor.
+        @raise ValueError: if no FeatureExtractor named <name> is found"""
+        feature_extractor = FeatureExtractor.query.filter_by(name=name).first()
         if not feature_extractor:
-            log.error('No feature extractor named %s', fe_name)
-            raise NameError('No feature extractor named %s', fe_name)
+            raise ValueError('No feature extractor named %s', name)
         
-        params = [self, args, kwargs]
-        if not args: params.remove(args)
-        if not kwargs: params.remove(kwargs)
-        return feature_extractor.extract_features(*params)
-
+        return feature_extractor.extract_features(self, *args, **kwargs)
     
     def _get_fn_feature(self,gordonDir='') :
         """Returns absolute path to feature file.
@@ -588,60 +578,122 @@ class Annotation(object):
     
 
 class FeatureExtractor(object):
+    @staticmethod
+    def _load_module_from_path(path):
+        modulename = inspect.getmodulename(path)
+        f = open(path)
+        module = imp.load_module(modulename, f, path, ('py', 'U', imp.PY_SOURCE))
+        f.close()
+        return module
+
+    @staticmethod
+    def register(name, module_path):
+        """Register a new feature extractor with gordon.
+
+        The feature extractor should live in the module specified by
+        <module_path>.  The module must contain a method called
+        extract_features which takes a track (and any other optional
+        arguments) and returns a set of feature values. This
+        function's docstring is stored in the
+        FeatureExtractor.description column.
+
+        The module will be archived with gordon and reloaded whenever
+        FeatureExtractor.extract_features is called.  The contents of
+        the module's parent directory will also be archived to allow
+        any external dependencies (e.g. libraries such as mlabwrap
+        and/or matlab code) to be stored alongside the module.
+
+        Dependencies that require re-compilation on different
+        architectures should probably be re-compiled (if necessary)
+        whenever the parent module is imported.
+        """
+        module = FeatureExtractor._load_module_from_path(module_path)
+
+        if not 'extract_features' in dir(module):
+            raise ValueError('Feature extractor module must include a '
+                             'function called extract_features')
+
+        featext = FeatureExtractor(name=name,
+                                   description=module.extract_features.__doc__)
+        # The new FeatureExtractor needs to be committed to the database in 
+        # order to get it's id, which we need before we can copy files.
+        commit()
+        
+        try: 
+            featext.module_path = os.path.join(_get_filedir(featext.id),
+                                               str(featext.id),
+                                               'feature_extractor.py')
+
+            module_dir = os.path.dirname(os.path.abspath(module_path))
+            target_module_dir = os.path.dirname(featext.module_fullpath)
+            from gordon_db import make_subdirs
+            make_subdirs(os.path.dirname(target_module_dir))
+            shutil.copytree(module_dir, target_module_dir)
+            
+            # Rename the module file.
+            module_filename = os.path.basename(module_path)
+            shutil.move(os.path.join(target_module_dir, module_filename),
+                        featext.module_fullpath)
+        except:
+            session.delete(featext)
+            commit()
+            raise
+
+        return featext
+
+    @property
+    def module_fullpath(self):
+        """Absolute path to the dependencies for this FeatureExtractor.
+
+        Does *not* verify that the directory is actually present!"""
+        return os.path.join(config.DEF_GORDON_DIR, 'feature_extractors',
+                            self.module_path)
+
+    def _copy_module_to_local_dir(self):
+        local_module_path = os.path.join(TEMPDIR, 'feature_extractors',
+                                         self.module_path)
+        local_module_dir = os.path.dirname(local_module_path)
+
+        # Don't bother copying if we've already done it.
+        if not os.path.exists(local_module_dir):
+            module_dir = os.path.dirname(self.module_fullpath)
+            shutil.copytree(module_dir, local_module_dir)
+
+        return local_module_path
+
+    def extract_features(self, track, *args, **kwargs):
+        """Extracts features from the given track.
+
+        Copies the feature extractor module to a temporary directory
+        on the local machine in case anything needs to be re-compiled
+        for a different architecture.
+        """
+        module_path = self._copy_module_to_local_dir()
+        # This reloads the module everytime extract_features is
+        # called.  Maybe we should cache module in this object to
+        # prevent this?
+        module = self._load_module_from_path(module_path)
+        return module.extract_features(track, *args, **kwargs)
+
+    @staticmethod
+    def describe(name=None):
+        """Prints a description of the feature extractor with the given name.
+        
+        If no arguments are passed in, prints all FeatureExtractors
+        registered with gordon."""
+        if name:
+            fes = FeatureExtractor.query.filter_by(name=unicode(name)).all()
+        else:
+            fes = FeatureExtractor.query.all()
+
+        for fe in fes:
+            print 'Name: %s' % fe.name
+            print 'Description: %s' % fe.description
+            print '\n'
+
     def __repr__(self):
         if not self.id: return '<Empty Feature Extractor>'
         return '<Feature Extractor "%s">' % self.name
-    
-    def extract_features(self, track, *args, **kwargs):
-        '''
-        Tries to use the DB stored function (sending it a Gordon <track>),
-        executing its definition code first.
-        * This is not an OS safe operation, we have to be able to trust the DB.
-        Python may execute malicious code.
-        
-        @raise Error: when something goes wrong (FE inconsistencies)'
-        @raise TypeError: when a FE property is corrupt
-        '''
-        
-        if type(self.fdefcode) in (str, unicode):
-            try:
-                exec self.fdefcode # should define the function, import stmts have no effect
-                log.debug('running function definition/import code:\n%s', self.fdefcode)
-            except: # Happens if the code is invalid or causes trouble (eg different Py versions or environments)
-                log.error("Something went wrong while trying to initialize the feature extractor. Please check definition code. Remember to include imports INSIDE the function definition.")
-                raise
-        else: raise TypeError("Feature Extractor definition-code is not a string (it's probably empty)")
-        
-        if type(self.fname) in (str, unicode):
-            function = None
-            try:
-                exec 'function = ' + self.fname
-                params = [track, args, kwargs]
-                if not args: params.remove(args)
-                if not kwargs: params.remove(kwargs)
-                log.debug('executing:\n%s(%s)', function.__name__, str(params))
-                return function(*params)
-            except: # might happen eg if the fdefcode was not a fname function definition, even when it threw no error
-                log.error("Something didn't work when evaluating the feature extractor function name and the given parameters")
-                raise
-        else: raise TypeError("Feature Extractor function-name is not a string (it's probably empty)")
-    
-    @staticmethod
-    def describe(fe_name=None):
-        """Describes a feature extractor
-        * Send no arguments to list all FEs in DB
-        @param fe_name: case sensitive feature_extractor.name (DB) search string (defaults to None)"""
-        
-        if fe_name:
-            fe = FeatureExtractor.query.filter_by(name=unicode(fe_name)).first()
-            if fe: return str(fe_name) + ' (' + str(fe.fname) + ') found: ' + str(fe.description)
-            else: return "No feature extractor found with name %s" % fe_name
-            
-        else:
-            fes = FeatureExtractor.query.all()
-            all = '\n'.join(list(str(fe.name) + ' ('+str(fe.fname)+'): ' + str(fe.description) for fe in fes))
-            print all
-            return all
     
 
 mapper(AlbumTrack,album_track)
