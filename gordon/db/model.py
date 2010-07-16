@@ -605,14 +605,20 @@ class FeatureExtractor(object):
         architectures should probably be re-compiled (if necessary)
         whenever the parent module is imported.
         """
+        name = unicode(name)
+        if not name:
+            raise ValueError('Invalid name: %s' % name)
+        if FeatureExtractor.query.filter_by(name=name).count() > 0:
+            raise ValueError('A FeatureExtractor named "%s" already exists'
+                             % name)
 
-        # basic module syntax validation
         module = FeatureExtractor._load_module_from_path(module_path)
         if not 'extract_features' in dir(module):
             raise ValueError('Feature extractor module must include a '
                              'function called extract_features')
 
-        featext = FeatureExtractor(name=unicode(name), description=unicode(module.extract_features.__doc__))
+        description = unicode(module.extract_features.__doc__)
+        featext = FeatureExtractor(name=name, description=description)
         # The new FeatureExtractor needs to be committed to the database in 
         # order to get it's id, which we need before we can copy files.
         commit()
@@ -626,14 +632,15 @@ class FeatureExtractor(object):
             target_module_dir = os.path.dirname(featext.module_fullpath)
             from gordon_db import make_subdirs
             make_subdirs(os.path.dirname(target_module_dir))
-            shutil.copytree(module_dir, target_module_dir) # skip .py[co] ?
+            shutil.copytree(module_dir, target_module_dir)
             
             # Rename the module file.
             module_filename = os.path.basename(module_path)
             shutil.move(os.path.join(target_module_dir, module_filename),
                         featext.module_fullpath)
         except:
-            session.delete(featext) # roll back FE addition
+            # Roll back commit of broken FeatureExtractor
+            session.delete(featext)
             commit()
             raise
 
