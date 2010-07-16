@@ -345,7 +345,7 @@ class Track(object) :
     def features(self, name, *args, **kwargs):
         """Computes features for this track using the named feature extractor.
         @raise ValueError: if no FeatureExtractor named <name> is found"""
-        feature_extractor = FeatureExtractor.query.filter_by(name=name).first()
+        feature_extractor = FeatureExtractor.query.filter_by(name=unicode(name)).first()
         if not feature_extractor:
             raise ValueError('No feature extractor named %s', name)
         
