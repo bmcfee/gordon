@@ -612,16 +612,15 @@ class FeatureExtractor(object):
             raise ValueError('Feature extractor module must include a '
                              'function called extract_features')
 
-        featext = FeatureExtractor(name=unicode(name),
-                                   description=module.extract_features.__doc__)
+        featext = FeatureExtractor(name=unicode(name), description=unicode(module.extract_features.__doc__))
         # The new FeatureExtractor needs to be committed to the database in 
         # order to get it's id, which we need before we can copy files.
         commit()
         
         try: 
-            featext.module_path = os.path.join(_get_filedir(featext.id),
-                                               str(featext.id),
-                                               'feature_extractor.py')
+            featext.module_path = unicode(os.path.join(_get_filedir(featext.id),
+                                                       str(featext.id),
+                                                       'feature_extractor.py'))
 
             module_dir = os.path.dirname(os.path.abspath(module_path))
             target_module_dir = os.path.dirname(featext.module_fullpath)
