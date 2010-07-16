@@ -358,7 +358,7 @@ class Track(object) :
                 return self._read_cached_features(extractor, kwargs)
             except:
                 log.debug('Error reading feature file: %s', self.fn_feature)
-                #import traceback;  traceback.print_exc()
+                import traceback;  traceback.print_exc()
         
         features = extractor.extract_features(self, **kwargs)
 
@@ -384,7 +384,8 @@ class Track(object) :
         return s
 
     def _read_cached_features(self, feature_extractor, kwargs):
-        try :
+        h5file = None
+        try:
             h5file = tables.openFile(self.fn_feature, mode="r")
             groupname = 'FeatureExtractor%d' % feature_extractor.id
 
@@ -394,8 +395,9 @@ class Track(object) :
             array = h5file.getNode('/'.join(['', groupname, argstring]))
         
             # Sanity check.
+            assert feature_extractor.name == array.attrs.feature_extractor_name
             assert kwargs == array.attrs.kwargs
-            
+
             # Copy the array into memory so we don't have to keep the h5
             # file around longer than is necessary.
             nparray = np.array(array)
@@ -418,10 +420,12 @@ class Track(object) :
         try:
             group = h5file.getNode(h5file.root, groupname)
         except tables.NoSuchNodeError:
-            group = h5file.createGroup(h5file.root, groupname)
+            group = h5file.createGroup(h5file.root, groupname,
+                                       str(feature_extractor.name))
 
         argstring = self._args_to_string(kwargs)
-        array = h5file.createArray(group, argstring, features)
+        array = h5file.createArray(group, argstring, np.asarray(features))
+        array.attrs.feature_extractor_name = str(feature_extractor.name)
         array.attrs.kwargs = kwargs
 
         h5file.close()
@@ -658,8 +662,8 @@ class FeatureExtractor(object):
         The feature extractor should live in the module specified by
         <module_path>.  The module must contain a method called
         extract_features which takes a track (and any other optional
-        keyword arguments) and returns a set of feature values. This
-        function's docstring is stored in the
+        keyword arguments) and returns an array [1] of feature
+        values. This function's docstring is stored in the
         FeatureExtractor.description column.
 
         The module will be archived with gordon and reloaded whenever
@@ -671,6 +675,8 @@ class FeatureExtractor(object):
         Dependencies that require re-compilation on different
         architectures should probably be re-compiled (if necessary)
         whenever the parent module is imported.
+
+        [1] Feature caching only works for arrays.
         """
         name = unicode(name)
         if not name:
