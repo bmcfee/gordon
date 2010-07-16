@@ -401,8 +401,8 @@ class Track(object) :
 
         @return: the annotation
         @param name: annotation.name field [varchar(256)]
-        @param value: annotation.value field [text]
-        annot = Annotation(name, value)"""
+        @param value: annotation.value field [text]"""
+        annot = Annotation(name, value)
         self.annotations.append(annot)
         
         commit()
