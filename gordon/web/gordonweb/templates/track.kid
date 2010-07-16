@@ -58,7 +58,7 @@ Audio file info: <span py:replace="commands.getoutput(cmd)"/> (${track.bytes} by
 <hr/>
 <table cellpadding="0" cellspacing="1" border="0" class="grid">
   <thead> 
-    <tr> <th>Annotation Name</th> <th>Value</th> <th>Type</th> </tr>
+    <tr> <th>Annotation Name</th> <th>Value</th> </tr>
   </thead>
   <tbody>
     <span py:for="a in track.annotations">
@@ -100,8 +100,6 @@ Audio file info: <span py:replace="commands.getoutput(cmd)"/> (${track.bytes} by
 <br/>
         </div>
         </td>
-
-        <td>${a.type}</td>
       </tr>
     </span>
   </tbody>

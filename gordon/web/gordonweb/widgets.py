@@ -784,8 +784,13 @@ def get_track_audio_extension(track):
 
 
 def generate_htk_annotation_datatables_for_track(track):
-    return dict((x.name, generate_htk_annotation_datatable(x))
-                for x in track.annotations if x.type.lower() == 'htk')
+    datatables = dict()
+    for x in track.annotations:
+        try:
+            datatables[x.name] = generate_htk_annotation_datatable(x)
+        except:
+            pass
+    return datatables
 
 def generate_htk_annotation_datatable(annotation):
     header = [('datetime', 'Time')]
