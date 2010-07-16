@@ -253,8 +253,9 @@ class GordonResolver(object) :
                 track.mb_id = nentry['track_mb_id']
                 track.tracknum = ctr
                 #print 'Setting tracknum for',track.id,'to',ctr
-            #update the mp3 file
-            self.update_mp3_from_db(track.id,doit=doit)
+            #update the mp3 file, but only if it's an mp3 file.
+            if track.fn_audio_extension.lower() == 'mp3':
+                self.update_mp3_from_db(track.id,doit=doit)
             ctr+=1
         if newaids <> oldaids :
             #an artist has changed. remove the old and add the new
