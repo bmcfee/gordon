@@ -26,6 +26,9 @@ from sqlalchemy import (Table, Column, ForeignKey, String, Unicode, Integer,
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import relation, sessionmaker, MapperExtension, backref
 
+import numpy as np
+import tables
+
 from gordon.io import AudioFile
 from gordon.db import config
 
@@ -342,24 +345,88 @@ class Track(object) :
         root,ext = os.path.splitext(self.path)
         return ext[1:]
     
-    def features(self, name, *args, **kwargs):
+    def features(self, name, read_from_cache=True, save_to_cache=True,
+                 **kwargs):
         """Computes features for this track using the named feature extractor.
         @raise ValueError: if no FeatureExtractor named <name> is found"""
-        feature_extractor = FeatureExtractor.query.filter_by(name=unicode(name)).first()
-        if not feature_extractor:
+        extractor = FeatureExtractor.query.filter_by(name=unicode(name)).first()
+        if not extractor:
             raise ValueError('No feature extractor named %s', name)
+
+        if read_from_cache:
+            try:
+                return self._read_cached_features(extractor, kwargs)
+            except:
+                log.debug('Error reading feature file: %s', self.fn_feature)
+                #import traceback;  traceback.print_exc()
         
-        return feature_extractor.extract_features(self, *args, **kwargs)
+        features = extractor.extract_features(self, **kwargs)
+
+        if save_to_cache:
+            self._save_cached_features(extractor, kwargs, features)
+
+        return features
     
-    def _get_fn_feature(self,gordonDir='') :
+    @property
+    def fn_feature(self) :
         """Returns absolute path to feature file.
 
         Does *not* verify that feature file is actually present!"""
-        return os.path.join(config.DEF_GORDON_DIR,'data','features',_get_shortfile(self.id,'h5'))
-    
-    fn_feature= property(_get_fn_feature)
+        return os.path.join(config.DEF_GORDON_DIR, 'data', 'features',
+                            _get_shortfile(self.id, 'h5'))
 
-    def _delete_related_files(self,gordonDir='')  :
+    @staticmethod
+    def _args_to_string(kwargs):
+        if kwargs:
+            s = ''.join('%s%s' % (k,v) for k,v in sorted(kwargs.iteritems()))
+        else:
+            s = 'None'
+        return s
+
+    def _read_cached_features(self, feature_extractor, kwargs):
+        try :
+            h5file = tables.openFile(self.fn_feature, mode="r")
+            groupname = 'FeatureExtractor%d' % feature_extractor.id
+
+            # Should we ignore names, and walk *all* of the nodes,
+            # checking for matching args and kwargs instead of this?
+            argstring = self._args_to_string(kwargs)
+            array = h5file.getNode('/'.join(['', groupname, argstring]))
+        
+            # Sanity check.
+            assert kwargs == array.attrs.kwargs
+            
+            # Copy the array into memory so we don't have to keep the h5
+            # file around longer than is necessary.
+            nparray = np.array(array)
+        finally:
+            if h5file:
+                h5file.close()
+
+        return  nparray
+
+    def _save_cached_features(self, feature_extractor, kwargs, features):
+        if os.path.exists(self.fn_feature):
+            h5file = tables.openFile(self.fn_feature, mode="a")
+        else:
+            from gordon_db import make_subdirs
+            make_subdirs(self.fn_feature)
+            h5file = tables.openFile(self.fn_feature, mode="w",
+                                     title='Features for %s' % self)
+
+        groupname = 'FeatureExtractor%d' % feature_extractor.id
+        try:
+            group = h5file.getNode(h5file.root, groupname)
+        except tables.NoSuchNodeError:
+            group = h5file.createGroup(h5file.root, groupname)
+
+        argstring = self._args_to_string(kwargs)
+        array = h5file.createArray(group, argstring, features)
+        array.attrs.kwargs = kwargs
+
+        h5file.close()
+        
+    def _delete_related_files(self,gordonDir='') :
         """Deletes files related to this Track. Triggered by SQLA mapper. Do not call!"""
         #will be triggered by mapper when a track is deleted
         if gordonDir=='' :
@@ -386,7 +453,7 @@ class Track(object) :
             make_subdirs_and_move(srcMp3Path, dstMp3Path)
             log.debug('Moved', srcMp3Path, 'to', dstMp3Path)
             
-        #move corresponding features to GORDON_DIR/data/features_offline
+        #move corresponding features to GORDON_DIR/data/features_offlineg
         srcFeatPath = os.path.join(gordonDir, 'data', 'features', get_tiddirectory(tid))
         dstFeatPath = os.path.join(gordonDir, 'data', 'features_offline', get_tiddirectory(tid))
         featFiles =  glob.glob('%s/T%i.*' % (srcFeatPath,tid))
@@ -591,7 +658,7 @@ class FeatureExtractor(object):
         The feature extractor should live in the module specified by
         <module_path>.  The module must contain a method called
         extract_features which takes a track (and any other optional
-        arguments) and returns a set of feature values. This
+        keyword arguments) and returns a set of feature values. This
         function's docstring is stored in the
         FeatureExtractor.description column.
 
@@ -666,18 +733,22 @@ class FeatureExtractor(object):
 
         return local_module_path
 
-    def extract_features(self, track, *args, **kwargs):
+    def extract_features(self, track, **kwargs):
         """Extracts features from the given track.
 
+        Any keyword arguments are passed along to the feature
+        extraction function.
+        
         Copies the feature extractor module to a temporary directory
         on the local machine in case anything needs to be re-compiled
         for a different architecture.
         """
+        
         module_path = self._copy_module_to_local_dir()
         # This reloads the module everytime extract_features is called.
         # Maybe we should cache module in this object to prevent this?
         module = self._load_module_from_path(module_path)
-        return module.extract_features(track, *args, **kwargs)
+        return module.extract_features(track, **kwargs)
 
     @staticmethod
     def describe(name=None):
