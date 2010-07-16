@@ -605,13 +605,14 @@ class FeatureExtractor(object):
         architectures should probably be re-compiled (if necessary)
         whenever the parent module is imported.
         """
-        module = FeatureExtractor._load_module_from_path(module_path)
 
+        # basic module syntax validation
+        module = FeatureExtractor._load_module_from_path(module_path)
         if not 'extract_features' in dir(module):
             raise ValueError('Feature extractor module must include a '
                              'function called extract_features')
 
-        featext = FeatureExtractor(name=name,
+        featext = FeatureExtractor(name=unicode(name),
                                    description=module.extract_features.__doc__)
         # The new FeatureExtractor needs to be committed to the database in 
         # order to get it's id, which we need before we can copy files.
@@ -626,14 +627,14 @@ class FeatureExtractor(object):
             target_module_dir = os.path.dirname(featext.module_fullpath)
             from gordon_db import make_subdirs
             make_subdirs(os.path.dirname(target_module_dir))
-            shutil.copytree(module_dir, target_module_dir)
+            shutil.copytree(module_dir, target_module_dir) # skip .py[co] ?
             
             # Rename the module file.
             module_filename = os.path.basename(module_path)
             shutil.move(os.path.join(target_module_dir, module_filename),
                         featext.module_fullpath)
         except:
-            session.delete(featext)
+            session.delete(featext) # roll back FE addition
             commit()
             raise
 
@@ -667,9 +668,8 @@ class FeatureExtractor(object):
         for a different architecture.
         """
         module_path = self._copy_module_to_local_dir()
-        # This reloads the module everytime extract_features is
-        # called.  Maybe we should cache module in this object to
-        # prevent this?
+        # This reloads the module everytime extract_features is called.
+        # Maybe we should cache module in this object to prevent this?
         module = self._load_module_from_path(module_path)
         return module.extract_features(track, *args, **kwargs)
 
