@@ -1,31 +1,34 @@
 Prerequisites
 -------------
 1. Install the dependencies:
-   ffmpeg binaries (set in PATH) from http://ffmpeg.org/
-   PostgreSQL from http://www.postgresql.org/
-   Python (2.5 is the last tested version) from http://python.org/ + packages:
-   SQLAlchemy (0.5.5) from http://www.sqlalchemy.org/
-   (If using Windows, independently install win-psycopg (2.2.1) too, from 
-     http://www.stickpeople.com/projects/python/win-psycopg/)
-   NumPy (1.3) from http://numpy.scipy.org/
-   PyGreSQL from http://www.pygresql.org/ (semi-optional: Needed for interfacing with musicbrainz)
-   eyeD3 (0.6.17) from http://eyed3.nicfit.net/ (this will eventually be replaced with tagpy)
-   (optional) TagPy from http://pypi.python.org/pypi/tagpy
-     (used to extract metadata within tracklist-generation scripts)
-     *not yet tested on Windows. Tips:
-     Boost.Pyhon win: http://www.boost.org/doc/libs/1_41_0/libs/python/doc/building.html
-     taglib winports 1.3 @ http://sourceforge.net/projects/taglib-winport/ or 1.4 @ 
-     http://sageshome.net/oss/taglib-win32.php
+   - ffmpeg binaries (set in PATH) from http://ffmpeg.org/
+   - PostgreSQL from http://www.postgresql.org/
+   - Python (2.5 or later, not 3.0+) from http://python.org/
+   - SQLAlchemy (0.5.5) from http://www.sqlalchemy.org/
+       (If using Windows, independently install win-psycopg (2.2.1) too, from 
+        http://www.stickpeople.com/projects/python/win-psycopg/)
+   - NumPy (1.3) from http://numpy.scipy.org/
+   - PyTables from http://www.pytables.org/
+   - eyeD3 (0.6.17) from http://eyed3.nicfit.net/
+   - PyGreSQL from http://www.pygresql.org/
+       (Optional: Needed for interfacing with musicbrainz)
+   - TagPy from http://pypi.python.org/pypi/tagpy
+       (Optional: used to extract metadata within tracklist-generation scripts)
+        *not yet tested on Windows. Tips:
+        Boost.Pyhon win: http://www.boost.org/doc/libs/1_41_0/libs/python/doc/building.html
+        taglib winports 1.3 @ http://sourceforge.net/projects/taglib-winport/ or 1.4 @ 
+        http://sageshome.net/oss/taglib-win32.php
 
    Packages required for the webapp (optional):
-   TurboGears 1.1: http://www.turbogears.org/ 
-   psycopg: http://initd.org/ * psycopg2 is actually needed for SQL Alchemy too,
-                              however it should be included in the sqlalchemy pkg.
+   - TurboGears 1.1: http://www.turbogears.org/ 
+   - psycopg: http://initd.org/
+       (psycopg2 is actually needed for SQLAlchemy too,
+        however it should be included in the SQLAlchemy package.)
    
    -----------------------------------------------------------------------------
    On Debian (and probably Ubuntu), you can get all of these dependencies by running:
    apt-get install postgresql ffmpeg python-sqlalchemy python-pygresql \
-                   python-numpy python-eyed3 python-tagpy
+                   python-numpy python-eyed3 python-tagpy python-tables
 
    And for the (optional) web app:
    apt-get install python-psycopg2 python-tgmochikit python-setuptools
@@ -53,14 +56,15 @@ Prerequisites
 
 Gordon setup
 ------------
+0. Add the project directory to your PYTHONPATH.
+
 1. Copy gordon/db/config.py.default to gordon/db/config.py and fill in
-   the details of your local configuration. *Also, export a PYTHONPATH with
-   the project's root dir
+   the details of your local configuration. 
 
 2. Run gordon/db/gordon_initialize.py to build the database tables.
 
-3. Use gordon/db/audio_intake(_from_csv).py and metadata .csv files to import 
-   music into the database.
+3. Use gordon/db/audio_intake.py or gordon/db/audio_intake_from_tracklist.py
+   to import music into the database.
 
 4. Create a local copy of the musicbrainz database using
    gordon/db/mbrainz_import.py
