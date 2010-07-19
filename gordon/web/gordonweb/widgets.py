@@ -187,7 +187,7 @@ collection_datagrid = PaginateDataGrid(
     PaginateDataGrid.Column('id', get_collection_url_for_id, 'Collection ID',options=dict(sortable=True)),
     PaginateDataGrid.Column('name', get_collection_url,'Collection Name',options=dict(sortable=True)),
     PaginateDataGrid.Column('trackcount', get_collection_trackcount, 'Count',options=dict(sortable=True)),
-    PaginateDataGrid.Column('description', 'description', 'Description',options=dict(sortable=True)),
+    PaginateDataGrid.Column('description', 'description', 'Description'),
     ],
  )
 
@@ -869,3 +869,31 @@ def _add_points_assuming_numeric_labels(rows, starttime, endtime, label, labelnu
     rows[endtime-1e-3].append((0, yval, None))
 
 
+#feature_extractor datagrid --------------------------------------
+def get_feature_extractor_url(row) :
+    link = ET.Element('a',href='/feature_extractor/%s' % row.id)
+    link.text = row.name
+    return link
+
+def get_feature_extractor_url_for_id(row) :
+    link = ET.Element('a',href='/feature_extractor/%s' % row.id)
+    link.text = str(row.id)
+    return link
+
+def get_feature_extractor_short_description(row) :
+    return row.description.split('\n')[0]
+
+
+def get_feature_extractor_source_code(fe) :
+    f = open(fe.module_fullpath)
+    lines = f.readlines()
+    f.close()
+    return lines
+
+feature_extractor_datagrid = PaginateDataGrid(
+    fields=[
+    PaginateDataGrid.Column('id', get_feature_extractor_url_for_id, 'FeatureExtractor ID',options=dict(sortable=True)),
+    PaginateDataGrid.Column('name', get_feature_extractor_url,'FeatureExtractor Name',options=dict(sortable=True)),
+    PaginateDataGrid.Column('description', get_feature_extractor_short_description, 'Description'),
+    ],
+ )

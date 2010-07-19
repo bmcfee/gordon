@@ -95,7 +95,8 @@ class Root(controllers.RootController):
         except :
             return "Cannot find feature %s" % str(fn_or_track_id)
 
-        outfn = gordon_db.get_full_featurefilename(track_id)
+        track = gordon_model.Track.query.get(id)
+        outfn = track.fn_feature
         print 'Serving',outfn
         return cherrypy.lib.cptools.serveFile(path=outfn,disposition='attachment',name=os.path.basename(outfn))  
         #return serve_file(fn)
@@ -372,7 +373,7 @@ class Root(controllers.RootController):
         
     @expose("json")
     @identity.require(identity.has_permission("listen"))
-    def dynimage(self,track=1,typ='afeat'):
+    def dynimage(self,track=1,typ='afeat',):
         raise ValueError('Plotting is turned off')
         from gordon.db import gordon_plotting as SP
         if typ=='afeat' :
@@ -987,3 +988,35 @@ class Root(controllers.RootController):
     def collections_all(self) :
         collections = gordon_model.Collection.query()
         return dict(collections=collections, collectionlist=collection_datagrid)
+
+
+    #feature extractors-----------------------------------------
+    @expose(template="gordonweb.templates.feature_extractor")
+    @identity.require(identity.has_permission("listen"))
+    #@paginate('tracks', default_order='tracknum',limit=1000000)
+    def feature_extractor(self,id=1,action='view') :
+        fe = gordon_model.FeatureExtractor.query.get(id)
+        if fe==None :
+            flash('gordon_model.FeatureExtractor %s not found' % str(id))
+            redirect('/')
+            
+        source_code = get_feature_extractor_source_code(fe)
+
+        return dict(action=action, feature_extractor=fe, source_code=source_code)
+
+    @expose(template='gordonweb.templates.feature_extractors')
+    @paginate('feature_extractors', default_order='name',limit=20)
+    def feature_extractors(self,feature_extractor='') :
+        if feature_extractor <> '' :
+            feature_extractor=pg.escape_string(feature_extractor)
+            print 'Searching for',feature_extractor
+            fes_extractors = gordon_model.FeatureExtractor.query.filter(
+                "(lower(feature_extractor.name) ~ ('%s'))" % feature_extractor.lower())
+            if fes.count()==1 :
+                #we only have one feature_extractor, redirect to the feature_extractor page
+                redirect("/feature_extractor/%s/view" % fes[0].id)
+        else :
+            fes = gordon_model.FeatureExtractor.query()
+
+        return dict(feature_extractors=fes,
+                    feature_extractorlist=feature_extractor_datagrid)
