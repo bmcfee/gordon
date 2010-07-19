@@ -24,11 +24,13 @@ Prerequisites
    - psycopg: http://initd.org/
        (psycopg2 is actually needed for SQLAlchemy too,
         however it should be included in the SQLAlchemy package.)
+   - matplotlib from http://matplotlib.sourceforge.net
+       (Optional: Used for plotting features in the web app)
    
    -----------------------------------------------------------------------------
    On Debian (and probably Ubuntu), you can get all of these dependencies by running:
    apt-get install postgresql ffmpeg python-sqlalchemy python-pygresql \
-                   python-numpy python-eyed3 python-tagpy python-tables
+                   python-numpy python-eyed3 python-tagpy python-tables python-matplotlib
 
    And for the (optional) web app:
    apt-get install python-psycopg2 python-tgmochikit python-setuptools
