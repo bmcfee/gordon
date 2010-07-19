@@ -16,11 +16,11 @@
 <h3>Feature Extractor <span py:replace="feature_extractor.id"/>: <span py:replace="feature_extractor.name"/><br/></h3>
 <h3>Description:</h3>
 <pre>
-  <span py:replace="feature_extractor.description"/><br/>
+<span py:replace="feature_extractor.description"/><br/>
 </pre>
 <h3>Source code:</h3>
 <pre class="prettyprint">
-  <span py:replace="source_code"/>
+<span py:replace="source_code"/>
 </pre>
 
 </div>
