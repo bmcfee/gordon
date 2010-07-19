@@ -13,8 +13,8 @@ def extract_features(track, feature_name, feature_kwargs={},
                      beat_tracker_name='beats', beat_tracker_kwargs={}):
     """Coonverts fixed-framerate features to beat-synchronous features.
 
-    For folding spectrograms down into beat-sync features.  Calls on
-    Dan Ellis' beatavg.m Matlab function.
+    For folding spectrograms down into beat-sync features.  Calls Dan
+    Ellis' beatavg.m Matlab function.
 
     See http://labrosa.ee.columbia.edu/projects/coversongs
     for more details.
@@ -55,4 +55,4 @@ def extract_features(track, feature_name, feature_kwargs={},
     feats = mlab.beatavg(fixed_framerate_feats,
                          beattimes_matrix * frames_per_second)
 
-    return feats
+    return feats.T

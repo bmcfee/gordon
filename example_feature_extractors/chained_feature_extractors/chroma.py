@@ -12,8 +12,8 @@ mlab.addpath(os.path.join(CURRDIR, 'coversongs'))
 def extract_features(track, fctr=400, fsd=1.0, type=1):
     """Computes chroma features.
 
-    Returns a feature vector of chroma features (12 rows x n fixed
-    time step columns) based on Dan Ellis' chrombeatftrs Matlab
+    Returns a feature vector of chroma features (n fixed time step
+    rows x 12 columns) based on Dan Ellis' chrombeatftrs Matlab
     function.
 
     See http://labrosa.ee.columbia.edu/projects/coversongs
@@ -44,4 +44,4 @@ def extract_features(track, fctr=400, fsd=1.0, type=1):
     else:
         Y = mlab.chromagram_IF(x, fs, fftlen, nbin, fctr, fsd)
 
-    return Y
+    return Y.T

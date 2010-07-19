@@ -930,7 +930,7 @@ def plot_track_features(track, name, **kwargs):
     plt.clf()
     plt.gcf().set_size_inches((10,3))
     if feats.ndim == 2:
-        plt.imshow(feats, origin='lower', interpolation='nearest')
+        plt.imshow(feats.T, origin='lower', interpolation='nearest')
         plt.colorbar()
     else: 
         plt.plot(feats)
@@ -969,7 +969,7 @@ def plot_track_all_cached_features(track):
         feats = allfeatures[name]
         plt.subplot(nsubplots, 1, n+1)
         if feats.ndim == 2:
-            plt.imshow(feats, origin='lower', interpolation='nearest')
+            plt.imshow(feats.T, origin='lower', interpolation='nearest')
             plt.colorbar()
         else: 
             plt.plot(feats)
