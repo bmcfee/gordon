@@ -573,9 +573,8 @@ def playlist(tracks, album='', randomize=0, host=-1)  :
             try :
                 albumcover_urltxt=get_albumcover_urltxt(track.albums[0])
             except :
-
-                ext = get_track_audio_extension(track)
                 albumcover_urltxt=''
+        ext = get_track_audio_extension(track)
         str+='     <track>\n'
         str+='            <location>http://%s/audio/T%i.%s</location>\n' % (host,track.id,ext)
         str+='            <album>%s</album>\n' % slashify_xml(track.album)
