@@ -31,6 +31,7 @@ def extract_features(track, startbpm=[240, 1.0], tightness=[6, 0.8]):
         transition costs relative to local match (0..1, default 0.8).
     """
     x,fs,svals = track.audio()
+    x = x.mean(1)[:,np.newaxis]
 
     beat_times = mlab.beat(x, fs, startbpm, tightness, 0);
 
