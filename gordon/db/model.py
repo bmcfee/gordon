@@ -300,10 +300,8 @@ def _get_filedir(tid) :
 
     return dr
 
-def _get_shortfile(tid, featurestub = '') :
-    fn = '%s/%s' % (_get_filedir(tid), 'T%s.mp3' % tid)
-    if featurestub <> '' :
-        fn = '%s.%s' % (fn, featurestub)
+def _get_shortfile(tid, ext='mp3') :
+    fn = '%s/%s' % (_get_filedir(tid), 'T%s.%s' % (tid, ext))
     return fn
 
 class Track(object) :

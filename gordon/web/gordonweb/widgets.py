@@ -897,3 +897,85 @@ feature_extractor_datagrid = PaginateDataGrid(
     PaginateDataGrid.Column('description', get_feature_extractor_short_description, 'Description'),
     ],
  )
+
+def str_to_bool(val):
+    if val.lower() == 'true':
+        return True
+    elif val.lower() == 'false':
+        return False
+    else:
+        raise ValueError('Unable to convert %s to bool' % val)
+
+def clean_kwargs(kwargs):
+    cleaned_kwargs = {}
+    for key,val in kwargs.iteritems():
+        cleaned_val = val
+        for conversion_func in [int, float, str_to_bool]:
+            try:
+                cleaned_val = conversion_func(val)
+                break
+            except ValueError:
+                pass
+        cleaned_kwargs[key] = cleaned_val
+    return cleaned_kwargs
+
+def plot_track_features(track, name, **kwargs):
+    from cStringIO import StringIO
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    feats = track.features(name, save_to_cache=False, **clean_kwargs(kwargs))
+
+    plt.clf()
+    plt.gcf().set_size_inches((10,3))
+    if feats.ndim == 2:
+        plt.imshow(feats, origin='lower', interpolation='nearest')
+        plt.colorbar()
+    else: 
+        plt.plot(feats)
+    plt.title(name)
+
+    buf = StringIO()
+    plt.savefig(buf, dpi=96, format='png')
+    return buf
+
+def load_all_cached_features(track):
+    import tables
+    h5file = tables.openFile(track.fn_feature, mode='r')
+
+    features = {}
+    for fe_node in h5file.iterNodes(h5file.root):
+        for array in h5file.iterNodes(fe_node):
+            key = '%s (kwargs=%s)' % (array.attrs.feature_extractor_name,
+                                      array.attrs.kwargs)
+            features[key] = N.copy(array)
+    h5file.close()
+    return features
+
+def plot_track_all_cached_features(track):
+    from cStringIO import StringIO
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    allfeatures = load_all_cached_features(track)
+
+    plt.clf()
+    nsubplots = len(allfeatures)
+    plt.gcf().set_size_inches((10,3*nsubplots))
+
+    for n, name in enumerate(sorted(allfeatures.keys())):
+        feats = allfeatures[name]
+        plt.subplot(nsubplots, 1, n+1)
+        if feats.ndim == 2:
+            plt.imshow(feats, origin='lower', interpolation='nearest')
+            plt.colorbar()
+        else: 
+            plt.plot(feats)
+        plt.title(name)
+        
+    buf = StringIO()
+    plt.savefig(buf, dpi=96, format='png')
+    return buf
+

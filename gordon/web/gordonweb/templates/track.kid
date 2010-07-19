@@ -35,8 +35,15 @@ Audio file info: <span py:replace="commands.getoutput(cmd)"/> (${track.bytes} by
 <!--span py:replace="yahoo_url"/-->
 
 <a href="/playlist?params=track_id:${track.id}" type="application/xspf+xml"></a>
-<hr/>
 
+<hr/>
+<span py:replace="track_widget(track_widget_data)"/>
+<span py:replace="artist_widget(artists)"/>
+<span py:replace="album_widget(albums)"/>
+<span py:replace="collection_widget(collections)"/>
+
+<hr/>
+Cached features (<a href="/feature_extractors">FeatureExtractor information</a>)
 <table>
 <tr>
 <td><span py:replace="afeat_graph"/></td>
@@ -47,13 +54,6 @@ Audio file info: <span py:replace="commands.getoutput(cmd)"/> (${track.bytes} by
 </td>
 </tr>
 </table>
-
-
-<hr/>
-<span py:replace="track_widget(track_widget_data)"/>
-<span py:replace="artist_widget(artists)"/>
-<span py:replace="album_widget(albums)"/>
-<span py:replace="collection_widget(collections)"/>
 
 <hr/>
 <table cellpadding="0" cellspacing="1" border="0" class="grid">
