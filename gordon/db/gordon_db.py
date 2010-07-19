@@ -249,14 +249,6 @@ def make_subdirs(tgt) :
 def get_albumcover_filename(aid) :
     return '%s/A%s_cover.jpg' % (get_tiddirectory(aid), str(aid))
 
-def get_full_featurefilename(tid,gordonDir=DEF_GORDON_DIR) :
-    """Returns the full feature file name.
-
-    If gordonDir is not provided, we use DEF_GORDON_DIR as the
-    prefix. Only valid for .h5 files since individual txt/bin files
-    are named differently.
-    """
-    return os.path.join(gordonDir,'data','features','%s.h5' % get_tidfilename(tid))
 
 def get_full_albumcovername(aid, gordonDir=DEF_GORDON_DIR) :
     """Returns the full album cover name.
@@ -343,46 +335,6 @@ def read_string_list(fnIn) :
     fid.close()
     return l
 
-
-#END Helper functions
-
-#------------------------
-#Functions for working with features
-#------------------------
-
-
-
-#we really want to call just this one! 
-def update_all(tid=-1,gordonDir=DEF_GORDON_DIR,force=False) :
-    if tid==-1 :
-        tids = get_valid_tids(features_only=True)
-    else :
-        tids=[tid]
-
-    for (ctr,tid) in enumerate(tids) :
-        if ctr%1000 == 0  :
-            print 'update_all processing',tid
-        try :
-            #this will update all audio features
-            update_features(tid,gordonDir=gordonDir,force=force)
-            
-        except :
-            print 'Unable to update tid',tid
-            print_exc()
-
-def update_features(tid=-1,gordonDir=DEF_GORDON_DIR,force=False):
-    #This shoudl update everything of importance. Because force is false, it should be relatively fast
-    #when called on files where everything is already done. 
-    #if called with no tid, we loop on entire database
-    (secs,zsecs)=update_secs_zsecs(tid,gordonDir=gordonDir,force=force)
-    if zsecs>=15:
-        update_audio_features(tid,gordonDir=gordonDir,force=force)
-        update_summarized_features(tid,gordonDir=gordonDir,force=force)
-        #update_booster_features(tid,gordonDir=gordonDir,force=force)
-      
-    else :
-        pass# print 'Skipping',tid,'because it is <15sec'
-        
 def update_secs_zsecs(tid_or_track,force=False,fast=False,do_commit=True):
     """Updates the seconds and optionally zero-stripped seconds (sec,zsec) for a track
     Takes either a Track object or a track id.  
@@ -421,90 +373,10 @@ def update_secs_zsecs(tid_or_track,force=False,fast=False,do_commit=True):
         print 'Processed track',track.id,secs,zsecs
         if do_commit :
             commit()
-
         
     return (track.secs,track.zsecs) 
    
-def update_audio_features(tid,gordonDir=DEF_GORDON_DIR,force=False,params=dict()):
-    ##this is a convenience function to be called by GORDONWeb
-    #it simply calles calc_feat for default features (as defined in params.sfeat_features)
-    #for tid
-    from pygmy.audio import calc_feat as C
-    #for p in params :
-    #    print p,params[p]
-    params = C.assert_defaults(params)    
-    if force :
-        action=C.FORCE
-    else :
-        action=C.COMPUTE
-    for f in params['sfeat_features']:
-        params['do_%s' % f] = action        
-    shortMp3=get_tidfilename(tid)
-    fullMp3=os.path.join(gordonDir,'audio','main',shortMp3)
-    featDir=os.path.join(gordonDir,'data','features')
-    #for p in params :
-    #    print p,params[p]
-    C.calc_feat(fullMp3,fnOutStub=shortMp3,fnOutDir=featDir,params=params)        
-    set_feature_perms(tid,gordonDir)
-
-def set_feature_perms(tid) :
-    """Sets permissions for newly-created files"""
-    fn= Track.query.get(tid).fn_feature
-    if os.path.exists(fn) :
-        os.system('chgrp musique %s' % fn)
-        os.system('chmod g+rw %s' % fn)
-
-def update_summarized_features(tid,gordonDir=DEF_GORDON_DIR,force=False,params=dict()):
-    from pygmy.audio import calc_feat as C
-    params = C.assert_defaults(params)  
-    #override default to compute the summarized features
-    if force :
-        params['do_sfeat']=C.FORCE
-    else :
-        params['do_sfeat']=C.COMPUTE
-    update_audio_features(tid=tid,gordonDir=gordonDir,force=False,params=params)
-    
-def update_booster_features(tid,gordonDir=DEF_GORDON_DIR,force=False,params=dict()):
-    from pygmy.audio import calc_feat as C
-
-    params['boostDir']=os.path.join(gordonDir,'data','boosters')
-    params = C.assert_defaults(params)  
-    if force :
-        action=C.FORCE
-    else :
-        action=C.COMPUTE
-    for p in params :
-        if p.startswith('do_bfeat') :
-            params[p]=action
-            print 'Setting',p,'to',action
-#    for (k,v) in params.iteritems() :
-#        print k,v
-        
-    update_audio_features(tid=tid,gordonDir=gordonDir,force=False,params=params)
-
-
-#def read_feature_file(tid,feature,params_only=False,gordonDir=DEF_GORDON_DIR) :
-#    #todo: get rid of this version. It's a dumb name and was replaced with get_feature
-#    return get_feature(tid=tid,feattype=feature,params_only=params_only,gordonDir=gordonDir)
-
-
-#def init_feature_cache(fn=os.path.join(DEF_GORDON_DIR,'data','features','sfeat.h5')) :
-
-def get_feature(tid,feattype,params_only=False,gordonDir=DEF_GORDON_DIR) :
-    """Returns (feature,params) for given tid. 
-    If feature is not calculated, calls update_features(tid)
-    Features include sfeat,acorr,logspec,mfcc"""
-    from pygmy.audio import calc_feat as C
-    shortMp3=get_tidfilename(tid)
-    featDir=os.path.join(gordonDir,'data','features')
-    featFn=os.path.join(featDir,'%s.%s' % (shortMp3,'h5'))
-    if not os.path.exists(featFn) :
-        update_features(tid)
-        if not os.path.exists(featFn) :
-            return ([],[])    
-    return C.read_feature_file(featFn,feattype=feattype,params_only=params_only) 
-
-#End feature functions
+#END Helper functions
 
 
 ##-----------------------
