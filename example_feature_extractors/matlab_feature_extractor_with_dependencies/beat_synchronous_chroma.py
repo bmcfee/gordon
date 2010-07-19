@@ -14,11 +14,12 @@ except ImportError:
                      if x.startswith('lib')])
     from mlabwrap import mlab
 
-# Re-initialize the connection to the Matlab engine in case it got
-# broken after it's initial import, which might have happened before
-# importing this module.
-import mlabwrap
-reload(mlabwrap)
+try:
+    mlab.sin(1)
+except:
+    # Re-initialize the broken connection to the Matlab engine.
+    import mlabraw
+    mlab._session = mlabraw.open()
 
 mlab.addpath(os.path.join(CURRDIR, 'coversongs'))
 
@@ -30,6 +31,9 @@ def extract_features(track, fctr=400, fsd=1.0, type=1):
     n time step columns) using Dan Ellis' chrombeatftrs Matlab
     function (via the mlabwrap module, which is included with this
     feature extractor).
+
+    See http://labrosa.ee.columbia.edu/projects/coversongs
+    for more details.
 
     Parameters
     ----------

@@ -351,7 +351,7 @@ class Track(object) :
         @raise ValueError: if no FeatureExtractor named <name> is found"""
         extractor = FeatureExtractor.query.filter_by(name=unicode(name)).first()
         if not extractor:
-            raise ValueError('No feature extractor named %s', name)
+            raise ValueError('No feature extractor named %s' % name)
 
         if read_from_cache:
             try:
