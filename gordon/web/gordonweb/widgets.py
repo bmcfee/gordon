@@ -28,6 +28,12 @@ import operator
 import mimetypes
 import collections
 
+import tables
+from cStringIO import StringIO
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 
 #artist datagrid ---------------------------------------
 def get_artist_url(row) :
@@ -918,33 +924,9 @@ def clean_kwargs(kwargs):
         cleaned_kwargs[key] = cleaned_val
     return cleaned_kwargs
 
-def plot_track_features(track, name, **kwargs):
-    from cStringIO import StringIO
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-
-    feats = track.features(name, save_to_cache=False, **clean_kwargs(kwargs))
-
-    plt.clf()
-    plt.gcf().set_size_inches((10,3))
-    if feats.ndim == 2:
-        plt.imshow(feats.T, origin='lower', interpolation='nearest',
-                   aspect='auto')
-        plt.colorbar()
-    else: 
-        plt.plot(feats)
-    plt.title(name)
-
-    buf = StringIO()
-    plt.savefig(buf, dpi=96, format='png')
-    return buf
-
 def load_all_cached_features(track):
-    import tables
-    h5file = tables.openFile(track.fn_feature, mode='r')
-
     features = {}
+    h5file = tables.openFile(track.fn_feature, mode='r')
     for fe_node in h5file.iterNodes(h5file.root):
         for array in h5file.iterNodes(fe_node):
             key = '%s (kwargs=%s)' % (array.attrs.feature_extractor_name,
@@ -953,30 +935,33 @@ def load_all_cached_features(track):
     h5file.close()
     return features
 
-def plot_track_all_cached_features(track):
-    from cStringIO import StringIO
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
+def plot_feats(feats):
+    if feats.ndim == 2:
+        plt.imshow(feats.T, origin='lower', interpolation='nearest',
+                   aspect='auto')
+        plt.colorbar(fraction=0.05, pad=0.015, aspect=20)
+    else: 
+        plt.plot(feats)
 
-    allfeatures = load_all_cached_features(track)
-
-    plt.clf()
-    nsubplots = len(allfeatures)
-    plt.gcf().set_size_inches((10,3*nsubplots))
-
-    for n, name in enumerate(sorted(allfeatures.keys())):
-        feats = allfeatures[name]
-        plt.subplot(nsubplots, 1, n+1)
-        if feats.ndim == 2:
-            plt.imshow(feats.T, origin='lower', interpolation='nearest',
-                       aspect='auto')
-            plt.colorbar()
-        else: 
-            plt.plot(feats)
-        plt.title(name)
+def plot_track_features(track, name=None, **kwargs):
+    feats = {}
+    if name:
+        cleaned_kwargs = clean_kwargs(kwargs)
+        key = '%s (kwargs=%s)' % (name, cleaned_kwargs)
+        feats[key] = track.features(name, **cleaned_kwargs)
+    else:
+        feats = load_all_cached_features(track)
         
+    plt.clf()
+    nsubplots = len(feats)
+    plt.gcf().set_size_inches((10,3*nsubplots))
+    plt.subplots_adjust(left=0.10, bottom=0.10, top=0.9, right=0.95)
+
+    for n, name in enumerate(sorted(feats.keys())):
+        plt.subplot(nsubplots, 1, n+1)
+        plot_feats(feats[name])
+        plt.title(name)
+
     buf = StringIO()
     plt.savefig(buf, dpi=96, format='png')
     return buf
-

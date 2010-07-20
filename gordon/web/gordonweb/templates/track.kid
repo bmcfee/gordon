@@ -61,7 +61,7 @@ Cached features (<a href="/feature_extractors">FeatureExtractor information</a>)
     <tr> <th>Annotation Name</th> <th>Value</th> </tr>
   </thead>
   <tbody>
-    <span py:for="a in track.annotations">
+    <span py:for="a in sorted(track.annotations)">
       <tr valign="top" class="even">
         <td>${a.name}</td>
         <td>

@@ -281,7 +281,7 @@ class Root(controllers.RootController):
             alternate_action.append(sub1)
             grstr='/dynimage?track=%s' % str(id)
             afeat_graph=ET.Element('a',href=grstr)
-            afeat_img = ET.SubElement(afeat_graph,'img',align='right',src=grstr, width='700')
+            afeat_img = ET.SubElement(afeat_graph,'img',align='right',src=grstr, width='750')
             
         #suppress alternate action if we are not an editor
         if not ("edit" in identity.current.permissions) :
@@ -375,15 +375,10 @@ class Root(controllers.RootController):
     @identity.require(identity.has_permission("listen"))
     def dynimage(self,track=1,name=None,**kwargs):
         track = gordon_model.Track.query.get(track)
-        if name :
-            h = widgets.plot_track_features(track, name, **kwargs)
-        else :
-            h = widgets.plot_track_all_cached_features(track)
-            pass
-            #let it crash. 
+        h = widgets.plot_track_features(track, name, **kwargs)
         cherrypy.response.headers['Content-Type']= "image/png"
         page=h.getvalue()
-        return  page
+        return page
     
 
 
