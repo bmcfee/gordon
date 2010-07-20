@@ -936,15 +936,22 @@ def load_all_cached_features(track):
     return features
 
 def plot_feats(feats):
-    create_colorbar = lambda: plt.colorbar(fraction=0.05, pad=0.015, aspect=20)
+    COLORBAR_WIDTH = 0.035
+    COLORBAR_PAD = 0.015
+
     if feats.ndim == 2:
         plt.imshow(feats.T, origin='lower', interpolation='nearest',
                    aspect='auto')
-        create_colorbar()
+        plt.colorbar(fraction=COLORBAR_WIDTH, pad=COLORBAR_PAD)
     else: 
         plt.plot(feats)
-        axes = create_colorbar()
-        axes.ax.set_visible(False)
+        # Compensate for colorbar axes in case this figure also
+        # contains some images.
+        axes = plt.gca()
+        bounds = axes.get_position().bounds
+        axes.set_position((bounds[0], bounds[1],
+                           bounds[2] * (1 - COLORBAR_WIDTH - COLORBAR_PAD),
+                           bounds[3]))
     plt.gca().set_xlim((0, len(feats)-1))
 
 def plot_track_features(track, name=None, **kwargs):
