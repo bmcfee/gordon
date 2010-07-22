@@ -55,4 +55,4 @@ def extract_features(track, fctr=400, fsd=1.0, type=1):
     x,fs,svals = track.audio()
     feats,beats = mlab.chrombeatftrs(x.mean(1)[:,np.newaxis], fs, fctr, fsd,
                                      type, nout=2)
-    return feats.T, beats
+    return feats.T, beats.flatten()
