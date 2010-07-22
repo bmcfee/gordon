@@ -2,30 +2,28 @@ Prerequisites
 -------------
 1. Install the dependencies (versions in parenthesis are the last tested):
 
-   ffmpeg binarie, set in PATH, from http://ffmpeg.org/
-   PostgreSQL from http://www.postgresql.org/
+   - ffmpeg binaries [set in PATH] from http://ffmpeg.org/
+   - PostgreSQL from http://www.postgresql.org/
    
-   Python (2.5/2.6 *Win: 2.6/ActivePython 2.5) from http://python.org/ and python-packages:
-   SQLAlchemy (0.5.5 prefered) from http://www.sqlalchemy.org/
+   - Python from http://python.org/   (2.5 most tested, 2.6 0K, 2.7 should work)
+   + SQLAlchemy from http://www.sqlalchemy.org/                (0.5.5 preferred)
      * requires psycopg2 (2.2.1 tested)
-     *Win: get @ http://www.stickpeople.com/projects/python/win-psycopg/
-   NumPy (1.4) from http://numpy.scipy.org/
-   pytables from http://www.pytables.org/ (required to cache signal features in h5 files)
-     *Win: auto-installer only available for Python 2.6+
-           and requires numexpr (1.3.1 tested)
-           untested on ActivePython 2.5
-     * requires HDF5 [1.8] from http://www.hdfgroup.org/HDF5/
-     * requires PThreads, Win: http://sourceware.org/pthreads-win32/
-   eyeD3 (0.6.17) from http://eyed3.nicfit.net/ (this will eventually be replaced with tagpy)
-   (recommended) TagPy from http://pypi.python.org/pypi/tagpy *Win: untested
-     (used to extract metadata with tracklist-generation scripts)
-   (optional) PyGreSQL from http://www.pygresql.org/ (required for interfacing with MusicBrainz)
-     * You will also need a number of perl modules to setup a MB server, as detailed below.
+   + NumPy from http://numpy.scipy.org/                                  (1.4 +)
+   + PyTables from http://www.pytables.org/ [required to cache signal features]
+     * requires numpexpr (1.3.1)
+     * requires HDF5 binaries (1.8) from http://www.hdfgroup.org/HDF5/
+   + eyeD3 (0.6.17) from http://eyed3.nicfit.net/ (will eventually be fully replaced with tagpy)
+   + TagPy from http://pypi.python.org/pypi/tagpy
+     (recommended: to extract metadata with tracklist-generation scripts)
+   + PyGreSQL from http://www.pygresql.org/
+     (Optional: for interfacing with MusicBrainz)
+     * You will also need a number of perl modules to setup a MB server (see 4.)
    
-   (optional) Packages required for the webapp:
-   psycopg: http://initd.org/ * psycopg2 is actually needed for SQL Alchemy too,
-                              however it shuold come embedded in sqlalchemy.
+   Packages required for the webapp (optional):
    TurboGears from http://www.turbogears.org/ 
+   psycopg from http://initd.org/ 
+     (psycopg2 is actually needed for SQL Alchemy too,
+      however it shuold come embedded in the sqlalchemy package.)
    TGFastData from http://pypi.python.org/pypi/TGFastData
    
    -----------------------------------------------------------------------------
@@ -51,27 +49,43 @@ Prerequisites
    
    -----------------------------------------------------------------------------
    On Arch Linux run:                                                  July 2010
-   pacman -S postgresql python-psycopg2 python-sqlalchemy python-numpy python-eyed3 tagpy
-   * This will also install python and setuptools if you didn't have them yet.
+   pacman -S postgresql python-sqlalchemy python-psycopg2 python-numpy \
+             python-eyed3 tagpy
+   * This will also install python and setuptools (easy_install) if you didn't have them yet.
    
    You'll need to install PyTables and PyGreSQL separatelly, ie:
    easy_install numexpr (required for pytables) # or you may wget it from AUR to install with pacman
    pacman -S hdf5       (required for pytables)
    easy_install cython  (required for pytables) # also in aur.archlinux.org
-   wget python-pytables from AUR, untar, cd, makepkg and pacman -U it; easy_install doesn't work.
+   wget python-pytables from AUR, untar, cd, makepkg and pacman -U it; easy_install won't work.
    easy_install pygresql # available in AUR
-   * You (should now) have setuptools, which provides easy_install.
    
    For the (optional) web app:
-   pacman python-psycopg2 ?
    pacman turbogears ?
    easy_install TGFastData ? # AUR ?
    
    -----------------------------------------------------------------------------
-   Windows Install Guide
-   ...
+   Windows Install Guide                                               June 2010
+   Try to install all required dependencies folowing 1st section.
+   See the following notes to make your life easier:
    
-   *We havn't tested the webapp under Windows
+   * ActivePython 2.5 and Python 2.6 have been tested (2.7 should work)
+     Use AP 2.5 in case need legacy support for older libraries
+   * Get psycopg2 from http://www.stickpeople.com/projects/python/win-psycopg/
+   * PyTables auto-installer is available only for Python 2.6+
+     Untested on ActivePython 2.5
+     Get PThreads for Win from http://sourceware.org/pthreads-win32/
+   * TagPy hasn't been tested in Windows but Gordon will work without it
+     taglib winports 1.3 at http://sourceforge.net/projects/taglib-winport/
+      or 1.4 at http://sageshome.net/oss/taglib-win32.php
+     Tips: Boost.Pyhon for win available at
+      http://www.boost.org/doc/libs/1_41_0/libs/python/doc/building.html
+     
+   We haven't tested the webapp under Windows
+   
+   You may want to install a non-commercial license Virtuat Box
+   (or Virtual Box OSE, or even MS Virtual PC 2007) with a light Linux
+   distribution (eg Arch Linux) to run all Gordon features :)
    
 
 
@@ -81,20 +95,19 @@ Prerequisites
    createdb gordon_db
    createuser gordon -P
    
-   *Win: You may use a graphic manager such as pgAdmin
+   * Windows: You may want to use a graphic manager such as pgAdmin.
 
 
 
 Gordon setup
 ------------
 1. Copy gordon/db/config.py.default to gordon/db/config.py and fill in
-   the details of your local configuration. *Also, export a PYTHONPATH with
-   the project's root dir
+   the details of your local configuration.
 
 2. Run gordon/db/gordon_initialize.py to build the database tables.
 
-3. Use gordon/db/audio_intake(_from_csv).py and metadata .csv files to import 
-   music into the database.
+3. Use gordon/db/audio_intake.py or .../audio_intake_from_tracklist.py
+   to import music into the database.
 
 4. Create a local copy of the musicbrainz database using
    gordon/db/mbrainz_import.py
