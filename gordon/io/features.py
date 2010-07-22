@@ -138,11 +138,8 @@ def load_cached_features_into_dict(filename):
 
 def plot_features(feats):
     """Default feature plotting function."""
-    print type(feats), type(feats) is tuple
     if type(feats) is tuple:
         feats = feats[0]
-    print type(feats)
-    print feats.shape
 
     COLORBAR_WIDTH = 0.035
     COLORBAR_PAD = 0.015
