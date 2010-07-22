@@ -339,8 +339,7 @@ class Track(object) :
         root,ext = os.path.splitext(self.path)
         return ext[1:]
     
-    def features(self, name, read_from_cache=True, save_to_cache=True,
-                 **kwargs):
+    def features(self, name, read_from_cache=True, save_to_cache=True, **kwargs):
         """Computes features for this track using the named feature extractor.
         @raise ValueError: if no FeatureExtractor named <name> is found"""
         import gordon.io.features as features
@@ -460,10 +459,9 @@ pass #jorgeorpinel: for psycopg (used by SQL Alchemy) to know how to adapt (used
 #     ...here since this is first used with track data (when running audio_intake.py)
 #     found @ http://initd.org/psycopg/docs/advanced.html#adapting-new-python-types-to-sql-syntax
 from psycopg2.extensions import register_adapter, AsIs
-import numpy
 def addapt_numpy_float64(numpy_float64):
     return AsIs(numpy_float64)
-register_adapter(numpy.float64, addapt_numpy_float64)
+register_adapter(np.float64, addapt_numpy_float64)
 
 
 class Artist(object) :

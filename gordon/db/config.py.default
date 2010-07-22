@@ -1,7 +1,6 @@
 """Local configuration for gordon database."""
 
-import logging
-import sys
+import logging, sys
 
 # Logging configuration used throughout gordon
 log = logging.getLogger('gordon')
