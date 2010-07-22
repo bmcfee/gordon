@@ -21,6 +21,9 @@ import itertools
 import os
 import warnings
 
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
 import numpy as np
 import tables
 
@@ -111,3 +114,51 @@ def _write_array_to_h5_file(h5file, group, arrayname, array, feature_extractor,
     array = h5file.createArray(group, arrayname, np.asarray(array))
     array.attrs.feature_extractor_name = str(feature_extractor.name)
     array.attrs.kwargs = kwargs
+
+def load_cached_features_into_dict(filename):
+    features_dict = {}
+    h5file = tables.openFile(filename, mode='r')
+    for fe_node in h5file.iterNodes(h5file.root):
+        for array in h5file.iterNodes(fe_node):
+            args = ['name=%s' % array.attrs.feature_extractor_name]
+            args.extend('%s=%s' % (k, v) for k,v in array.attrs.kwargs.items())
+            key = ','.join(args)
+                    
+            if not key in features_dict:
+                features_dict[key] = np.copy(array)
+            else:
+                # Feature must be a tuple.
+                if not type(features_dict[key]) is tuple:
+                    features_dict[key] = (features_dict[key],)
+                feature_list = list(features_dict[key])
+                feature_list.append(np.copy(array))
+                features_dict[key] = tuple(feature_list)
+    h5file.close()
+    return features_dict
+
+def plot_features(feats):
+    """Default feature plotting function."""
+    print type(feats), type(feats) is tuple
+    if type(feats) is tuple:
+        feats = feats[0]
+    print type(feats)
+    print feats.shape
+
+    COLORBAR_WIDTH = 0.035
+    COLORBAR_PAD = 0.015
+    
+    if feats.ndim == 2:
+        plt.imshow(feats.T, origin='lower', interpolation='nearest',
+                   aspect='auto')
+        plt.colorbar(fraction=COLORBAR_WIDTH, pad=COLORBAR_PAD)
+    else: 
+        plt.plot(feats)
+        # Compensate for colorbar axes in case this figure also
+        # contains some images.
+        axes = plt.gca()
+        bounds = axes.get_position().bounds
+        axes.set_position((bounds[0], bounds[1],
+                           bounds[2] * (1 - COLORBAR_WIDTH - COLORBAR_PAD),
+                           bounds[3]))
+    plt.gca().set_xlim((0, len(feats)-1))
+

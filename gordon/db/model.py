@@ -354,7 +354,8 @@ class Track(object) :
                 return features.read_cached_features(self.fn_feature, extractor,
                                                      kwargs)
             except:
-                log.debug('Error reading feature file: %s', self.fn_feature)
+                log.debug('Error reading cached features from %s',
+                          self.fn_feature)
                 #import traceback;  traceback.print_exc()
         
         Y = extractor.extract_features(self, **kwargs)

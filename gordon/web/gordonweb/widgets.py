@@ -28,11 +28,11 @@ import operator
 import mimetypes
 import collections
 
-import tables
 from cStringIO import StringIO
-import matplotlib
-matplotlib.use('Agg')
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
+import gordon.io.features as features
 
 
 #artist datagrid ---------------------------------------
@@ -924,44 +924,16 @@ def clean_kwargs(kwargs):
         cleaned_kwargs[key] = cleaned_val
     return cleaned_kwargs
 
-def load_all_cached_features(track):
-    features = {}
-    h5file = tables.openFile(track.fn_feature, mode='r')
-    for fe_node in h5file.iterNodes(h5file.root):
-        for array in h5file.iterNodes(fe_node):
-            key = '%s (kwargs=%s)' % (array.attrs.feature_extractor_name,
-                                      array.attrs.kwargs)
-            features[key] = N.copy(array)
-    h5file.close()
-    return features
-
-def plot_feats(feats):
-    COLORBAR_WIDTH = 0.035
-    COLORBAR_PAD = 0.015
-
-    if feats.ndim == 2:
-        plt.imshow(feats.T, origin='lower', interpolation='nearest',
-                   aspect='auto')
-        plt.colorbar(fraction=COLORBAR_WIDTH, pad=COLORBAR_PAD)
-    else: 
-        plt.plot(feats)
-        # Compensate for colorbar axes in case this figure also
-        # contains some images.
-        axes = plt.gca()
-        bounds = axes.get_position().bounds
-        axes.set_position((bounds[0], bounds[1],
-                           bounds[2] * (1 - COLORBAR_WIDTH - COLORBAR_PAD),
-                           bounds[3]))
-    plt.gca().set_xlim((0, len(feats)-1))
-
 def plot_track_features(track, name=None, **kwargs):
     feats = {}
     if name:
         cleaned_kwargs = clean_kwargs(kwargs)
-        key = '%s (kwargs=%s)' % (name, cleaned_kwargs)
+        args = ['name=%s' % name]
+        args.extend('%s=%s' % (k, v) for k,v in cleaned_kwargs.iteritems())
+        key = ','.join(args)
         feats[key] = track.features(name, **cleaned_kwargs)
     else:
-        feats = load_all_cached_features(track)
+        feats = features.load_cached_features_into_dict(track.fn_feature)
         
     plt.clf()
     nsubplots = len(feats)
@@ -970,7 +942,7 @@ def plot_track_features(track, name=None, **kwargs):
 
     for n, name in enumerate(sorted(feats.keys())):
         plt.subplot(nsubplots, 1, n+1)
-        plot_feats(feats[name])
+        features.plot_features(feats[name])
         plt.title(name)
 
     buf = StringIO()
