@@ -64,7 +64,8 @@ except :
     try:
         engine.connect()
     except OperationalError:
-        log.warning('Could not connect to PostgreSQL database %s/%s.',
+        log.warning('WARNING: Could not connect to PostgreSQL database %s/%s. \
+                     Please run pg server.',
                     config.DEF_DBHOST, config.DEF_DBNAME)
     Session = scoped_session(sessionmaker(bind=engine,autoflush=True, autocommit=True))
     session = Session()
@@ -96,6 +97,7 @@ except :
 # gordon.  Make sure it gets removed when we exit.
 TEMPDIR = tempfile.mkdtemp()
 atexit.register(shutil.rmtree, TEMPDIR)
+
 
 
 mbartist_resolve =  Table('mbartist_resolve', metadata,
@@ -458,10 +460,11 @@ class Track(object) :
 pass #jorgeorpinel: for psycopg (used by SQL Alchemy) to know how to adapt (used in SQL queries) the numpy.float64 type
 #     ...here since this is first used with track data (when running audio_intake.py)
 #     found @ http://initd.org/psycopg/docs/advanced.html#adapting-new-python-types-to-sql-syntax
+import numpy
 from psycopg2.extensions import register_adapter, AsIs
 def addapt_numpy_float64(numpy_float64):
     return AsIs(numpy_float64)
-register_adapter(np.float64, addapt_numpy_float64)
+register_adapter(numpy.float64, addapt_numpy_float64)
 
 
 class Artist(object) :

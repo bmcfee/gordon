@@ -15,3 +15,5 @@ gordon/web/tg_gordonweb
 gordon/db/config.py
 glob:frontend/*
 glob:siplca-segmentation/*
+glob:hdf5-1.8.5-win32/*
+glob:pthreads-w32-2-8-0-release/*
