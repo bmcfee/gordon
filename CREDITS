@@ -6,10 +6,20 @@ Sun Labs, Boston.
 Contributors:
 
 Douglas Eck
- - "The whole shebang" as Ron Weiss politely put it.  More explicitly: initial implementation of this system as part of Search Inside the Music (SITM).
+ - "The whole shebang" as Ron Weiss politely put it.
+   More explicitly: initial implementation of this system as part of Search Inside the Music (SITM)
 
 Michael Mandel 
  - playdar resolver
 
 Ron Weiss
  - documentation and cleanup in preparation for initial open source release
+
+Gordon (built on SITM) was further developed at New York University,
+Steinhardt as part of the IMSL project whithin the MARL research group (NYU-Columbia)
+
+Ron Weiss
+ - Gordon project leader and developer
+
+Jorge Orpinel
+ - Gordon project developer

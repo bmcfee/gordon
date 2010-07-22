@@ -19,18 +19,21 @@ Prerequisites
      (Optional: for interfacing with MusicBrainz)
      * You will also need a number of perl modules to setup a MB server (see 4.)
    
-   Packages required for the webapp (optional):
-   TurboGears from http://www.turbogears.org/ 
-   psycopg from http://initd.org/ 
+   Packages required for the web app (optional):
+   - TurboGears from http://www.turbogears.org/ 
+   + psycopg from http://initd.org/ 
      (psycopg2 is actually needed for SQL Alchemy too,
       however it shuold come embedded in the sqlalchemy package.)
-   TGFastData from http://pypi.python.org/pypi/TGFastData
+   + TGFastData from http://pypi.python.org/pypi/TGFastData
+   + matplotlib from http://matplotlib.sourceforge.net
+     (Optional: used for plotting features in the web app)
    
    -----------------------------------------------------------------------------
    On Debian (and probably Ubuntu),                                     Feb 2010
    you can get all of these dependencies by running:
    apt-get install postgresql ffmpeg python-sqlalchemy python-pygresql \
-                   python-numpy python-eyed3 python-tagpy python-tables
+                   python-numpy python-eyed3 python-tagpy python-tables \
+                   python-matplotlib
 
    And for the (optional) web app:
    apt-get install python-psycopg2 python-tgmochikit python-setuptools
@@ -51,7 +54,8 @@ Prerequisites
    On Arch Linux run:                                                  July 2010
    pacman -S postgresql python-sqlalchemy python-psycopg2 python-numpy \
              python-eyed3 tagpy
-   * This will also install python and setuptools (easy_install) if you didn't have them yet.
+   * This will also install python and setuptools (which provide easy_install
+     from pypi.org) if you didn't have them yet.
    
    You'll need to install PyTables and PyGreSQL separatelly, ie:
    easy_install numexpr (required for pytables) # or you may wget it from AUR to install with pacman
@@ -61,16 +65,18 @@ Prerequisites
    easy_install pygresql # available in AUR
    
    For the (optional) web app:
-   pacman turbogears ?
-   easy_install TGFastData ? # AUR ?
+   easy_install TurboGears # also available in AUR
+   * you shuold already have psycopg (pacman -S python-psycopg2)
+   easy_install TGFastData # also available in AUR
+   pacman -S python-matplotlib
    
    -----------------------------------------------------------------------------
    Windows Install Guide                                               June 2010
    Try to install all required dependencies folowing 1st section.
-   See the following notes to make your life easier:
+   See the following notes to make your life easier (to avoid compiling):
    
    * ActivePython 2.5 and Python 2.6 have been tested (2.7 should work)
-     Use AP 2.5 in case need legacy support for older libraries
+     Use AP 2.5 in case need support for special libraries e.g. mlabwrap.mlab
    * Get psycopg2 from http://www.stickpeople.com/projects/python/win-psycopg/
    * PyTables auto-installer is available only for Python 2.6+
      Untested on ActivePython 2.5
