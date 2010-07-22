@@ -1,1 +1,1 @@
-from gordon.db.gordon_db import * # loads helper functions
+from gordon.db.gordon_db import *

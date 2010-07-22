@@ -26,12 +26,8 @@ from sqlalchemy import (Table, Column, ForeignKey, String, Unicode, Integer,
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import relation, sessionmaker, MapperExtension, backref
 
-import numpy as np
-import tables
-
 from gordon.io import AudioFile
 from gordon.db import config
-
 
 log = logging.getLogger('gordon.model')
 
@@ -347,23 +343,26 @@ class Track(object) :
                  **kwargs):
         """Computes features for this track using the named feature extractor.
         @raise ValueError: if no FeatureExtractor named <name> is found"""
+        import gordon.io.features as features
+
         extractor = FeatureExtractor.query.filter_by(name=unicode(name)).first()
         if not extractor:
             raise ValueError('No feature extractor named %s' % name)
 
         if read_from_cache:
             try:
-                return self._read_cached_features(extractor, kwargs)
+                return features.read_cached_features(self.fn_feature, extractor,
+                                                     kwargs)
             except:
                 log.debug('Error reading feature file: %s', self.fn_feature)
                 #import traceback;  traceback.print_exc()
         
-        features = extractor.extract_features(self, **kwargs)
+        Y = extractor.extract_features(self, **kwargs)
 
         if save_to_cache:
-            self._save_cached_features(extractor, kwargs, features)
+            features.save_cached_features(self.fn_feature, extractor, kwargs, Y)
 
-        return features
+        return Y
     
     @property
     def fn_feature(self) :
@@ -373,61 +372,6 @@ class Track(object) :
         return os.path.join(config.DEF_GORDON_DIR, 'data', 'features',
                             _get_shortfile(self.id, 'h5'))
 
-    @staticmethod
-    def _args_to_string(kwargs):
-        if kwargs:
-            s = ''.join('%s%s' % (k,v) for k,v in sorted(kwargs.iteritems()))
-        else:
-            s = 'None'
-        return s
-
-    def _read_cached_features(self, feature_extractor, kwargs):
-        h5file = None
-        try:
-            h5file = tables.openFile(self.fn_feature, mode="r")
-            groupname = 'FeatureExtractor%d' % feature_extractor.id
-
-            # Should we ignore names, and walk *all* of the nodes,
-            # checking for matching args and kwargs instead of this?
-            argstring = self._args_to_string(kwargs)
-            array = h5file.getNode('/'.join(['', groupname, argstring]))
-        
-            # Sanity check.
-            assert feature_extractor.name == array.attrs.feature_extractor_name
-            assert kwargs == array.attrs.kwargs
-
-            # Copy the array into memory so we don't have to keep the h5
-            # file around longer than is necessary.
-            nparray = np.array(array)
-        finally:
-            if h5file:
-                h5file.close()
-
-        return  nparray
-
-    def _save_cached_features(self, feature_extractor, kwargs, features):
-        if os.path.exists(self.fn_feature):
-            h5file = tables.openFile(self.fn_feature, mode="a")
-        else:
-            from gordon_db import make_subdirs
-            make_subdirs(self.fn_feature)
-            h5file = tables.openFile(self.fn_feature, mode="w",
-                                     title='Features for %s' % self)
-
-        groupname = 'FeatureExtractor%d' % feature_extractor.id
-        try:
-            group = h5file.getNode(h5file.root, groupname)
-        except tables.NoSuchNodeError:
-            group = h5file.createGroup(h5file.root, groupname,
-                                       str(feature_extractor.name))
-
-        argstring = self._args_to_string(kwargs)
-        array = h5file.createArray(group, argstring, np.asarray(features))
-        array.attrs.feature_extractor_name = str(feature_extractor.name)
-        array.attrs.kwargs = kwargs
-
-        h5file.close()
-        
     def _delete_related_files(self,gordonDir='') :
         """Deletes files related to this Track. Triggered by SQLA mapper. Do not call!"""
         #will be triggered by mapper when a track is deleted
