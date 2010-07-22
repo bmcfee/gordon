@@ -603,22 +603,22 @@ class FeatureExtractor(object):
 
         The feature extractor should live in the module specified by
         <module_path>.  The module must contain a method called
-        extract_features which takes a track (and any other optional
-        keyword arguments) and returns an array [1] of feature
+        extract_features which takes a track (and any other optional keyword
+        arguments) and returns an array (or tuple of arrays) [1] of feature
         values. This function's docstring is stored in the
         FeatureExtractor.description column.
 
         The module will be archived with gordon and reloaded whenever
-        FeatureExtractor.extract_features is called.  The contents of
-        the module's parent directory will also be archived to allow
-        any external dependencies (e.g. libraries such as mlabwrap
-        and/or matlab code) to be stored alongside the module.
+        FeatureExtractor.extract_features is called.  The contents of the
+        module's parent directory will also be archived to allow any
+        external dependencies (e.g. libraries such as mlabwrap and/or matlab
+        code) to be stored alongside the module.
 
-        Dependencies that require re-compilation on different
-        architectures should probably be re-compiled (if necessary)
-        whenever the parent module is imported.
+        Dependencies that require re-compilation on different architectures
+        should probably be re-compiled (if necessary) whenever the parent
+        module is imported.
 
-        [1] Feature caching only works for arrays.
+        [1] Feature caching only works for arrays, or tuples of arrays.
         """
         name = unicode(name)
         if not name:

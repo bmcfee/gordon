@@ -27,10 +27,8 @@ mlab.addpath(os.path.join(CURRDIR, 'coversongs'))
 def extract_features(track, fctr=400, fsd=1.0, type=1):
     """Computes beat-synchronous chroma features.
 
-    Returns a feature vector of beat-level chroma features (n time
-    step rows x 12 columns) using Dan Ellis' chrombeatftrs Matlab
-    function (via the mlabwrap module, which is included with this
-    feature extractor).
+    Uses Dan Ellis' chrombeatftrs Matlab function (via the mlabwrap
+    module, which is included with this feature extractor).
 
     See http://labrosa.ee.columbia.edu/projects/coversongs
     for more details.
@@ -45,10 +43,16 @@ def extract_features(track, fctr=400, fsd=1.0, type=1):
     type : int
         Selects chroma calculation type; 1 (default) uses IF; 2 uses
         all FFT bins, 3 uses only local peaks (a bit like Emilia).
+
+    Returns
+    -------
+    chroma : array, shape (n, 12)
+        Feature vector of beat-level chroma features (n time
+        step rows x 12 columns) 
+    beats : array, length n
+        Beat times in seconds for each frame of chroma.
     """
     x,fs,svals = track.audio()
-
     feats,beats = mlab.chrombeatftrs(x.mean(1)[:,np.newaxis], fs, fctr, fsd,
                                      type, nout=2)
-    songlen = x.shape[0] / fs
-    return feats.T
+    return feats.T, beats
