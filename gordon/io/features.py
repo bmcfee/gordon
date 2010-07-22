@@ -59,6 +59,8 @@ def read_cached_features(filename, feature_extractor, kwargs):
                             h5file, curr_arrayname, feature_extractor, kwargs))
                 except tables.NoSuchNodeError:
                     break
+            if not arrays:
+                raise tables.NoSuchNodeError
             features = tuple(arrays)
     finally:
         if h5file:
