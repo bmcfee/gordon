@@ -242,7 +242,7 @@ def make_subdirs(tgt) :
     for part in parts[1:len(parts)-1] :
         subdir = subdir + os.sep + part
         if not os.path.isdir(subdir) :
-            print 'creating dir', subdir
+            print ' * creating dir', subdir
             os.mkdir(subdir)
             _set_perms(subdir, 775) #jorgeorpinel: no effect on Windows
 
@@ -819,10 +819,10 @@ def add_to_collection(tracks, name):
     @raise AttributeError: when the <tracks> passed are not gordon.db.model.Track (sqla) instances
     @author: Jorge Orpinel <jorge@orpinel.com>"""
     
-    collection = Collection.query.filter_by(name=name).first()
+    collection = Collection.query.filter_by(name=unicode(name)).first()
     if not collection:
         # Create the collection if non existant.
-        collection = Collection(name=name)
+        collection = Collection(name=unicode(name))
     
     for track in tracks:
         try:

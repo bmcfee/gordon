@@ -110,7 +110,7 @@ Index('mbartist_resolve_mb_id_idx',mbartist_resolve.c.mb_id, unique=False)
 
 mbalbum_recommend =  Table('mbalbum_recommend', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-    Column(u'album_id', Integer(), ForeignKey('album.id'), index=True, nullable=False),
+    Column(u'album_id', Integer(), ForeignKey('album.id'), nullable=False),
     Column(u'mb_id', String(length=64, convert_unicode=False, assert_unicode=None), default='', primary_key=False),
     Column(u'mb_artist', Unicode(length=None), primary_key=False),
     Column(u'mb_album', Unicode(length=None), primary_key=False),
@@ -125,7 +125,7 @@ mbalbum_recommend =  Table('mbalbum_recommend', metadata,
 #    ForeignKeyConstraint([u'album_id'], [u'public.album.id'], name=u'album_id_exists'),
     )
 Index('mbalbum_recommend_album_id_key', mbalbum_recommend.c.album_id, unique=True)
-Index('mbalbum_recommend_pkey', mbalbum_recommend.c.id, unique=True)
+#Index('mbalbum_recommend_pkey', mbalbum_recommend.c.id, unique=True)
 
 
 album =  Table('album', metadata,
@@ -139,7 +139,7 @@ album =  Table('album', metadata,
 Index('album_name_idx', album.c.name, unique=False)
 Index('album_mb_id_idx', album.c.mb_id, unique=False)
 Index('album_trackcount_idx', album.c.trackcount, unique=False)
-Index('album_pkey', album.c.id, unique=True)
+#Index('album_pkey', album.c.id, unique=True)
 
 
 album_status =  Table('album_status', metadata,
@@ -147,7 +147,7 @@ album_status =  Table('album_status', metadata,
      Column(u'album_id', Integer(), ForeignKey('album.id'),nullable=False),
      Column(u'status', String(length=None), primary_key=False),
      )
-Index('album_status_pkey', album_status.c.id, unique=True)
+#Index('album_status_pkey', album_status.c.id, unique=True)
 
 album_artist =  Table('album_artist', metadata,
     Column(u'album_id', Integer(), ForeignKey('album.id'), nullable=False),
@@ -155,7 +155,7 @@ album_artist =  Table('album_artist', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True)
     )
 Index('artist2album_aid_idx', album_artist.c.artist_id, unique=False)
-Index('artist2album_id_idx', album_artist.c.id, unique=False)
+#Index('artist2album_id_idx', album_artist.c.id, unique=False)
 Index('artist2album_rid_idx', album_artist.c.album_id, unique=False)
 
 album_track =  Table('album_track', metadata,
@@ -163,7 +163,7 @@ album_track =  Table('album_track', metadata,
      Column(u'track_id', Integer(), ForeignKey('track.id'),  nullable=False),
      Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
      )
-Index('album2track_id_idx', album_track.c.id, unique=False)
+#Index('album2track_id_idx', album_track.c.id, unique=False)
 Index('album2track_rid_idx', album_track.c.album_id, unique=False)
 Index('album2track_tid_idx', album_track.c.track_id, unique=False)
 
@@ -176,7 +176,7 @@ artist = Table('artist', metadata,
     )
 Index('artist_mb_id_idx', artist.c.mb_id, unique=False)
 Index('artist_name_idx', artist.c.name, unique=False)
-Index('artist_pkey', artist.c.id, unique=True)
+#Index('artist_pkey', artist.c.id, unique=True)
 Index('artist_trackcount_idx', artist.c.trackcount, unique=False)    
 
 artist_track =  Table('artist_track', metadata,
@@ -185,7 +185,7 @@ artist_track =  Table('artist_track', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
     )
 Index('artist2track_aid_idx', artist_track.c.artist_id, unique=False)
-Index('artist2track_id_idx', artist_track.c.id, unique=False)
+#Index('artist2track_id_idx', artist_track.c.id, unique=False)
 Index('artist2track_tid_idx', artist_track.c.track_id, unique=False)
 
 track =  Table('track', metadata,
@@ -208,7 +208,7 @@ track =  Table('track', metadata,
     Column(u'otracknum', SmallInteger(), default=-1, primary_key=False),
     Column(u'ofilename', Unicode(length=256), default=u'', primary_key=False),
     )
-Index('track_pkey', track.c.id, unique=True)
+#Index('track_pkey', track.c.id, unique=True)
 Index('track_album_idx', track.c.album, unique=False)
 Index('track_artist_idx', track.c.artist, unique=False)
 Index('track_mb_id_idx', track.c.mb_id, unique=False)
@@ -217,11 +217,12 @@ Index('track_title_idx', track.c.title, unique=False)
 annotation =  Table('annotation', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
     Column(u'track_id', Integer(), ForeignKey('track.id'),  nullable=False),
-    Column(u'name', Unicode(length=256),default=u'',  primary_key=False),
+    Column(u'name', Unicode(length=256), default=u''),
     Column(u'value', UnicodeText()),
     )
-Index('annotation_pkey', annotation.c.id, unique=True)
+#Index('annotation_pkey', annotation.c.id, unique=True)
 Index('annotation_track_idx', annotation.c.track_id, unique=False)
+Index('annotation_name', annotation.c.track_id, annotation.c.name, annotation.c.value, unique=True)
 
 collection_track =  Table('collection_track', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
@@ -232,14 +233,14 @@ collection_track =  Table('collection_track', metadata,
 
 collection = Table('collection', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-    Column(u'name', Unicode(length=256)),
+    Column(u'name', Unicode(length=256), index=True, unique=True),             
     Column(u'description', Unicode(length=256)),
     )
 #Index('collection_pkey', collection.c.id, unique=True)
 
 feature_extractor =  Table('feature_extractor', metadata,
-    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True, unique=True),
-    Column(u'name', Unicode(length=256)),
+    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
+    Column(u'name', Unicode(length=256), index=True, unique=True),
     Column(u'description', UnicodeText()),
     Column(u'module_path', Unicode(length=512), default=u''),
     )
@@ -277,8 +278,6 @@ def query(*entities, **kwargs):
 
 
 
-   
-
 def _get_filedir(tid) :
     dr=''
     if type(tid)==str or type(tid)==unicode :
@@ -299,7 +298,7 @@ def _get_filedir(tid) :
     return dr
 
 def _get_shortfile(tid, ext='mp3') :
-    fn = '%s/%s' % (_get_filedir(tid), 'T%s.%s' % (tid, ext))
+    fn = os.path.join(_get_filedir(tid), 'T%s.%s' % (tid, ext))
     return fn
 
 class Track(object) :
@@ -352,11 +351,9 @@ class Track(object) :
 
         if read_from_cache:
             try:
-                return features.read_cached_features(self.fn_feature, extractor,
-                                                     kwargs)
+                return features.read_cached_features(self.fn_feature, extractor, kwargs)
             except:
-                log.debug('Error reading cached features from %s',
-                          self.fn_feature)
+                log.warning('Cannot read cached features from %s. Calculating...', self.fn_feature)
                 #import traceback;  traceback.print_exc()
         
         Y = extractor.extract_features(self, **kwargs)
@@ -420,7 +417,7 @@ class Track(object) :
         annot = Annotation(name, value)
         self.annotations.append(annot)
         
-        commit()
+        commit() #todo: try-catch in case the Annotation track_id-name-value unique index is violated
         
         return annot
         
@@ -585,9 +582,8 @@ class Annotation(object):
         if not self.id: return '<Empty Annotation>'
         long=False
         if len(self.value) > 32: long=True
-        return ('<Annotation "%s": %s%s>' 
-                 % (self.name, self.value[:16],
-                    '...' if long else ''))
+        return ('<Annotation "%s": %s%s (trk # %s)>' 
+                 % (self.name[:16], self.value[:16], '...' if long else '', self.track_id))
     
 
 class FeatureExtractor(object):
@@ -625,9 +621,8 @@ class FeatureExtractor(object):
         name = unicode(name)
         if not name:
             raise ValueError('Invalid name: %s' % name)
-        if FeatureExtractor.query.filter_by(name=name).count() > 0:
-            raise ValueError('A FeatureExtractor named "%s" already exists'
-                             % name)
+        if FeatureExtractor.query.filter_by(name=name).count() > 0: # there's an index to avoid this anyway
+            raise ValueError('A FeatureExtractor named "%s" already exists' % name)
 
         module = FeatureExtractor._load_module_from_path(module_path)
         if not 'extract_features' in dir(module):

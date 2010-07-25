@@ -329,8 +329,8 @@ def getAllTags(mp3fp, skipTrackFields=True):
         
         thisTag=list()
         
-        # gets tag description
-        thisTag.append(frameCode + ' - ' + frame.getFrameDesc())
+        # gets tag description #todo: prepend "ID3 vX.X"
+        thisTag.append(frameCode + ': ' + frame.getFrameDesc())
         try: thisTag[0] += ' - ' + frame.description
         except: pass
         try: thisTag[0] += ' (' + frame.lang + ')'

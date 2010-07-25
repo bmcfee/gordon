@@ -61,7 +61,7 @@ def _store_annotations(audiofile, track, all_md=False):
         if id3.isValidMP3(audiofile):
             #extract all ID3 tags, store each tag value as an annotation type id3.[tagname]
             for tag in id3.getAllTags(audiofile, skipTrackFields=True): # this skips the 4 basic tags already in track
-                track.annotations.append(Annotation(type='id3', name=tag[0], value=tag[1]))
+                track.annotations.append(Annotation(name=unicode(tag[0]), value=tag[1])) #todo: value=unicode(tag[1])
                 annots += 1
     
         #future todo: apply tagpy or other method to extract more metadata formats
@@ -83,7 +83,7 @@ def _store_annotations(audiofile, track, all_md=False):
                 # copy text (file content) to new track annotation (type txt.[ext])
                 txt=open(simfile)
                 (xxx, ext) = os.path.splitext(simfile)
-                track.annotations.append(Annotation(type='text', name=ext[1:], value=txt.read()))
+                track.annotations.append(Annotation(name=unicode(ext[1:]), value=unicode(txt.read())))
                 annots += 1
         finally:
             if type(txt)==file: txt.close()
@@ -95,7 +95,7 @@ def _store_annotations(audiofile, track, all_md=False):
 
 def add_mp3(mp3, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR, id3_dict=dict(), artist=None, album=None, fast_import=False, import_id3=False):
     '''Add mp3 with filename <mp3> to database
-         @param source: audio files data source - Collection object
+         @param source: audio files data source
          @param gordonDir: main Gordon directory
          @param tag_dict: dictionary of key,val ID3 tags pairs - See add_album(...).
          @param artist: The artist for this track. An instance of Artist. None if not present
@@ -139,11 +139,10 @@ def add_mp3(mp3, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR, id
 
 
     # prepare data
-    
     if id3_dict['compilation'] not in [True, False, 'True', 'False'] :
         id3_dict['compilation'] = False
 
-    track = Track(title = id3_dict['utitle'],
+    track = Track(title = id3_dict[u'title'],
                   artist = id3_dict[u'artist'],
                   album = id3_dict[u'album'],
                   tracknum = id3_dict[u'tracknum'],
@@ -488,15 +487,16 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     
     #add our album to Album table
     log.debug('  Album has %d recordings', len(tags_dicts))
-    albumrec = Album(name = album_name, trackcount = len(tags_dicts))
+    albumrec = Album(name = unicode(album_name), trackcount = len(tags_dicts))
 #    collection = None
-    match = Collection.query.filter_by(source = source)
+    source = unicode(source)
+    match = Collection.query.filter_by(name = source)
     if match.count() == 1:
         log.debug('  Matched source %s in database', match[0])
-        collection = match[0]
-    else:
-        collection = Collection(source=source)
-    albumrec.collections.append(collection)
+#        collection = match[0]
+#    else:
+#        collection = Collection(name=unicode(source))
+#    albumrec.collections.append(collection)
 
     #if we have an *exact* string match we will use the existing artist
     artist_dict = dict()
@@ -511,8 +511,8 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
             #resolver....
         else :
             # add our Artist to artist table
-            newartist = Artist(name = artist)
-            newartist.collections.append(collection)
+            newartist = Artist(name = unicode(artist))
+#            newartist.collections.append(collection)
             artist_dict[artist] = newartist
 
         #add artist to album (album_artist table)
@@ -536,7 +536,6 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
     commit()
 
     os.chdir(cwd) # and return to original working dir
-
 
 def add_collection(location, source = str(datetime.date.today()), prompt_incompletes = False, doit = False, iTunesDir = False, gordonDir = DEF_GORDON_DIR, fast_import = False, import_md=False):
     """Recursively adds mp3s from a directory tree.
@@ -596,7 +595,7 @@ def _die_with_usage() :
     print '  -fast: imports without calculating zero-stripped track times.'
     print '  -noprompt: will not prompt for incomplete albums.  See log for what we skipped'
     print 'Arguments: '
-    print '  <source> is the string stored to the database for source (to identify the collection) e.g. DougDec22'
+    print '  <source> is the string stored to the database to identify the intake opperation e.g. "DougDec22". Defaults to current date'
     print '  <dir> is the directory to be imported'
     print '  optional [doit] (default 1) use 0 to test the intake harmlessly'
     print '  optional [metadata] (default 0) use 1 to import all metadata tags from the file'
