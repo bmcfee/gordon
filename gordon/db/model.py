@@ -611,7 +611,7 @@ class FeatureExtractor(object):
         return module
 
     @staticmethod
-    def register(name, module_path):
+    def register(name, module_path, copy_module_tree=False):
         """Register a new feature extractor with gordon.
 
         The feature extractor should live in the module specified by
@@ -622,14 +622,13 @@ class FeatureExtractor(object):
         FeatureExtractor.description column.
 
         The module will be archived with gordon and reloaded whenever
-        FeatureExtractor.extract_features is called.  The contents of the
-        module's parent directory will also be archived to allow any
-        external dependencies (e.g. libraries such as mlabwrap and/or matlab
-        code) to be stored alongside the module.
+        FeatureExtractor.extract_features is called.  If
+        copy_module_tree == True, the contents of the module's parent directory
+        will also be archived to allow any external dependencies (e.g. libraries
+        such as mlabwrap and/or matlab code) to be stored alongside the module.
 
         Dependencies that require re-compilation on different architectures
-        should probably be re-compiled (if necessary) whenever the parent
-        module is imported.
+        should probably be re-compiled whenever the parent module is imported.
 
         [1] Feature caching only works for arrays, or tuples of arrays.
         """
@@ -661,8 +660,11 @@ class FeatureExtractor(object):
             target_module_dir = os.path.dirname(featext.module_fullpath)
             from gordon_db import make_subdirs
             make_subdirs(os.path.dirname(target_module_dir))
-            shutil.copytree(module_dir, target_module_dir)
-            
+            if copy_module_tree:
+                shutil.copytree(module_dir, target_module_dir)
+            else:
+                shutil.copy(module_path, target_module_dir)
+
             # Rename the module file.
             module_filename = os.path.basename(module_path)
             shutil.move(os.path.join(target_module_dir, module_filename),
