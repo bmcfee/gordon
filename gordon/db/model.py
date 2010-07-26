@@ -64,9 +64,8 @@ except :
     try:
         engine.connect()
     except OperationalError:
-        log.warning('WARNING: Could not connect to PostgreSQL database %s/%s. \
-                     Please run pg server.',
-                    config.DEF_DBHOST, config.DEF_DBNAME)
+        log.warning('Could not connect to database %s/%s.', config.DEF_DBHOST,
+                    config.DEF_DBNAME)
     Session = scoped_session(sessionmaker(bind=engine,autoflush=True, autocommit=True))
     session = Session()
     import sqlalchemy.schema
@@ -97,7 +96,6 @@ except :
 # gordon.  Make sure it gets removed when we exit.
 TEMPDIR = tempfile.mkdtemp()
 atexit.register(shutil.rmtree, TEMPDIR)
-
 
 
 mbartist_resolve =  Table('mbartist_resolve', metadata,
@@ -278,6 +276,8 @@ def query(*entities, **kwargs):
 
 
 
+   
+
 def _get_filedir(tid) :
     dr=''
     if type(tid)==str or type(tid)==unicode :
@@ -340,7 +340,8 @@ class Track(object) :
         root,ext = os.path.splitext(self.path)
         return ext[1:]
     
-    def features(self, name, read_from_cache=True, save_to_cache=True, **kwargs):
+    def features(self, name, read_from_cache=True, save_to_cache=True,
+                 **kwargs):
         """Computes features for this track using the named feature extractor.
         @raise ValueError: if no FeatureExtractor named <name> is found"""
         import gordon.io.features as features
@@ -350,16 +351,29 @@ class Track(object) :
             raise ValueError('No feature extractor named %s' % name)
 
         if read_from_cache:
+            featfile = None
             try:
-                return features.read_cached_features(self.fn_feature, extractor, kwargs)
+                featfile = features.CachedFeatureFile(self.fn_feature, mode='r')
+                if featfile.has_features(extractor, kwargs):
+                    features = featfile.get_features(extractor, kwargs)
+                    return features
             except:
-                log.warning('Cannot read cached features from %s. Calculating...', self.fn_feature)
+                log.debug('Error reading cached features from %s',
+                          self.fn_feature)
                 #import traceback;  traceback.print_exc()
+            finally:
+                if featfile:
+                    featfile.close()
         
         Y = extractor.extract_features(self, **kwargs)
 
         if save_to_cache:
-            features.save_cached_features(self.fn_feature, extractor, kwargs, Y)
+            if not os.path.exists(self.fn_feature):
+                from gordon.db.gordon_db import make_subdirs
+                make_subdirs(filename)
+            featfile = features.CachedFeatureFile(self.fn_feature, mode='a')
+            featfile.set_features(extractor, Y, kwargs=kwargs)
+            featfile.close()
 
         return Y
     
@@ -457,8 +471,8 @@ class Track(object) :
 pass #jorgeorpinel: for psycopg (used by SQL Alchemy) to know how to adapt (used in SQL queries) the numpy.float64 type
 #     ...here since this is first used with track data (when running audio_intake.py)
 #     found @ http://initd.org/psycopg/docs/advanced.html#adapting-new-python-types-to-sql-syntax
-import numpy
 from psycopg2.extensions import register_adapter, AsIs
+import numpy
 def addapt_numpy_float64(numpy_float64):
     return AsIs(numpy_float64)
 register_adapter(numpy.float64, addapt_numpy_float64)
@@ -580,10 +594,11 @@ class Collection(object):
 class Annotation(object):
     def __repr__(self) :
         if not self.id: return '<Empty Annotation>'
-        long=False
-        if len(self.value) > 32: long=True
-        return ('<Annotation "%s": %s%s (trk # %s)>' 
-                 % (self.name[:16], self.value[:16], '...' if long else '', self.track_id))
+        val = self.value
+        if len(self.value) > 16:
+            val = '%s...' % val[:16]
+        return ('<Annotation "%s": %s (track ID %d)>' 
+                 % (self.name[:16], val, self.track_id))
     
 
 class FeatureExtractor(object):
@@ -621,8 +636,10 @@ class FeatureExtractor(object):
         name = unicode(name)
         if not name:
             raise ValueError('Invalid name: %s' % name)
-        if FeatureExtractor.query.filter_by(name=name).count() > 0: # there's an index to avoid this anyway
-            raise ValueError('A FeatureExtractor named "%s" already exists' % name)
+        if FeatureExtractor.query.filter_by(name=name).count() > 0:
+            # there's an index to avoid this anyway
+            raise ValueError('A FeatureExtractor named "%s" already exists'
+                             % name)
 
         module = FeatureExtractor._load_module_from_path(module_path)
         if not 'extract_features' in dir(module):

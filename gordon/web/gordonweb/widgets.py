@@ -928,13 +928,20 @@ def plot_track_features(track, name=None, **kwargs):
     feats = {}
     if name:
         cleaned_kwargs = clean_kwargs(kwargs)
-        args = ['name=%s' % name]
-        args.extend('%s=%s' % (k, v) for k,v in cleaned_kwargs.iteritems())
-        key = ','.join(args)
+        args = ['name=%s' % repr(name)]
+        args.extend('%s=%s' % (k,repr(v)) for k,v in cleaned_kwargs.iteritems())
+        key = ', '.join(args)
         feats[key] = track.features(name, **cleaned_kwargs)
     else:
-        feats = features.load_cached_features_into_dict(track.fn_feature)
-        
+        featfile = features.CachedFeatureFile(track.fn_feature, mode='r')
+        allfeats = featfile.get_all_features()
+        featfile.close()
+        feats = {}
+        for key, val in allfeats.iteritems():
+            newkey = ', '.join('%s=%s' % (x[0], repr(x[1]))
+                               for x in zip(key[::2], key[1::2]))
+            feats[newkey] = val
+
     plt.clf()
     nsubplots = len(feats)
     plt.gcf().set_size_inches((10,3*nsubplots))
