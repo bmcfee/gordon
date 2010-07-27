@@ -428,7 +428,7 @@ class Track(object) :
         @return: the annotation
         @param name: annotation.name field [varchar(256)]
         @param value: annotation.value field [text]"""
-        annot = Annotation(name, value)
+        annot = Annotation(name=name, value=value)
         self.annotations.append(annot)
         
         commit() #todo: try-catch in case the Annotation track_id-name-value unique index is violated
@@ -441,15 +441,12 @@ class Track(object) :
         @return: the annotation
         @param annotation: annotation.name field [varchar(256)]
         @param filepath: path to the external file in the file system"""
-        text = open(filepath)
+        file = open(filepath)
         (path, filename) = os.path.split(filepath)
-        annot = Annotation(name=name, value=text.read())
-        self.annotations.append(annot)
-        text.close()
-        
-        commit()
-        
-        return annot
+        value = file.read()
+        file.close()
+
+        return self.add_annotation(name, value)
     
     def get_annotation(self, anot_name):
         '''Get a track's annotation by name
