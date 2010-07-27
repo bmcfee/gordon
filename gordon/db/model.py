@@ -428,11 +428,9 @@ class Track(object) :
         @return: the annotation
         @param name: annotation.name field [varchar(256)]
         @param value: annotation.value field [text]"""
-        annot = Annotation(name=name, value=value)
+        annot = Annotation(name=name, value=value, track_id=self.id)
         self.annotations.append(annot)
-        
-        commit() #todo: try-catch in case the Annotation track_id-name-value unique index is violated
-        
+        commit()        
         return annot
         
     def add_annotation_from_text_file(self, name, filepath):
