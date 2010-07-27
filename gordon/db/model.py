@@ -370,7 +370,7 @@ class Track(object) :
         if save_to_cache:
             if not os.path.exists(self.fn_feature):
                 from gordon.db.gordon_db import make_subdirs
-                make_subdirs(filename)
+                make_subdirs(self.fn_feature)
             featfile = features.CachedFeatureFile(self.fn_feature, mode='a')
             featfile.set_features(extractor, Y, kwargs=kwargs)
             featfile.close()
