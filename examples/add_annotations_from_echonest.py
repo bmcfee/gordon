@@ -39,8 +39,7 @@ def add_annotation(track, name, value, type):
                    % (name, track))
             return
     except KeyError:
-        track.annotations.append(gordon.Annotation(name=unicode(name),
-                                                   value=unicode(value))
+        track.annotations.append(gordon.Annotation(name=unicode(name), value=unicode(value)))
 
 def echonest_events_to_htk_annotation(events, min_confidence=-1):
     htkannotation = []

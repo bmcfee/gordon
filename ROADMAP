@@ -30,6 +30,12 @@ Project plan (coding conventions - http://www.python.org/dev/peps/pep-0008/)
  ? add flag to avoid copy full dir tree
  ? investigate why doesn't Py generate .pyc for FE modules run @ RT
  * cache features (use pytables & hdf5)                                       OK
- + test in apy25                                                             ...
  ? disable caching if no pytables/HDF5 installed (Win)
- * re-structure project code                                                 ... v1.0
+ * re-structure project code                                                  OK
+ 
+Future (SEPT +)                                                              ...
+
+ ? integrate with Ho-Hsiang Flash app (see http://blog.pettomato.com/?p=9)
+ + full Gordon 1.0 manual/guide
+   separated INSTALL guide (Debian, Arch and Windows)                        ...
+   Basic usage (get started) in README                                       ...

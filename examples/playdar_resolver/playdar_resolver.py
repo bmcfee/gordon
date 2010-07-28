@@ -8,8 +8,8 @@
 ########################################################################
 import sys
 import simplejson as json
-import urllib
-import socket
+#import urllib
+#import socket
 from struct import unpack, pack
 
 # Redirect stdout to stderr when starting pylab stuff so that error
@@ -17,8 +17,8 @@ from struct import unpack, pack
 stdout = sys.stdout
 sys.stdout = sys.stderr
 
-from model import Artist, Track
-from gordon_db import get_full_audiofilename
+from model import Artist#, Track
+from gordon import get_full_audiofilename
 import dse_difflib  as DL
 
 # Restore stdout
@@ -29,7 +29,6 @@ sys.stdout = stdout
 matcher = DL.SequenceMatcher()
 
 def resolve(artist_name, track_name):
-    results = []
     matches = Artist.query.filter("(lower(artist.name) ~ ('%s'))" 
                                   % artist_name.lower())
     a_scores = [(a, fuzzy_match(artist_name, a.name)) for a in matches]

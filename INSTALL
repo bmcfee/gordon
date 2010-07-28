@@ -18,6 +18,10 @@ Prerequisites
    + PyGreSQL from http://www.pygresql.org/
      (Optional: for interfacing with MusicBrainz)
      * You will also need a number of perl modules to setup a MB server (see 4.)
+   Less important optional packages (unused in regular Gordon opperation):
+    - scipy            (to write audio files)
+    - scikits.audiolab (to write audio files using audiolab)
+    - pylab            (to plot audio files)
    
    Packages required for the web app (optional):
    - TurboGears from http://www.turbogears.org/ 

@@ -269,10 +269,10 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()),
         if match.count() == 1 :
             log.debug('Matched %s to %s in database', artist, match[0])
             artist_dict[artist] = match[0]
-            #eckdoug: TODO what happens if match.count()>1? This means we have multiple artists in db with same 
-            #name. Do we try harder to resolve which one? Or just add a new one.  I added a new one (existing code)
-            #but it seems risky.. like we will generate lots of new artists.  Anyway, we resolve this in the musicbrainz 
-            #resolver....
+            #todo: (eckdoug) what happens if match.count()>1? This means we have multiple artists in db with same 
+            # name. Do we try harder to resolve which one? Or just add a new one.  I added a new one (existing code)
+            # but it seems risky.. like we will generate lots of new artists. 
+            # Anyway, we resolve this in the musicbrainz resolver....
         else :
             # add our Artist to artist table
             newartist = Artist(name = artist)

@@ -21,8 +21,9 @@
 
 import os, pg, sys, socket
 
-import gordon_db
-import config
+import gordon.db.config as config
+
+from gordon import make_subdirs
 
 
 
@@ -134,7 +135,7 @@ def do_ftp(site='ftp://ftp.musicbrainz.org/pub/musicbrainz/data/fullexport',forc
         f=f.strip()
         # Open the file for writing in binary mode
         fnout=os.path.join(config.DEF_GORDON_DIR,'mbrainz','mbdump',dr,f)
-        gordon_db.make_subdirs(fnout)
+        make_subdirs(fnout)
         print 'Opening local file ' + fnout
         fout= open(fnout, 'wb')
         print 'downloading',f

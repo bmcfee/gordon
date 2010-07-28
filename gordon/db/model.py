@@ -135,7 +135,7 @@ annotation =  Table('annotation', metadata,
     Column(u'name', Unicode(length=256), default=u'', index=True),
     Column(u'value', UnicodeText()),
     )
-Index('ix_annotation_tid_name_value', annotation.c.track_id, annotation.c.name, annotation.c.value, unique=True)
+Index('ix_annotation_tid_name', annotation.c.track_id, annotation.c.name, unique=True)
 
 artist = Table('artist', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
@@ -347,7 +347,7 @@ class Track(object) :
 
         if save_to_cache:
             if not os.path.exists(self.fn_feature):
-                from gordon.db.gordon_db import make_subdirs
+                from gordon import make_subdirs
                 make_subdirs(self.fn_feature)
             featfile = features.CachedFeatureFile(self.fn_feature, mode='a')
             featfile.set_features(extractor, Y, kwargs=kwargs)
@@ -382,7 +382,7 @@ class Track(object) :
             if a.trackcount :
                 a.trackcount-=1
                 
-        from gordon_db import get_tidfilename as get_tidfilename, get_tiddirectory, make_subdirs_and_move
+        from gordon import get_tidfilename as get_tidfilename, get_tiddirectory, make_subdirs_and_move
         #move the corresponding MP3 and features to GORDON_DIR/audio/offline
         srcMp3Path = os.path.join(gordonDir, 'audio', 'main', get_tidfilename(tid))
         dstMp3Path = os.path.join(gordonDir, 'audio', 'offline', get_tidfilename(tid))
@@ -572,7 +572,7 @@ class FeatureExtractor(object):
 
             module_dir = os.path.dirname(os.path.abspath(module_path))
             target_module_dir = os.path.dirname(featext.module_fullpath)
-            from gordon_db import make_subdirs
+            from gordon import make_subdirs
             make_subdirs(os.path.dirname(target_module_dir))
             if copy_module_tree:
                 shutil.copytree(module_dir, target_module_dir)

@@ -79,7 +79,7 @@ class AudioFile(object):
         self.hash=None                   #hash code for read file to keep us from reading multiple times for same parameters
      
 
-    def write(self,fn=None,x=None,fs=None,channels=None,format=None, bitrate=None,audiolab=False):
+    def write(self,fn=None,x=None,fs=None,channels=None,format=None,bitrate=None,audiolab=False):
         """Writes data x (as numpy array of floats scaled between -1 and 1) at sampling rate fs to file fn
              fn: name of file to create (defualt is self.fn)
               x: data buffer (default is self.x)
@@ -91,7 +91,7 @@ class AudioFile(object):
         Warning: overwrites fn if fn exists
         """
         from scipy.io.numpyio import fwrite, fread
-        import copy
+#        import copy
         import tempfile
 
         if fn is None :
@@ -475,7 +475,7 @@ def die_with_usage() :
     sys.exit(0)
 
 if __name__=='__main__' :
-    import sys
+#    import sys
 
     if len(sys.argv)<2 :
         die_with_usage()

@@ -1,2 +1,0 @@
-﻿DROP TABLE album, artist, collection, track CASCADE;
-DROP TABLE album_artist, album_status, album_track, annotation, artist_track, collection_track, feature_extractor, mbalbum_recommend, mbartist_resolve;

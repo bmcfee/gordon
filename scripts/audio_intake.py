@@ -200,23 +200,22 @@ def add_mp3(mp3, source=str(datetime.date.today()), gordonDir=DEF_GORDON_DIR, id
     #stamp the file ("TID n" as an ID3v2 commment)
     id3.id3v2_putval(tgt, 'tid', 'T%i' % track.id) # writes on new audio file (the copy)
 
-    #we update id3 tags in mp3 if necessary (from local MusicBrainz DB, when no info found)
+    # We update id3 tags in mp3 if necessary (from local MusicBrainz DB, when no info found)
+    #todo: try this when Gordon has no write access to the files, does the script handle the error? (can't roll back saved tracks now)
     if track.otitle <> track.title or track.oartist <> track.artist or track.oalbum <> track.album or track.otracknum <> track.tracknum :
-        #todo: install musicbrainz_db pgdb first!
         log.debug('    (NOT) Trying to update_mp3_from_db %s %s', track.id,
                   os.path.join(gordonDir, 'audio', 'main'))
-#        from gordon.db.mbrainz_resolver import GordonResolver
-#        gordonResolver = GordonResolver()
-#        try:
-#            if not gordonResolver.update_mp3_from_db(track.id, audioDir = os.path.join(gordonDir, 'audio', 'main'), doit = True) :
-#                pass # if file not found ...
-#        except Exception: # except for file access crashes?
-#            pass
+        try:
+            from gordon.db.mbrainz_resolver import GordonResolver
+            gordonResolver = GordonResolver()
+            try:
+                if not gordonResolver.update_mp3_from_db(track.id, audioDir = os.path.join(gordonDir, 'audio', 'main'), doit = True) :
+                    pass # if file not found ...
+            except Exception: # except for file access crashes?
+                pass
+        except:
+            log.warning('    MusicBrainz interface is not installed. Refer to Gordon INSTALL notes.')
 
-    #if not fast_import :
-#        log.debug('    Calculating features for track %s', track.id)
-#        update_features(track.id)
-    
     #search for other annotations and store them in the database
     
     _store_annotations(mp3, track, import_id3)
@@ -505,10 +504,10 @@ def add_album(albumDir, source = str(datetime.date.today()), gordonDir = DEF_GOR
         if match.count() == 1 :
             log.debug('  Matched %s %s in database', artist, match[0])
             artist_dict[artist] = match[0]
-            #eckdoug: TODO what happens if match.count()>1? This means we have multiple artists in db with same 
-            #name. Do we try harder to resolve which one? Or just add a new one.  I added a new one (existing code)
-            #but it seems risky.. like we will generate lots of new artists.  Anyway, we resolve this in the musicbrainz 
-            #resolver....
+            #todo: (eckdoug) what happens if match.count()>1? This means we have multiple artists in db with same 
+            # name. Do we try harder to resolve which one? Or just add a new one.  I added a new one (existing code)
+            # but it seems risky.. like we will generate lots of new artists. 
+            # Anyway, we resolve this in the musicbrainz resolver....
         else :
             # add our Artist to artist table
             newartist = Artist(name = unicode(artist))

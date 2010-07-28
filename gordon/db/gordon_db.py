@@ -31,7 +31,6 @@ from sqlalchemy import func, select
 from string import join, replace
 from sys import platform, version
 from time import sleep
-from traceback import print_exc
 from unicodedata import decomposition, normalize
 
 from gordon.db.model import (Artist, Album, Annotation, Track, Collection, FeatureExtractor,
