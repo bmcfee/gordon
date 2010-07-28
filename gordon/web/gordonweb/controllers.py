@@ -945,7 +945,7 @@ class Root(controllers.RootController):
     #collections-----------------------------------------
     @expose(template="gordonweb.templates.collection")
     @identity.require(identity.has_permission("listen"))
-    @paginate('tracks', default_order='tracknum',limit=1000000)
+    @paginate('tracks', default_order='album',limit=1000000)
     def collection(self,id=1,action='view',shuffle='') :
         collection = gordon_model.Collection.query.get(id)
         if collection==None :
