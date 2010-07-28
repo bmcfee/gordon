@@ -52,17 +52,31 @@ Prerequisites
    
    -----------------------------------------------------------------------------
    On Arch Linux run:                                                  July 2010
-   pacman -S postgresql python-sqlalchemy python-psycopg2 python-numpy \
-             python-eyed3 tagpy
+   # pacman -S postgresql python-sqlalchemy python-psycopg2 python-numpy \
+               ls /python-eyed3 tagpy
    * This will also install python and setuptools (which provide easy_install
      from pypi.org) if you didn't have them yet.
    
    You'll need to install PyTables and PyGreSQL separatelly, ie:
-   easy_install numexpr (required for pytables) # or you may wget it from AUR to install with pacman
-   pacman -S hdf5       (required for pytables)
+   easy_install numexpr (required for pytables) # or you may wget it from AUR* to install with pacman
+   # pacman -S hdf5     (required for pytables)
    easy_install cython  (required for pytables) # also in aur.archlinux.org
    wget python-pytables from AUR, untar, cd, makepkg and pacman -U it; easy_install won't work.
    easy_install pygresql # available in AUR
+   
+   AUR* How to instal from Arch User Repository:
+   Optional: you ned to install fakeroot to make packages as a non-root user (recommended)
+      so # pacman -S fakeroot  or $ sudo pacman -S fakeroot
+   1. Search the desired software eg "numexpr" in aur.archlinux.org,
+      and select it from the search results (if any).
+   2. Copy the "Tarball" link and wget it in your home folder
+      eg $ wget http://aur.archlinux.org/packages/python-numexpr/python-numexpr.tar.gz
+   3. untar eg $ tar xzf python-numexpr.tar.gz  and cd into pacdir eg $ cd python-numexpr
+   *  you'll need gcc (GNU C Compiler) to makepkg many packages, including this example
+      so $ sudo pacman -S gcc
+   4. $ makepks -s  (requires fakeroot, -s auto-installs dependencies) or
+      $ sudo makepkg --asroot  (not recommended)
+   5. install with pacman! eg $ sudo pacman -U python-numexpr-1...pkg.tar.xz
    
    For the (optional) web app:
    easy_install TurboGears # also available in AUR
@@ -98,9 +112,10 @@ Prerequisites
 
 2. Create the database and set up a user to manage the database by running the
    following commands as the postgres linux user (probably 'postgres'):
-   createdb gordon_db
-   createuser gordon -P
+   createuser gordon -DRSP
+   createdb -O gordon gordon_db
    
+   * ArchLinux: See http://wiki.archlinux.org/index.php/PostgreSQL
    * Windows: You may want to use a graphic manager such as pgAdmin.
 
 
@@ -112,7 +127,7 @@ Gordon setup
 
 2. Run gordon/db/gordon_initialize.py to build the database tables.
 
-3. Use gordon/db/audio_intake.py or .../audio_intake_from_tracklist.py
+3. Use gordon/db/audio_intake.py or gordon/db/audio_intake_from_tracklist.py
    to import music into the database.
 
 4. Create a local copy of the musicbrainz database using

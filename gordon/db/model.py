@@ -17,14 +17,15 @@
 
 """Gordon database model"""
 
-import os, glob, logging, shutil, tempfile, atexit, sys, inspect, imp
+import os, glob, logging, shutil, tempfile, atexit, numpy, inspect, imp
 
 from datetime import datetime
 from sqlalchemy import (Table, Column, ForeignKey, String, Unicode, Integer,
                         Index, Float, SmallInteger, Boolean, DateTime,
-                        UnicodeText, Binary)
+                        UnicodeText)
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import relation, sessionmaker, MapperExtension, backref
+from psycopg2.extensions import register_adapter, AsIs
 
 from gordon.io import AudioFile
 from gordon.db import config
@@ -98,149 +99,121 @@ TEMPDIR = tempfile.mkdtemp()
 atexit.register(shutil.rmtree, TEMPDIR)
 
 
-mbartist_resolve =  Table('mbartist_resolve', metadata,
-    Column(u'artist', Unicode(length=256), primary_key=False),
-    Column(u'mb_id', String(length=64, convert_unicode=False, assert_unicode=None), primary_key=False),
-    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-    )
-Index('mbartist_resolve_artist_idx',mbartist_resolve.c.artist, unique=False)
-Index('mbartist_resolve_mb_id_idx',mbartist_resolve.c.mb_id, unique=False)
 
-mbalbum_recommend =  Table('mbalbum_recommend', metadata,
-    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-    Column(u'album_id', Integer(), ForeignKey('album.id'), nullable=False),
-    Column(u'mb_id', String(length=64, convert_unicode=False, assert_unicode=None), default='', primary_key=False),
-    Column(u'mb_artist', Unicode(length=None), primary_key=False),
-    Column(u'mb_album', Unicode(length=None), primary_key=False),
-    Column(u'gordon_artist', Unicode(length=None), primary_key=False),
-    Column(u'gordon_album', Unicode(length=None), primary_key=False),
-    Column(u'conf', Float(precision=53, asdecimal=False), primary_key=False),
-    Column(u'conf_artist', Float(precision=53, asdecimal=False), primary_key=False),
-    Column(u'conf_album', Float(precision=53, asdecimal=False), primary_key=False),
-    Column(u'conf_track', Float(precision=53, asdecimal=False), primary_key=False),
-    Column(u'conf_time', Float(precision=53, asdecimal=False), primary_key=False),
-    Column(u'trackorder', String(length=None, convert_unicode=False, assert_unicode=None), primary_key=False),
-#    ForeignKeyConstraint([u'album_id'], [u'public.album.id'], name=u'album_id_exists'),
-    )
-Index('mbalbum_recommend_album_id_key', mbalbum_recommend.c.album_id, unique=True)
-#Index('mbalbum_recommend_pkey', mbalbum_recommend.c.id, unique=True)
-
+# Tables listed alphabetically:
 
 album =  Table('album', metadata,
-    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-    Column(u'mb_id', String(length=64, convert_unicode=False, assert_unicode=None), default='', primary_key=False),
-    Column(u'name', Unicode(length=256), default='', primary_key=False),
-    Column(u'asin', String(length=32, convert_unicode=False, assert_unicode=None), default='', primary_key=False),
-    Column(u'trackcount', Integer(), default=-1, primary_key=False),
-    Column(u'created_at', DateTime, default=datetime.now),#server_default=text("sysdate")
+    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
+    Column(u'mb_id', String(length=64, convert_unicode=False, assert_unicode=None), default='', index=True),
+    Column(u'name', Unicode(length=256), default='', index=True),
+    Column(u'asin', String(length=32, convert_unicode=False, assert_unicode=None), default=''),
+    Column(u'trackcount', Integer(), default=-1),
     )
-Index('album_name_idx', album.c.name, unique=False)
-Index('album_mb_id_idx', album.c.mb_id, unique=False)
-Index('album_trackcount_idx', album.c.trackcount, unique=False)
-#Index('album_pkey', album.c.id, unique=True)
-
-
-album_status =  Table('album_status', metadata,
-     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-     Column(u'album_id', Integer(), ForeignKey('album.id'),nullable=False),
-     Column(u'status', String(length=None), primary_key=False),
-     )
-#Index('album_status_pkey', album_status.c.id, unique=True)
 
 album_artist =  Table('album_artist', metadata,
-    Column(u'album_id', Integer(), ForeignKey('album.id'), nullable=False),
-    Column(u'artist_id', Integer(), ForeignKey('artist.id'),  nullable=False),
-    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True)
-    )
-Index('artist2album_aid_idx', album_artist.c.artist_id, unique=False)
-#Index('artist2album_id_idx', album_artist.c.id, unique=False)
-Index('artist2album_rid_idx', album_artist.c.album_id, unique=False)
+        Column(u'album_id', Integer(), ForeignKey('album.id'), nullable=False, index=True),
+        Column(u'artist_id', Integer(), ForeignKey('artist.id'),  nullable=False, index=True),
+        Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True)
+        )
+
+album_status =  Table('album_status', metadata,
+         Column(u'album_id', Integer(), ForeignKey('album.id'), nullable=False, index=True),
+         Column(u'status', String(length=None)),
+         Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
+         )
 
 album_track =  Table('album_track', metadata,
-     Column(u'album_id', Integer(), ForeignKey('album.id'), nullable=False),
-     Column(u'track_id', Integer(), ForeignKey('track.id'),  nullable=False),
-     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-     )
-#Index('album2track_id_idx', album_track.c.id, unique=False)
-Index('album2track_rid_idx', album_track.c.album_id, unique=False)
-Index('album2track_tid_idx', album_track.c.track_id, unique=False)
+         Column(u'album_id', Integer(), ForeignKey('album.id'), nullable=False, index=True),
+         Column(u'track_id', Integer(), ForeignKey('track.id'), nullable=False, index=True),
+         Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
+         )
 
-
-artist = Table('artist', metadata,
-    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-    Column(u'mb_id', String(length=64, convert_unicode=False, assert_unicode=None), default='', primary_key=False),
-    Column(u'name', Unicode(length=256), default='', primary_key=False),
-    Column(u'trackcount', Integer(), default=-1, primary_key=False),    
-    )
-Index('artist_mb_id_idx', artist.c.mb_id, unique=False)
-Index('artist_name_idx', artist.c.name, unique=False)
-#Index('artist_pkey', artist.c.id, unique=True)
-Index('artist_trackcount_idx', artist.c.trackcount, unique=False)    
-
-artist_track =  Table('artist_track', metadata,
-    Column(u'artist_id', Integer(), ForeignKey('artist.id'), nullable=False),
-    Column(u'track_id', Integer(), ForeignKey('track.id'),  nullable=False),
-    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-    )
-Index('artist2track_aid_idx', artist_track.c.artist_id, unique=False)
-#Index('artist2track_id_idx', artist_track.c.id, unique=False)
-Index('artist2track_tid_idx', artist_track.c.track_id, unique=False)
-
-track =  Table('track', metadata,
-    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-    Column(u'mb_id', String(length=64, convert_unicode=False, assert_unicode=None), default='', primary_key=False),
-    Column(u'path', Unicode(length=512), default=u'', primary_key=False),
-    Column(u'title', Unicode(length=256), default=u'', primary_key=False),
-    Column(u'artist', Unicode(length=256),default=u'',  primary_key=False),
-    Column(u'album', Unicode(length=256), default=u'', primary_key=False),
-    Column(u'tracknum', SmallInteger(), default = -1, primary_key=False),
-    Column(u'secs', Float(precision=53, asdecimal=False), default=-1 ,primary_key=False),
-    Column(u'zsecs', Float(precision=53, asdecimal=False), default=-1,primary_key=False),
-    Column(u'md5', String(length=64, convert_unicode=False, assert_unicode=None), default='', primary_key=False),
-    Column(u'compilation', Boolean(), default = False, primary_key=False),
-    Column(u'otitle', Unicode(length=256), default=u'', primary_key=False),
-    Column(u'oartist', Unicode(length=256), default=u'',primary_key=False),
-    Column(u'oalbum', Unicode(length=256), default=u'', primary_key=False),
-    Column(u'source', Unicode(length=64), default=u'', primary_key=False),
-    Column(u'bytes', Integer(), primary_key=False, default=-1),
-    Column(u'otracknum', SmallInteger(), default=-1, primary_key=False),
-    Column(u'ofilename', Unicode(length=256), default=u'', primary_key=False),
-    )
-#Index('track_pkey', track.c.id, unique=True)
-Index('track_album_idx', track.c.album, unique=False)
-Index('track_artist_idx', track.c.artist, unique=False)
-Index('track_mb_id_idx', track.c.mb_id, unique=False)
-Index('track_title_idx', track.c.title, unique=False)
 
 annotation =  Table('annotation', metadata,
-    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-    Column(u'track_id', Integer(), ForeignKey('track.id'),  nullable=False),
-    Column(u'name', Unicode(length=256), default=u''),
+    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
+    Column(u'track_id', Integer(), ForeignKey('track.id'), nullable=False, index=True),
+    Column(u'name', Unicode(length=256), default=u'', index=True),
     Column(u'value', UnicodeText()),
     )
-#Index('annotation_pkey', annotation.c.id, unique=True)
-Index('annotation_track_idx', annotation.c.track_id, unique=False)
-Index('annotation_name', annotation.c.track_id, annotation.c.name, annotation.c.value, unique=True)
+Index('ix_annotation_tid_name_value', annotation.c.track_id, annotation.c.name, annotation.c.value, unique=True)
 
-collection_track =  Table('collection_track', metadata,
-    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
-    Column(u'collection_id', Integer(), ForeignKey('collection.id')),
-    Column(u'track_id', Integer(), ForeignKey('track.id')),
+artist = Table('artist', metadata,
+    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
+    Column(u'mb_id', String(length=64, convert_unicode=False, assert_unicode=None), default='', index=True),
+    Column(u'name', Unicode(length=256), default='', index=True),
+    Column(u'trackcount', Integer(), default=-1),    
     )
-#Index('collection2track_id_idx', collection_track.c.id, unique=True)
+
+artist_track =  Table('artist_track', metadata,
+        Column(u'artist_id', Integer(), ForeignKey('artist.id'), nullable=False, index=True),
+        Column(u'track_id', Integer(), ForeignKey('track.id'),  nullable=False, index=True),
+        Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
+        )
+
 
 collection = Table('collection', metadata,
-    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
+    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
     Column(u'name', Unicode(length=256), index=True, unique=True),             
     Column(u'description', Unicode(length=256)),
     )
-#Index('collection_pkey', collection.c.id, unique=True)
+
+collection_track =  Table('collection_track', metadata,
+        Column(u'collection_id', Integer(), ForeignKey('collection.id'), index=True),
+        Column(u'track_id', Integer(), ForeignKey('track.id'), index=True),
+        Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
+        )
+
 
 feature_extractor =  Table('feature_extractor', metadata,
-    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True),
+    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
     Column(u'name', Unicode(length=256), index=True, unique=True),
     Column(u'description', UnicodeText()),
     Column(u'module_path', Unicode(length=512), default=u''),
+    )
+
+mbalbum_recommend =  Table('mbalbum_recommend', metadata,
+    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
+    Column(u'album_id', Integer(), ForeignKey('album.id'), nullable=False, index=True),
+    Column(u'mb_id', String(length=64, convert_unicode=False, assert_unicode=None), default=''),
+    Column(u'mb_artist', Unicode(length=None)),
+    Column(u'mb_album', Unicode(length=None)),
+    Column(u'gordon_artist', Unicode(length=None)),
+    Column(u'gordon_album', Unicode(length=None)),
+    Column(u'conf', Float(precision=53, asdecimal=False)),
+    Column(u'conf_artist', Float(precision=53, asdecimal=False)),
+    Column(u'conf_album', Float(precision=53, asdecimal=False)),
+    Column(u'conf_track', Float(precision=53, asdecimal=False)),
+    Column(u'conf_time', Float(precision=53, asdecimal=False)),
+    Column(u'trackorder', String(length=None, convert_unicode=False, assert_unicode=None)),
+    )
+
+mbartist_resolve =  Table('mbartist_resolve', metadata,
+        Column(u'mb_id', String(length=64, convert_unicode=False, assert_unicode=None), index=True),
+        Column(u'artist', Unicode(length=256), index=True),
+        Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
+        )
+
+
+track =  Table('track', metadata,
+    Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
+    Column(u'mb_id', String(length=64, convert_unicode=False, assert_unicode=None), default='', index=True),
+    Column(u'path', Unicode(length=512), default=u''),
+    Column(u'title', Unicode(length=256), default=u'', index=True),
+    Column(u'artist', Unicode(length=256),default=u'',  primary_key=False, index=True),
+    Column(u'album', Unicode(length=256), default=u'', index=True),
+    Column(u'tracknum', SmallInteger(), default = -1),
+    Column(u'secs', Float(precision=53, asdecimal=False), default=-1 ,primary_key=False),
+    Column(u'zsecs', Float(precision=53, asdecimal=False), default=-1,primary_key=False),
+    Column(u'md5', String(length=64, convert_unicode=False, assert_unicode=None), default=''),
+    Column(u'compilation', Boolean(), default = False),
+    Column(u'otitle', Unicode(length=256), default=u''),
+    Column(u'oartist', Unicode(length=256), default=u'',primary_key=False),
+    Column(u'oalbum', Unicode(length=256), default=u''),
+    Column(u'source', Unicode(length=64), default=u''),
+    Column(u'bytes', Integer(), default=-1),
+    Column(u'otracknum', SmallInteger(), default=-1),
+    Column(u'ofilename', Unicode(length=256), default=u''),
+    Column(u'created_at', DateTime, default=datetime.now),
     )
 
 
@@ -274,9 +247,14 @@ def query(*entities, **kwargs):
     '''Share new SQL Alchemy 0.6+ Session.query()'''
     return session.query(*entities, **kwargs)
 
+def addapt_numpy_float64(numpy_float64):
+    return AsIs(numpy_float64)
+register_adapter(numpy.float64, addapt_numpy_float64)
 
 
-   
+
+
+# Classes listed by relevance:
 
 def _get_filedir(tid) :
     dr=''
@@ -462,17 +440,6 @@ class Track(object) :
         return dict((x.name, x.value) for x in self.annotations)
 
 
-
-pass #jorgeorpinel: for psycopg (used by SQL Alchemy) to know how to adapt (used in SQL queries) the numpy.float64 type
-#     ...here since this is first used with track data (when running audio_intake.py)
-#     found @ http://initd.org/psycopg/docs/advanced.html#adapting-new-python-types-to-sql-syntax
-from psycopg2.extensions import register_adapter, AsIs
-import numpy
-def addapt_numpy_float64(numpy_float64):
-    return AsIs(numpy_float64)
-register_adapter(numpy.float64, addapt_numpy_float64)
-
-
 class Artist(object) :
     def __str__(self) :
         if not self.id :
@@ -490,6 +457,8 @@ class Artist(object) :
         tc = session.query(ArtistTrack).filter(ArtistTrack.artist_id==self.id).count()
         if self.trackcount <> tc :
             self.trackcount=tc
+
+class ArtistTrack(object) : pass
 
 
 class Album(object) :
@@ -534,15 +503,9 @@ class Album(object) :
             log.debug("Updating track count to", tc)
             self.trackcount=tc
 
-
-class AlbumTrack(object) : pass
-
-
-class ArtistTrack(object) : pass
-
-
 class AlbumArtist(object) : pass
 
+class AlbumTrack(object) : pass
 
 class AlbumStatus(object) :
     def __str__(self) :
@@ -551,50 +514,6 @@ class AlbumStatus(object) :
 
     def __repr__(self): return self.__str__()
 
-
-class Mbartist_resolve(object) : pass
-
-
-class Mbalbum_recommend(object) :
-    def __str__(self) :
-        if self.album and len(self.album.artists)>0 :
-            artist=self.album.artists[0].name
-        else :
-            artist=''
-        if not self.album :
-            album_name=''
-        else :
-            album_name = self.album.name
-        #fixme album_id not always bound #st = '<MBAlbum_recommend %4.4f [%i Name=%s Artist=%s] [%s MBAlbumName=%s MBAlbumArtist=%s] > ' % (self.conf,self.album_id,album_name, artist,self.mb_id, self.mb_album,self.mb_artist)
-        st = '<MBAlbum_recommend conf=%4.4f conf_time=%4.4f conf_album=%4.4f conf_artist=%4.4f conf_track=%4.4f [Name=%s Artist=%s] [%s MBAlbumName=%s MBAlbumArtist=%s] > ' % (self.conf,self.conf_time,self.conf_album, self.conf_artist,self.conf_track,album_name, artist,self.mb_id, self.mb_album,self.mb_artist)
-        return st.encode('utf-8')
-
-    def __repr__(self): return self.__str__()
-
-
-class Collection(object):
-#    def __init__(self, name):
-#        self.name = name
-
-    @property
-    def trackcount(self):
-        """Return number of tracks in the Collection"""
-        return len(self.tracks)
-    
-    def __repr__(self) :
-        if not self.id: return '<Empty Collection>'
-        else: return '<Collection %s "%s">' % (self.name, self.description)
-    
-
-class Annotation(object):
-    def __repr__(self) :
-        if not self.id: return '<Empty Annotation>'
-        val = self.value
-        if len(self.value) > 16:
-            val = '%s...' % val[:16]
-        return ('<Annotation "%s": %s (track ID %d)>' 
-                 % (self.name[:16], val, self.track_id))
-    
 
 class FeatureExtractor(object):
     @staticmethod
@@ -730,21 +649,58 @@ class FeatureExtractor(object):
         return '<Feature Extractor "%s">' % self.name
     
 
-mapper(AlbumTrack,album_track)
+class Annotation(object):
+    def __repr__(self) :
+        if not self.id: return '<Empty Annotation>'
+        val = self.value
+        if len(self.value) > 16:
+            val = '%s...' % val[:16]
+        return ('<Annotation "%s": %s (track ID %d)>' 
+                 % (self.name[:16], val, self.track_id))
+    
 
-mapper(ArtistTrack,artist_track)
+class Collection(object):
+#    def __init__(self, name):
+#        self.name = name
 
-mapper(AlbumArtist,album_artist)
+    @property
+    def trackcount(self):
+        """Return number of tracks in the Collection"""
+        return len(self.tracks)
+    
+    def __repr__(self) :
+        if not self.id: return '<Empty Collection>'
+        else: return '<Collection %s "%s">' % (self.name, self.description)
 
 
-#we cascade deletes from Album to AlbumSim and Artist to ArtistSim
-#but we currently do not cascade deletes from Artist to Track nor Artist to Album...
-#we do cascade fromm album to track but
+class Mbalbum_recommend(object) :
+    def __str__(self) :
+        if self.album and len(self.album.artists)>0 :
+            artist=self.album.artists[0].name
+        else :
+            artist=''
+        if not self.album :
+            album_name=''
+        else :
+            album_name = self.album.name
+        #fixme album_id not always bound #st = '<MBAlbum_recommend %4.4f [%i Name=%s Artist=%s] [%s MBAlbumName=%s MBAlbumArtist=%s] > ' % (self.conf,self.album_id,album_name, artist,self.mb_id, self.mb_album,self.mb_artist)
+        st = '<MBAlbum_recommend conf=%4.4f conf_time=%4.4f conf_album=%4.4f conf_artist=%4.4f conf_track=%4.4f [Name=%s Artist=%s] [%s MBAlbumName=%s MBAlbumArtist=%s] > ' % (self.conf,self.conf_time,self.conf_album, self.conf_artist,self.conf_track,album_name, artist,self.mb_id, self.mb_album,self.mb_artist)
+        return st.encode('utf-8')
 
-#IMPORTANT
-#we *do* allow tracks to exist without an associated album or artist. Is that a good idea? I dunno...
+    def __repr__(self): return self.__str__()
 
-#Here we set up a trigger to call Track.delete_related_files() 
+class Mbartist_resolve(object) : pass
+
+
+
+# We cascade deletes from Album to AlbumSim and Artist to ArtistSim
+# but we currently do not cascade deletes from Artist to Track nor Artist to Album...
+# We do cascade from Album to Track but
+
+# IMPORTANT
+# We *do* allow tracks to exist without an associated album or artist. Is that a good idea? I dunno...
+
+# Here we set up a trigger to call Track.delete_related_files() 
 class DeleteFileMapperExtension(MapperExtension) :
     def after_delete(self,mapper,connection,instance) :
         instance._delete_related_files()
@@ -756,6 +712,13 @@ mapper(Track,track, extension=DeleteFileMapperExtension(),
                    }
        )
 
+mapper(Artist,artist,
+       properties={'albums':relation(Album,secondary=album_artist,order_by='Album.name'),   
+                   'tracks':relation(Track,secondary=artist_track, order_by=Track.title, cascade='all,delete'),  #removed delete-orphan
+                   }
+       )
+mapper(ArtistTrack,artist_track)
+
 mapper(Album,album,
        properties={'artists':relation(Artist,secondary=album_artist),   
                    'tracks':relation(Track,secondary=album_track,order_by=Track.tracknum, cascade='all,delete'), #removed delete-orphan
@@ -763,30 +726,23 @@ mapper(Album,album,
                    'status':relation(AlbumStatus,backref='album',cascade='all,delete,delete-orphan')
                    }
        )
-
-mapper(Artist,artist,
-       properties={'albums':relation(Album,secondary=album_artist,order_by=Album.name),   
-                   'tracks':relation(Track,secondary=artist_track, order_by=Track.title, cascade='all,delete'),  #removed delete-orphan
-                   }
-       )
-
+mapper(AlbumArtist,album_artist)
 mapper(AlbumStatus,album_status)
+mapper(AlbumTrack,album_track)
 
-mapper(Mbartist_resolve,mbartist_resolve)
-
-mapper(Mbalbum_recommend,mbalbum_recommend)
-
-mapper(Collection, collection,
-    properties={
-       'tracks':  relation(Track,  secondary=collection_track,  order_by=Track.tracknum, backref='collections'),
-    }
-)
+mapper(FeatureExtractor, feature_extractor)
 
 mapper(Annotation, annotation,
     properties={
        'track': relation(Track, backref=backref('annotations', order_by='annotation.name')),
     }
 )
+mapper(Collection, collection,
+    properties={
+       'tracks':  relation(Track,  secondary=collection_track,  order_by=Track.tracknum, backref='collections'),
+    }
+)
 
-mapper(FeatureExtractor, feature_extractor)
+mapper(Mbalbum_recommend,mbalbum_recommend)
 
+mapper(Mbartist_resolve,mbartist_resolve)
