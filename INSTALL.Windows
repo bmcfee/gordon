@@ -1,0 +1,30 @@
+﻿Windows Install Guide (Gordon dependencies)                            June 2010
+
+Try to install all required dependencies folowing 1st section of INSTALL.
+See the following notes to make your life easier:
+
+------------------
+Avoing compilation
+
+* ActivePython 2.5 and Python 2.6 have been tested (2.7 should work)
+ Use AP 2.5 in case need support for special libraries e.g. mlabwrap.mlab
+* Get psycopg2 from http://www.stickpeople.com/projects/python/win-psycopg/
+* PyTables auto-installer is available only for Python 2.6+
+ Untested on ActivePython 2.5
+ Get PThreads for Win from http://sourceware.org/pthreads-win32/
+* TagPy hasn't been tested in Windows but Gordon will work without it
+ taglib winports 1.3 at http://sourceforge.net/projects/taglib-winport/
+  or 1.4 at http://sageshome.net/oss/taglib-win32.php
+ Tips: Boost.Pyhon for win available at
+  http://www.boost.org/doc/libs/1_41_0/libs/python/doc/building.html
+ 
+We haven't tested the webapp under Windows
+
+You may want to install a non-commercial license Virtuat Box
+(or Virtual Box OSE, or even MS Virtual PC 2007) with a light Linux
+distribution (eg Arch Linux) to run all Gordon features :)
+
+---------------------
+Compiling from source
+
+not yet tried ! sorry

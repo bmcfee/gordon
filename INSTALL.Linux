@@ -1,0 +1,127 @@
+﻿Linux Instal Guide for Gordon Dependencies
+This document explain how to install Gordon dependencies for a couple of Linux
+distributions. To see a generic linux install guide see the example below (under
+the Arch Linux guide)
+
+
+--------------------------------------------------------------------------------
+On Debian (and probably Ubuntu),                                        Feb 2010
+
+You can get all of these dependencies by running:
+apt-get install postgresql ffmpeg python-sqlalchemy python-pygresql \
+               python-numpy python-eyed3 python-tagpy python-tables \
+               python-matplotlib
+
+And for the (optional) web app:
+apt-get install python-psycopg2 python-tgmochikit python-setuptools
+
+apt-get install python-turbogears python-pastescript \
+               python-formencode python-elementtree python-turbokid
+
+Note that the version of turbogears in current Debian stable is too
+old, so you will need to use apt-pinning (see
+http://wiki.debian.org/AptPreferences) to get a more recent version
+from testing by changing "apt-get install" to "apt-get install -t testing"
+in the previous command.
+
+TGFastData (http://pypi.python.org/pypi/TGFastData):
+easy_install TGFastData
+
+
+--------------------------------------------------------------------------------
+On Arch Linux run:                                                     July 2010
+
+# pacman -S ffmpeg postgresql
+
+ .. to get the bianry dependencies to start with (you could include these with
+    the next pacman command. * This command will also install python if you
+    don't have it yet (current arch i686 build is 2.6.5)
+
+* As of now, the Python build from archlinux (installable with pacman) seems to
+be incompatible with Gordon due to unicode encoding issues (which could be fixed
+in the project code manually). If the following easy installation instructions
+do not work for you or if you don't want to try them please use the "Generic
+Linux Installation From Source" instructions in the next section, or get
+python25 from AUR. You may still get ffmpeg with pacman, and also postgresql;
+even when it will install python in /usr (you'll end up with 2 different Python
+installs so place /usr/local/bin before /usr/bin in your PATH or otherwise make
+sure you're using the correct python version).
+
+Moving on, to get the basic python packages, run:
+
+# pacman -S python-sqlalchemy python-psycopg2 python-numpy python-eyed3 tagpy
+* This will also install setuptools (which provides easy_install) if unexistent.
+
+You'll need to install PyTables and PyGreSQL separatelly, ie:
+easy_install numexpr (required for pytables) # or you may wget it from AUR* to install with pacman
+# pacman -S hdf5     (required for pytables)
+easy_install cython  (required for pytables) # also in aur.archlinux.org
+wget python-pytables from AUR, untar, cd, makepkg and pacman -U it; easy_install won't work.
+easy_install pygresql # available in AUR
+
+AUR* How to instal from Arch User Repository:
+Optional: you ned to install fakeroot to make packages as a non-root user (recommended)
+          so   # pacman -S fakeroot   or   $ sudo pacman -S fakeroot
+1. Search the desired software eg "numexpr" in aur.archlinux.org,
+  and select it from the search results (if any).
+2. Copy the "Tarball" link URL and wget it in your home folder eg:
+  $ wget http://aur.archlinux.org/packages/python-numexpr/python-numexpr.tar.gz
+3. untar eg   $ tar xzf python-numexpr.tar.gz
+   and cd into the pacdir, eg   $ cd python-numexpr
+*  you'll need gcc (GNU C Compiler) to makepkg many packages, including this example
+   so   $ sudo pacman -S gcc
+4. $ makepks -s  (requires fakeroot, -s auto-installs dependencies) or
+  # sudo makepkg --asroot  (not recommended)
+5. install with pacman! eg   $ sudo pacman -U python-numexpr-1...pkg.tar.xz
+
+For the (optional) web app: - instructions untested -
+easy_install TurboGears   # also available in AUR
+* you shuold already have psycopg (or do   # pacman -S python-psycopg2)
+easy_install TGFastData   # also available in AUR
+pacman -S python-matplotlib   or   easy_intsall matplotlib
+
+For Postgres setup see http://wiki.archlinux.org/index.php/PostgreSQL
+
+
+--------------------------------------------------------------------------------
+Generic Linux Installation From Source                                  Aug 2010
+
+* This guide assumes you have root or sudo privileges allthough a custom local
+  build is also possible (eg in ~/bin & ~/lib).
+
+Ffmpeg      - instructions not yet available -
+PostgreSQL  - instructions not yet available -
+  
+To install Python in the traditional way (no RPM) you need to download and
+compile its sources (a C++ compiler, eg gcc is needed).
+In this guide we use Python 2.5.5 as example:
+
+         pwd $ wget http://www.python.org/ftp/python/2.5.5/Python-2.5.5.tgz
+         pwd $ tar xzf Python-2.5.5.tgz
+         pwd $ cd Python-2.5.5
+Python-2.5.5 $ ./configure
+...
+Python-2.5.5 $ make
+...
+Python-2.5.5 # make install
+...
+
+You should now have python in /usr/local so export PATH=$PATH:/usr/local/bin in
+~/.bashrc or edit /etc/profile. With this method you will need to install all
+other dependencies via source distribution (most or all use distutils setup.py).
+Even better, use easy_install, instaling setuptools first (which you need for
+sqlalchemy anyway):
+
+ $ wget http://pypi.python.org/packages/2.5/s/setuptools/setuptools-0.6c11-py2.5.egg
+ $ sh setuptools-0.6c9-py2.4.egg
+ * see custom instructions at http://pypi.python.org/pypi/setuptools
+
+You should now be able to use easy_install for the pending dependencies. See:
+http://peak.telecommunity.com/DevCenter/EasyInstall for custom instructions.
+
+easy_install example:
+$ easy_install sqlalchemy
+
+setup.py example for TagPy (involving other external depencencies  - not yet available -
+
+For the (optional) web app:  - instructions not yet available -

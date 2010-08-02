@@ -3,25 +3,26 @@ Prerequisites
 1. Install the dependencies (versions in parenthesis are the last tested):
 
    - ffmpeg binaries [set in PATH] from http://ffmpeg.org/
-   - PostgreSQL from http://www.postgresql.org/
    
    - Python from http://python.org/   (2.5 most tested, 2.6 0K, 2.7 should work)
+   - PostgreSQL from http://www.postgresql.org/
+   
    + SQLAlchemy from http://www.sqlalchemy.org/                (0.5.5 preferred)
-     * requires psycopg2 (2.2.1 tested)
+     * requires psycopg2                                          (2.2.1 tested)
    + NumPy from http://numpy.scipy.org/                                  (1.4 +)
    + PyTables from http://www.pytables.org/ [required to cache signal features]
-     * requires numpexpr (1.3.1)
-     * requires HDF5 binaries (1.8) from http://www.hdfgroup.org/HDF5/
-   + eyeD3 (0.6.17) from http://eyed3.nicfit.net/ (will eventually be fully replaced with tagpy)
+     * requires numpexpr                                                 (1.3.1)
+     * requires HDF5 binaries from http://www.hdfgroup.org/HDF5/           (1.8)
+   + eyeD3 from http://eyed3.nicfit.net/                                (0.6.17)
    + TagPy from http://pypi.python.org/pypi/tagpy
      (recommended: to extract metadata with tracklist-generation scripts)
+     * requires TagLib library
+     * requires Boost.Python library
    + PyGreSQL from http://www.pygresql.org/
      (Optional: for interfacing with MusicBrainz)
      * You will also need a number of perl modules to setup a MB server (see 4.)
-   Less important optional packages (unused in regular Gordon opperation):
-    - scipy            (to write audio files)
-    - scikits.audiolab (to write audio files using audiolab)
-    - pylab            (to plot audio files)
+   + matplotlib from http://matplotlib.sourceforge.net
+     (recommended: used for audio feature extraction caching)
    
    Packages required for the web app (optional):
    - TurboGears from http://www.turbogears.org/ 
@@ -31,98 +32,19 @@ Prerequisites
    + TGFastData from http://pypi.python.org/pypi/TGFastData
    + matplotlib from http://matplotlib.sourceforge.net
      (Optional: used for plotting features in the web app)
-   
-   -----------------------------------------------------------------------------
-   On Debian (and probably Ubuntu),                                     Feb 2010
-   you can get all of these dependencies by running:
-   apt-get install postgresql ffmpeg python-sqlalchemy python-pygresql \
-                   python-numpy python-eyed3 python-tagpy python-tables \
-                   python-matplotlib
-
-   And for the (optional) web app:
-   apt-get install python-psycopg2 python-tgmochikit python-setuptools
-
-   apt-get install python-turbogears python-pastescript \
-                   python-formencode python-elementtree python-turbokid
-
-   Note that the version of turbogears in current Debian stable is too
-   old, so you will need to use apt-pinning (see
-   http://wiki.debian.org/AptPreferences) to get a more recent version
-   from testing by changing "apt-get install" to "apt-get install -t testing"
-   in the previous command.
-
-   TGFastData (http://pypi.python.org/pypi/TGFastData):
-   easy_install TGFastData
-   
-   -----------------------------------------------------------------------------
-   On Arch Linux run:                                                  July 2010
-   # pacman -S postgresql python-sqlalchemy python-psycopg2 python-numpy \
-               ls /python-eyed3 tagpy
-   * This will also install python and setuptools (which provide easy_install
-     from pypi.org) if you didn't have them yet.
-   
-   You'll need to install PyTables and PyGreSQL separatelly, ie:
-   easy_install numexpr (required for pytables) # or you may wget it from AUR* to install with pacman
-   # pacman -S hdf5     (required for pytables)
-   easy_install cython  (required for pytables) # also in aur.archlinux.org
-   wget python-pytables from AUR, untar, cd, makepkg and pacman -U it; easy_install won't work.
-   easy_install pygresql # available in AUR
-   
-   AUR* How to instal from Arch User Repository:
-   Optional: you ned to install fakeroot to make packages as a non-root user (recommended)
-      so # pacman -S fakeroot  or $ sudo pacman -S fakeroot
-   1. Search the desired software eg "numexpr" in aur.archlinux.org,
-      and select it from the search results (if any).
-   2. Copy the "Tarball" link and wget it in your home folder
-      eg $ wget http://aur.archlinux.org/packages/python-numexpr/python-numexpr.tar.gz
-   3. untar eg $ tar xzf python-numexpr.tar.gz  and cd into pacdir eg $ cd python-numexpr
-   *  you'll need gcc (GNU C Compiler) to makepkg many packages, including this example
-      so $ sudo pacman -S gcc
-   4. $ makepks -s  (requires fakeroot, -s auto-installs dependencies) or
-      $ sudo makepkg --asroot  (not recommended)
-   5. install with pacman! eg $ sudo pacman -U python-numexpr-1...pkg.tar.xz
-   
-   For the (optional) web app:
-   easy_install TurboGears # also available in AUR
-   * you shuold already have psycopg (pacman -S python-psycopg2)
-   easy_install TGFastData # also available in AUR
-   pacman -S python-matplotlib
-   
-   -----------------------------------------------------------------------------
-   Windows Install Guide                                               June 2010
-   Try to install all required dependencies folowing 1st section.
-   See the following notes to make your life easier (to avoid compiling):
-   
-   * ActivePython 2.5 and Python 2.6 have been tested (2.7 should work)
-     Use AP 2.5 in case need support for special libraries e.g. mlabwrap.mlab
-   * Get psycopg2 from http://www.stickpeople.com/projects/python/win-psycopg/
-   * PyTables auto-installer is available only for Python 2.6+
-     Untested on ActivePython 2.5
-     Get PThreads for Win from http://sourceware.org/pthreads-win32/
-   * TagPy hasn't been tested in Windows but Gordon will work without it
-     taglib winports 1.3 at http://sourceforge.net/projects/taglib-winport/
-      or 1.4 at http://sageshome.net/oss/taglib-win32.php
-     Tips: Boost.Pyhon for win available at
-      http://www.boost.org/doc/libs/1_41_0/libs/python/doc/building.html
      
-   We haven't tested the webapp under Windows
-   
-   You may want to install a non-commercial license Virtuat Box
-   (or Virtual Box OSE, or even MS Virtual PC 2007) with a light Linux
-   distribution (eg Arch Linux) to run all Gordon features :)
-   
-
-
+   Less important optional packages (unused in regular Gordon opperation):
+    - scipy            (to write audio files)
+    - scikits.audiolab (to write audio files using audiolab)
+    - pylab            (to plot audio files)
+    
 
 2. Create the database and set up a user to manage the database by running the
    following commands as the postgres linux user (probably 'postgres'):
    createuser gordon -DRSP
    createdb -O gordon gordon_db
-   
-   * ArchLinux: See http://wiki.archlinux.org/index.php/PostgreSQL
    * Windows: You may want to use a graphic manager such as pgAdmin.
-
-
+   
 
 Gordon setup
 ------------
