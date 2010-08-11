@@ -36,12 +36,13 @@ from unicodedata import decomposition, normalize
 from gordon.db.model import (Artist, Album, Annotation, Track, Collection, FeatureExtractor,
                              session, commit, album, Mbalbum_recommend,
                              execute_raw_sql)
-from gordon.db.config import DEF_GORDON_DIR, DEF_DBUSER, DEF_DBPASS, DEF_DBHOST
+#from gordon.db.config import DEF_GORDON_DIR, DEF_DBUSER, DEF_DBPASS, DEF_DBHOST
+from gordon.db import config
 from gordon.io import AudioFile
 
 
 log = logging.getLogger('gordon')
-log.info('Using gordon directory %s', DEF_GORDON_DIR)
+log.info('Using gordon directory %s', config.DEF_GORDON_DIR)
 
 
 #------------------
@@ -249,17 +250,17 @@ def get_albumcover_filename(aid) :
     return '%s/A%s_cover.jpg' % (get_tiddirectory(aid), str(aid))
 
 
-def get_full_albumcovername(aid, gordonDir=DEF_GORDON_DIR) :
+def get_full_albumcovername(aid, gordonDir=config.DEF_GORDON_DIR) :
     """Returns the full album cover name.
 
-    If gordonDir is not provided, we use DEF_GORDON_DIR as the prefix.
+    If gordonDir is not provided, we use config.DEF_GORDON_DIR as the prefix.
     """
     return os.path.join(gordonDir, 'data', 'covers', get_albumcover_filename(aid))
 
-def get_full_audiofilename(tid,gordonDir=DEF_GORDON_DIR) :
+def get_full_audiofilename(tid,gordonDir=config.DEF_GORDON_DIR) :
     """Returns the full audio file name.
 
-    If gordonDir is not provided, we use DEF_GORDON_DIR as the prefix.
+    If gordonDir is not provided, we use config.DEF_GORDON_DIR as the prefix.
     """
     return os.path.join(gordonDir,'audio','main',get_tidfilename(tid))
 
@@ -405,7 +406,7 @@ def verify_delete(vals,msg) :
             except :
                 print 'Could not delete',v,'probably because there are artist_sims for this artist'
 
-def check_missing_mp3s(deleteMissing=False, gordonDir=DEF_GORDON_DIR) :
+def check_missing_mp3s(deleteMissing=False, gordonDir=config.DEF_GORDON_DIR) :
     print 'Checking for missing mp3s... this takes a while'
     for t in Track.query.all() :
         mp3=os.path.join(gordonDir,'audio','main',get_tidfilename(t.id))
@@ -416,7 +417,7 @@ def check_missing_mp3s(deleteMissing=False, gordonDir=DEF_GORDON_DIR) :
             else :
                 print t.id,'missing mp3',mp3,'!'
 
-def check_orphans_new(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
+def check_orphans_new(gordonDir=config.DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
     """Finds tracks and features on disk for which there is no Track record.
 
     The opposite (db recs missing mp3s) is done below in gordon_validate()
@@ -471,7 +472,7 @@ def check_orphans_new(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
                     print 'Deleting orphan',f
                     os.unlink(os.path.join(root,f))
 
-def check_orphans(gordonDir=DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
+def check_orphans(gordonDir=config.DEF_GORDON_DIR,doFeatures=False, doMp3s=True) :
     """Finds tracks and features on disk for which there is no Track record.
 
     The opposite (db recs missing mp3s) is done below in gordon_validate().
@@ -579,7 +580,7 @@ def delete_duplicate_mb_albums() :
 
     tt_std=200. #hand set in matcher. But not so important..
     import pg
-    dbmb = pg.connect('musicbrainz_db',user=DEF_DBUSER,passwd=DEF_DBPASS,host=DEF_DBHOST)
+    dbmb = pg.connect('musicbrainz_db',user=config.DEF_DBUSER,passwd=config.DEF_DBPASS,host=config.DEF_DBHOST)
     for [mb_id,count] in dupes :
         if len(mb_id.strip())<10 :
             continue
@@ -672,7 +673,7 @@ def check_nulls() :
     else :
         print 'No null trackcounts  in albums'
 
-def gordon_validate(gordonDir=DEF_GORDON_DIR,updateCounts=True,checkMissingMp3s=False,deleteMissingMp3Recs=False,checkOrphans=False,checkNulls=True,updateTrackTimes=False) :
+def gordon_validate(gordonDir=config.DEF_GORDON_DIR,updateCounts=True,checkMissingMp3s=False,deleteMissingMp3Recs=False,checkOrphans=False,checkNulls=True,updateTrackTimes=False) :
     """This script does a lot of different validations. It is a good thing to run once a week"""
 
     #gets rid of null values in some fields. 
@@ -734,7 +735,7 @@ def get_albumcover_urltxt(asin) :
     return urltxt
 
 def cache_albumcovers(aid=None) :
-    """Caches album cover jpgs to directory DEF_GORDON_DIR/data/covers/K/A<aid>_cover.jpg
+    """Caches album cover jpgs to directory config.DEF_GORDON_DIR/data/covers/K/A<aid>_cover.jpg
 
     TODO: needs a minor fix to keep from downloading empty jpgs from
     Amazon.  Amazon will sometimes return an empgy (800byte or so) jpg
