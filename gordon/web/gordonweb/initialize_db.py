@@ -3,7 +3,7 @@
 import gordon
 import gordon.web.gordonweb.model as M
 
-M.metadata.bind = gordon.engine
+M.metadata.bind = gordon.model.engine
 
 M.groups_table.create()
 M.users_table.create()

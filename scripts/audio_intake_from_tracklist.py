@@ -174,10 +174,16 @@ def _read_csv_tags(cwd, csv=None):
     @todo: include other metadata formats (use tagpy?)'''
 
     # open csv file
-    if csv is None: filename = cwd
-    else: filename = os.path.join(cwd, csv)
-    try: csvfile = reader(open(filename))
-    except IOError: log.error("  Couldn't open '%s'", csv)
+    if csv is None:
+        filename = cwd
+    else:
+        filename = os.path.join(cwd, csv)
+
+    try:
+        csvfile = reader(open(filename))
+    except IOError:
+        log.error("  Couldn't open '%s'", csv)
+        raise
     
     tags = dict()
     headers = False
@@ -376,8 +382,8 @@ if __name__ == '__main__':
     source = unicode(sys.argv[1])
     csvfile = sys.argv[2]
 
-    try: doit = False if int(sys.argv[3]) == 0 else True
-    except: doit = True
+    try: doit = True if int(sys.argv[3]) == 1 else False
+    except: doit = False
     try: import_md = True if int(sys.argv[4]) == 1 else False
     except: import_md = False
 

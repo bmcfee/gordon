@@ -52,29 +52,29 @@ except :
     from sqlalchemy.orm import scoped_session
     import sqlalchemy
     # works in SQLAlchemy 0.6
-    dburl = 'postgresql://%s:%s@%s/%s' % (config.DEF_DBUSER, config.DEF_DBPASS,
-                                          config.DEF_DBHOST, config.DEF_DBNAME)
-    try:
-        engine = sqlalchemy.create_engine(dburl)
-    except ImportError:
-        # Works in sqlalchemy 0.5.5
-        dburl = dburl.replace('postgresql', 'postgres')
-        engine = sqlalchemy.create_engine(dburl)
+    if config.DEF_DBDRIVER == 'sqlite':
+        dburl = '%s:///%s' % (config.DEF_DBDRIVER, config.DEF_DBFILE)
+        cleaned_dburl = dburl
+    else:
+        dburl = '%s://%s:%s@%s/%s' % (config.DEF_DBDRIVER, config.DEF_DBUSER,
+                                      config.DEF_DBPASS, config.DEF_DBHOST,
+                                      config.DEF_DBNAME)
+        cleaned_dburl = dburl.replace(config.DEF_DBPASS, '*')
+    engine = sqlalchemy.create_engine(dburl)
         
     #test connection:
     try:
         engine.connect()
     except OperationalError:
-        log.warning('Could not connect to database %s/%s.', config.DEF_DBHOST,
-                    config.DEF_DBNAME)
+        log.warning('Could not connect to database %s.', cleaned_dburl)
     Session = scoped_session(sessionmaker(bind=engine,autoflush=True, autocommit=True))
     session = Session()
     import sqlalchemy.schema
     metadata = sqlalchemy.schema.MetaData(None)
 #    mapper = Session.mapper #jorgeorpinel: SQLA 0.5. This is deprecated... (see 4 lines down)
-    log.info('Intialized external connection to gordon database %s/%s '
-             'using SQLAlchemy version %s', config.DEF_DBHOST,
-             config.DEF_DBNAME, sqlalchemy.__version__)
+    log.info('Intialized external connection to gordon database %s '
+             'using SQLAlchemy version %s', cleaned_dburl,
+             sqlalchemy.__version__)
     AUTOCOMMIT=True
     
     #jorgeorpinel: this is a SQLA 0.5+ legacy workaround found at http://www.sqlalchemy.org/trac/wiki/UsageRecipes/SessionAwareMapper
@@ -573,10 +573,11 @@ class FeatureExtractor(object):
             module_dir = os.path.dirname(os.path.abspath(module_path))
             target_module_dir = os.path.dirname(featext.module_fullpath)
             from gordon import make_subdirs
-            make_subdirs(os.path.dirname(target_module_dir))
+            make_subdirs(os.path.dirname(featext.module_fullpath))
             if copy_module_tree:
                 shutil.copytree(module_dir, target_module_dir)
             else:
+                make_subdirs(featext.module_fullpath)
                 shutil.copy(module_path, target_module_dir)
 
             # Rename the module file.
