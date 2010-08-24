@@ -61,26 +61,26 @@ Cached features (<a href="/feature_extractors">FeatureExtractor information</a>)
     <tr> <th>Annotation Name</th> <th>Value</th> </tr>
   </thead>
   <tbody>
-    <span py:for="a in sorted(track.annotations)">
+    <span py:for="name, value in sorted((a.name, a.value) for a in track.annotations)">
       <tr valign="top" class="even">
-        <td>${a.name}</td>
+        <td>${name}</td>
         <td>
-          <div id="annotation_${a.name}_text">
-            <?python annotation_lines = a.value.split('\n') ?>
+          <div id="annotation_${name}_text">
+            <?python annotation_lines = value.split('\n') ?>
             <span py:for="line in annotation_lines">
               ${line}
               <br/>
             </span>
           </div>
 
-          <div py:if="a.name in htk_annotation_datatables">
+          <div py:if="name in htk_annotation_datatables">
      <script type="text/javascript" src="http://www.google.com/jsapi"></script>
 <script type="text/javascript">
   google.load('visualization', '1', {'packages':['annotatedtimeline']});
   
   google.setOnLoadCallback(function () {
-    <span py:replace="htk_annotation_datatables[a.name]"/>
-    var chart = new google.visualization.AnnotatedTimeLine(document.getElementById('annotation_${a.name}_widget'));
+    <span py:replace="htk_annotation_datatables[name]"/>
+    var chart = new google.visualization.AnnotatedTimeLine(document.getElementById('annotation_${name}_widget'));
     chart.draw(data, {'dateFormat': 'mm:ss', 'thickness': 3, 'fill': 50,
                       'annotationsWidth': 10, 'displayAnnotations': true,
                       'displayZoomButtons': false});
@@ -96,7 +96,7 @@ Cached features (<a href="/feature_extractors">FeatureExtractor information</a>)
   });
 </script>
 
-<div id="annotation_${a.name}_widget" style="width: 500px; height: 250px;"/>
+<div id="annotation_${name}_widget" style="width: 500px; height: 250px;"/>
 <br/>
         </div>
         </td>
