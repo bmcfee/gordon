@@ -56,6 +56,19 @@ Cached features (<a href="/feature_extractors">FeatureExtractor information</a>)
 </table>
 
 <hr/>
+<script language="javascript">
+  function toggle_annotation(controlName, textName) {
+    var toggleControl = document.getElementById(controlName);
+    var textDiv = document.getElementById(textName);
+    if (textDiv.style.display == "block") {
+      textDiv.style.display = "none";
+      toggleControl.innerHTML = "show annotation";
+    } else {
+      textDiv.style.display = "block";
+      toggleControl.innerHTML = "hide annotation";
+    }
+  }
+</script>
 <table cellpadding="0" cellspacing="1" border="0" class="grid">
   <thead> 
     <tr> <th>Annotation Name</th> <th>Value</th> </tr>
@@ -65,7 +78,12 @@ Cached features (<a href="/feature_extractors">FeatureExtractor information</a>)
       <tr valign="top" class="even">
         <td>${name}</td>
         <td>
-          <div id="annotation_${name}_text">
+            <a id="annotation_${name}_text_control"
+               href="javascript:toggle_annotation('annotation_${name}_text_control', 'annotation_${name}_text');"
+               style="display: none">
+              show annotation
+            </a>
+          <div id="annotation_${name}_text" style="display: block">
             <?python annotation_lines = value.split('\n') ?>
             <span py:for="line in annotation_lines">
               ${line}
@@ -74,6 +92,10 @@ Cached features (<a href="/feature_extractors">FeatureExtractor information</a>)
           </div>
 
           <div py:if="name in htk_annotation_datatables">
+            <script language="javascript">
+              document.getElementById('annotation_${name}_text_control').style.display="block";
+              toggle_annotation('annotation_${name}_text_control', 'annotation_${name}_text');
+            </script>
      <script type="text/javascript" src="http://www.google.com/jsapi"></script>
 <script type="text/javascript">
   google.load('visualization', '1', {'packages':['annotatedtimeline']});
