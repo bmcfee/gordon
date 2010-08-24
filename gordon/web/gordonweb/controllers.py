@@ -82,6 +82,29 @@ class Root(controllers.RootController):
 
     @expose("json")
     @identity.require(identity.has_permission("listen"))
+    def mp3(self,fn_or_track_id) :
+        #this should be flexible enough to do either a filename or track_id
+        fn_or_track_id=str(fn_or_track_id)
+        (path,fn) = os.path.split(fn_or_track_id)
+        vals = fn.split('.')
+        stub = vals[0]
+        if stub.startswith('T') :
+            stub=stub[1:]
+        try :
+            track_id = int(stub) 
+        except :
+            return "Cannot find audio file %s" % str(fn_or_track_id)
+
+        #we are hardcoding a path here to get around NFS issues
+        audiofn = gordon_db.get_full_audiofilename(track_id)
+        if not audiofn.endswith('.mp3'):
+            audiofn = widgets.transcode_audio_to_mp3(audiofn)
+        print 'Serving',audiofn
+        return cherrypy.lib.cptools.serveFile(path=audiofn,disposition='attachment',name=os.path.basename(audiofn))  
+
+
+    @expose("json")
+    @identity.require(identity.has_permission("listen"))
     def feature(self,fn_or_track_id) :
         #this should be flexible enough to do either a filename or track_id
         fn_or_track_id=str(fn_or_track_id)

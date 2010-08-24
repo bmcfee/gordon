@@ -287,11 +287,10 @@ def get_yahoo_player_audio_url(row,arrow=True,albumcover=False) :
     #if arrow is true, arrow icon is shown on page
     #if album cover is true, album cover is shown on page
     try :
-        ext = get_track_audio_extension(row)
         if not arrow :
-            link = ET.Element('a',style='display:none', title="%s - %s (%s)" % (row.artist,row.title,row.album),href='/audio/T%s.%s' % (str(row.id), ext))
+            link = ET.Element('a',style='display:none', title="%s - %s (%s)" % (row.artist,row.title,row.album),href='/mp3/T%s.mp3' % str(row.id))
         else :
-            link = ET.Element('a',title="%s - %s (%s)" % (row.artist,row.title,row.album),href='/audio/T%s.%s' % (str(row.id), ext))
+            link = ET.Element('a',title="%s - %s (%s)" % (row.artist,row.title,row.album),href='/mp3/T%s.mp3' % str(row.id))
         #don't show text for this
         link.text=''
         #now add the album cover
@@ -543,7 +542,13 @@ def deletable_file(fname,typ,name) :
         yield line
     zipfile.close()
     os.unlink(fname)
-    
+
+def transcode_audio_to_mp3(audiofn):
+    outfn = '%s-stream.mp3' % os.path.splitext(audiofn)[0]
+    if not os.path.exists(outfn):
+        cmd = 'ffmpeg -i %s %s' % (audiofn, outfn)
+        os.system(cmd)
+    return outfn
 
 def playlist(tracks, album='', randomize=0, host=-1)  :
     if host==-1:
@@ -582,7 +587,8 @@ def playlist(tracks, album='', randomize=0, host=-1)  :
                 albumcover_urltxt=''
         ext = get_track_audio_extension(track)
         str+='     <track>\n'
-        str+='            <location>http://%s/audio/T%i.%s</location>\n' % (host,track.id,ext)
+        #str+='            <location>http://%s/audio/T%i.%s</location>\n' % (host,track.id,ext)
+        str+='            <location>http://%s/mp3/T%i.mp3</location>\n' % (host,track.id)
         str+='            <album>%s</album>\n' % slashify_xml(track.album)
         str+='            <title>%s</title>\n' % slashify_xml(track.title)
         str+='            <creator>%s</creator>\n' % slashify_xml(track.artist)
