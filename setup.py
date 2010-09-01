@@ -33,7 +33,6 @@ setup(name="Gordon",
                 'scripts/generate_tracklist_from_tags.py',
                 'scripts/gordon_initialize.py',
                 'scripts/mbrainz_import.py',
-                'scripts/mbrainz_resolver.py',
                 ],
       install_requires=[],
 )
