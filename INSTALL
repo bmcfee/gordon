@@ -87,4 +87,8 @@ Web app setup (optional)
    Once everything works, you can start using gordon/web/app.cfg for a
    faster server.
 
+   Optional scripts for using gordonweb as a service are included in:
+     gordon/web/tg_gordonweb.fedora (for Fedora and variants)
+     gordon/web/tg_gordonweb.debian (for Debian)
+
 4. Open a web browser and go to town!
