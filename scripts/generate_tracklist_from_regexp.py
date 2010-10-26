@@ -44,6 +44,7 @@ filepath,title,artist,album,tracknum,compilation
 Author: Ron Weiss <ronw@nyu.edu>
 """
 
+import codecs
 import re
 import sys
 
@@ -68,11 +69,12 @@ def process_files(filenames, pattern, outfile):
     for filename in filenames:
         print >> sys.stderr, 'Processing %s' % filename
         tagdict = extract_metadata_from_filename(filename, pattern)
-        outfile.write('"%s",%s\n' % (filename, ','.join('"%s"' % str(tagdict[k])
-                                                        for k in keys)))
+        tags = ','.join('"%s"' % unicode(tagdict[k]) for k in keys)
+        outfile.write('"%s",%s\n' % (filename, tags))
 
 def main(pattern, outputfilename, files):
-    outfile = open(outputfilename, 'w')
+    outfile = codecs.open(outputfilename, 'w', encoding='utf-8')
+    outfile.write('# -*- coding: UTF-8 -*-\n')
     files = process_files(files, pattern, outfile)
 
 

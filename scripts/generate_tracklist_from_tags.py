@@ -16,6 +16,7 @@ favorite text editor.
 Author: Ron Weiss <ronw@nyu.edu>
 """
 
+import codecs
 import os
 import sys
 
@@ -82,9 +83,10 @@ def walk_music_dir(musicdir, outfile):
 
 def main(musicdir='.', outputfilename=None):
     if outputfilename:
-        outfile = open(outputfilename, 'w')
+        outfile = codecs.open(outputfilename, 'w', encoding='utf-8')
     else:
-        outfile = sys.stdout
+        outfile = codecs.getwriter('utf-8')(sys.stdout)
+    outfile.write('# -*- coding: UTF-8 -*-\n')
     files = walk_music_dir(musicdir, outfile)
 
 
