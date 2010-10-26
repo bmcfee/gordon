@@ -10,7 +10,8 @@ file.  If outputfilename is not specified, the tracklist is printed to
 stdout.
 
 Note that this script *does not* support gordon annotations.  You must
-added them to the generated tracklist manually using e.g. sed.
+added them to the generated tracklist manually using sed or your
+favorite text editor.
 
 Author: Ron Weiss <ronw@nyu.edu>
 """
@@ -73,9 +74,8 @@ def walk_music_dir(musicdir, outfile):
             try:
                 print >> sys.stderr, 'Processing %s' % fn
                 tagdict = read_tags(fn)
-                outfile.write('"%s",%s\n' % (filename,
-                                             ','.join('"%s"' % str(tagdict[k])
-                                                      for k in keys)))
+                tags = ','.join('"%s"' % unicode(tagdict[k]) for k in keys)
+                outfile.write('"%s",%s\n' % (fn, tags))
             except (ValueError, NameError):
                 print >> sys.stderr, 'Error reading %s' % fn
 
