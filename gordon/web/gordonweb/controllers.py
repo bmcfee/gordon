@@ -15,7 +15,7 @@ from turbogears import controllers, expose, flash, identity,\
 
 from sqlalchemy import or_, func
 import numpy as N
-import pg,random,time,glob,string,sys
+import random,time,glob,string,sys
 
 from widgets import *  #BAD  TODO remove this line and run pylint to find missing 
 import widgets
@@ -336,7 +336,6 @@ class Root(controllers.RootController):
     def tracks(self,track=''):
         print 'gordon_model.Track is',track
         if track <> '' :
-            track=pg.escape_string(track)
             tracks = gordon_model.Track.query.filter("(lower(track.title) ~ ('%s'))" % track.lower())
             if tracks.count()==1 :
                 #we only have one track, redirect to the album page
@@ -490,7 +489,6 @@ class Root(controllers.RootController):
     @paginate('artists', default_order='name',limit=20)
     def artists(self,artist='',album=''):
         if artist <> '' :
-            artist=pg.escape_string(artist)
             artists = gordon_model.Artist.query.filter("(lower(artist.name) ~ ('%s'))" % artist.lower())
             if artists.count()==1 :
                 redirect("/artist/%s/view" % artists[0].id)
@@ -764,7 +762,6 @@ class Root(controllers.RootController):
     @identity.require(identity.has_permission("listen"))
     def albums(self,album='') :
         if album <> '' :
-            album=pg.escape_string(album)
             print 'Searching for',album
             albums = gordon_model.Album.query.filter("(lower(album.name) ~ ('%s'))" % album.lower())
             if albums.count()==1 :
@@ -988,7 +985,6 @@ class Root(controllers.RootController):
     @identity.require(identity.has_permission("listen"))
     def collections(self,collection='') :
         if collection <> '' :
-            collection=pg.escape_string(collection)
             print 'Searching for',collection
             collections = gordon_model.Collection.query.filter("(lower(collection.name) ~ ('%s'))" % collection.lower())
             if collections.count()==1 :
@@ -1025,7 +1021,6 @@ class Root(controllers.RootController):
     @paginate('feature_extractors', default_order='name',limit=20)
     def feature_extractors(self,feature_extractor='') :
         if feature_extractor <> '' :
-            feature_extractor=pg.escape_string(feature_extractor)
             print 'Searching for',feature_extractor
             fes_extractors = gordon_model.FeatureExtractor.query.filter(
                 "(lower(feature_extractor.name) ~ ('%s'))" % feature_extractor.lower())
