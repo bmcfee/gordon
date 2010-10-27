@@ -66,4 +66,4 @@ Queries are constructed using SQLAlchemy, so you might want to have a
 look at its documentation (http://www.sqlalchemy.org/docs/) to learn
 more.
 
-
+See USAGE for more detailed documentation.

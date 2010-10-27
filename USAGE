@@ -1,0 +1,337 @@
+This document describes some common tasks one might want to perform
+using the Gordon Music Database.  It reviews some of the interactive
+features within the Python shell, as well as the accompanying command
+line tools.  The web application is, for the most part, self
+explanatory so it is not documented here.
+
+== Typical interactions with gordon in the Python shell
+
+=== Querying for tracks
+
+>>> import gordon
+>>> tracks = gordon.Track.query.filter_by(artist=u'The Beatles', album=u'Abbey Road').order_by(gordon.Track.tracknum).all()
+>>> len(tracks)
+17
+>>> t = tracks[0]
+>>> t
+<Track 7039 Come Together by The Beatles from Abbey Road>
+
+Useful tutorial on querying using SQLAlchemy http://www.sqlalchemy.org/docs/05/ormtutorial.html#querying
+
+Tracks have all of the usual iTunes metadata associated with them,
+along with a few other goodies:
+>>> t.title
+u'Come Together'
+>>> t.artist
+u'The Beatles'
+>>> t.album
+u'Abbey Road'
+>>> t.tracknum
+1
+>>> t.compilation
+False
+>>> t.source  # "source" string associated with each track when it is registered with the database
+u'2010-07-01:beatles'
+>>> t.secs  # length of audio file in seconds
+260.649795918
+>>> t.bytes  # size of audio file in bytes
+22989554
+>>> t.mb_id  # MusicBrainz ID
+'e113c56f-c4d4-4bfb-b9f0-6f90a172b5a9'
+
+Take a look at the definitions of the tables in gordon/db/model.py for
+similar details about Artist, Album, and other tables.
+
+If you don't like the web interface, you can edit many of these fields
+directly from Python:
+>>> t.album = 'Abey Road'
+>>> gordon.commit()  # You need to run this function to make sure that the change gets written to the database
+
+=== Track annotations
+
+Stored in the database alongside each gordon track is a set of
+arbitrary name value pairs called "annotations".  Annotations are
+useful for storing hand-labeled ground truth such as chord times,
+lists of performers, a song's key, tags, etc. that changes very
+infrequently.
+
+The most convenient method for reading Track annotations is to use the
+Track.annotation_dict dictionary:
+>>> t.annotation_dict.keys()
+[u'keys', u'beats', u'segments', u'meter', u'chords']
+>>> print t.annotation_dict['keys']
+0.000   1.010   Silence
+1.010   70.673  Key     D:minor
+70.673  76.430  Key     D
+76.430  111.167 Key     D:minor
+111.167 116.943 Key     D
+116.943 174.899 Key     D:minor
+174.899 180.747 Key     D
+180.747 254.135 Key     D:minor
+254.135 260.627 Silence
+
+You can also access annotations using the Track.annotations property:
+>>> len(t.annotations)
+5
+>>> t.annotations[3].name
+u'meter'
+>>> t.annotations[3].value
+u'4/4'
+
+New annotations can be added using Track.add_annotation():
+>>> t.add_annotation(u'release date', u'1969-10-01')
+
+For annotations stored in text files (e.g. HTK-style annotations which
+you don't want to type out by hand) use
+Track.add_annotation_from_text_file() instead:
+>>> t.add_annotation_from_text_file(u'chords', '/path/to/come_together-chords.lab')
+
+=== Audio
+
+Track.audio() gives easy access to the audio samples corresponding to
+the track, regardless of format (assuming ffmpeg can read it):
+>>> x,fs,svals = t.audio()
+>>> x.shape
+(11494656, 1)
+
+=== Features extractors
+
+Feature extractors (i.e. functions which take audio samples as input
+and return a set of feature values) must be registered with gordon.
+To see a list of feature extractors use
+gordon.FeatureExtrctor.describe():
+>>> gordon.FeatureExtractor.describe()
+Name: dpwe:chroma
+Description: Computes chroma features.
+
+    Returns a feature vector of chroma features (n fixed time step
+    rows x 12 columns) based on Dan Ellis' chrombeatftrs Matlab
+    function.
+
+    See http://labrosa.ee.columbia.edu/projects/coversongs
+    for more details.
+
+    Parameters
+    ----------
+    track : gordon Track instance
+    fctr : float
+        Center frequency (in Hz) for chromagram weighting.
+    fsd : float
+        Standard deviation (in octaves) for chromagram weighting.
+    type : int
+        Selects chroma calculation type; 1 (default) uses IF; 2 uses
+        all FFT bins, 3 uses only local peaks (a bit like Emilia).
+    
+
+Name: hhwu:crp
+Description: Computes recurrence plot (RP) feature with multi-resolution
+
+    Returns a RP with 400x400 symmetric matrix using Juan Bello's
+    feature extraction (chroma) and Norbert Marwan's CRP toolbox.
+    Matlab function (via the mlabwrap module, which is included with this
+    feature extractor).
+
+    Parameters
+    ----------
+    track : gordon Track instance
+
+The list of registered feature extractors can also be accessed through
+the web interface at http://gordon.host.name:port/feature_extractors
+
+Track.features() gives an easy interface for computing and caching
+features derived from a track.  By default, features will be cached to
+disk the first time they are computed and then read from the cache on
+all subsequent calls to Track.features().  The caching settings can be
+controlled by passing in the optional arguments read_from_cache and/or
+save_to_cache to Track.features().
+
+>>> feats =  t.features('hhwu:crp')  # This takes about 130 seconds.
+>>> feats.shape
+(400, 400)
+>>> feats2 =  t.features('hhwu:crp')  # takes < 1 second.
+>>> np.sum((feats2-feats)**2)
+0.0
+
+Other useful feature extraction related methods:
+
+>>> t.list_cached_features()
+[('name', 'dpwe:chroma'),
+ ('name', 'dpwe:beats'),
+ ('name', 'dpwe:chrombeatftrs'),
+ ('name', 'dpwe:chrombeatftrs', 'type', 3),
+ ('name', 'hhwu:crp')]
+>>> t.delete_cached_features('hhwu:crp')
+>>> t.list_cached_features()
+[('name', 'dpwe:chroma'),
+ ('name', 'dpwe:beats'),
+ ('name', 'dpwe:chrombeatftrs'),
+ ('name', 'dpwe:chrombeatftrs', 'type', 3)]
+>>> t.clear_cached_features()
+>>> t.list_cached_features()
+[]
+
+==== Registering new feature extractors
+
+But how exactly does gordon know about feature extractors?  New
+feature extractors can be added using
+gordon.FeatureExtractor.register().  Here is it's docstring:
+
+gordon.FeatureExtractor.register(name, module_path, copy_module_tree=False)
+
+    Register a new feature extractor with gordon.
+    
+    The feature extractor should live in the module specified by
+    <module_path>.  The module must contain a method called
+    extract_features which takes a track (and any other optional keyword
+    arguments) and returns an array (or tuple of arrays) [1] of feature
+    values. This function's docstring is stored in the
+    FeatureExtractor.description column.
+    
+    The module will be archived with gordon and reloaded whenever
+    FeatureExtractor.extract_features is called.  If
+    copy_module_tree == True, the contents of the module's parent directory
+    will also be archived to allow any external dependencies (e.g. libraries
+    such as mlabwrap and/or matlab code) to be stored alongside the module.
+    
+    Dependencies that require re-compilation on different architectures
+    should probably be re-compiled whenever the parent module is imported.
+    
+    [1] Feature caching only works for arrays, or tuples of arrays.
+
+Some example feature extractors can be found in
+examples/feature_extractors
+
+
+0.5 Collections
+
+In addition to grouping by albums and artists, gordon supports
+arbitrary collections of tracks.
+
+>>> c = gordon.Collection.query.filter(gordon.Collection.name.contains(u'Beatles')).first()
+>>> c.trackcount
+180
+>>> c.tracks[:5]
+[<Track 7102 I Saw Her Standing There by The Beatles from Please Please Me>,
+ <Track 7071 No Reply by The Beatles from Beatles for Sale>,
+ <Track 6983 Sgt. Pepper's Lonely Hearts Club Band by The Beatles from Sgt. Pepper's Lonely Hearts Club Band>,
+ <Track 7031 Two of Us by The Beatles from Let It Be>,
+ <Track 6950 Help! by The Beatles from Help!>]
+
+Any list of tracks can be added to a collection using the function
+gordon.add_to_collection():
+
+>>> tracks = gordon.Track.query[::100]
+>>> new_collection = gordon.add_to_collection(tracks, u'Every 100 tracks')
+
+A more typical procedure might be to add all tracks with a particular
+"source" field (defined by the audio import process described below)
+into a collection:
+>>> tracks = gordon.Track.query.filter_by(source=u'ronw:2010-10-25').all()
+>>> new_collection = gordon.add_to_collection(tracks, u"Ron's favorite tracks")
+
+You can delete collections just like any other entry in the gordon
+database:
+>>> gordon.delete(new_collection)
+>>> gordon.commit()
+
+Note that there are special delete functions for tracks and albums
+(and sources) to cleanly handle dependencies between the different
+tables:
+gordon.delete_track()
+gordon.delete_album()
+gordon.delete_source()
+
+=== Regular maintenance on the database
+
+gordon.gordon_validate() is an interactive function that does a lot of
+different validations to e.g. remove albums and artists containing no
+tracks, delete tracks which don't have associated audio files, etc.
+It's docstring says "It is a good thing to run once a week".
+
+
+
+== Importing tracks into the database
+
+There are a couple of methods for importing new tracks into the
+database.  In all cases, the original audio files will not be touched
+-- the import scripts copy all audio files into
+gordon.config.DEF_GORDON_DIR.
+
+The simplest method is to pass a directory of mp3 files
+into scripts/audio_intake.py:
+
+$ scripts/audio_intake.py 
+This program imports a directory into the database
+Usage: 
+audio_intake [flags] <source> <dir> [doit]
+Flags:
+  -fast: imports without calculating zero-stripped track times.
+  -noprompt: will not prompt for incomplete albums.  See log for what we skipped
+Arguments: 
+  <source> is the string stored to the database to identify the intake opperation e.g. "DougDec22". Defaults to current date
+  <dir> is the directory to be imported
+  optional [doit] (default 1) use 0 to test the intake harmlessly
+
+Artist, album, etc. metadata will be filled in using ID3 tags.  This
+method does not support annotations, and it only supports mp3 files.
+
+The more powerful versatile import process requires two steps:
+ 1. Create a "tracklist" file listing all audio files along with the
+    associated ID3-style metadata, and any other annotations.
+ 2. Run scripts/audio_intake_from_tracklist.py, passing in the
+    tracklist file created in step 1.
+
+Tracklist files are formatted as comma separated values with each
+track on a separate line.  There are 6 required fields:
+filepath, title, artist, album, tracknum, compilation
+and the first line of the file must contain a header labeling these
+fields.  Annotations can be appended at the end of the list.  The
+header line defines the annotations names, and the corresponding field
+in each track defines the values.  Lines beginning with '#' are
+comments.
+
+Example tracklist:
+
+# Header:
+filepath,title,artist,album,tracknum,compilation,segments,meter
+# "segments" and "meter" are annotations.
+# Tracklist:
+/home/ronw/data/beatles/audio/Please_Please_Me/01-I_Saw_Her_Standing_There.wav,I Saw Her Standing There,The Beatles,Please Please Me,01,False,/home/ronw/data/beatles/seglab/Please_Please_Me/01-I_Saw_Her_Standing_There.lab,"4/4"
+/home/ronw/data/beatles/audio/Please_Please_Me/02-Misery.wav,Misery,The Beatles,Please Please Me,01,False,/home/ronw/data/beatles/seglab/Please_Please_Me/02-Misery.lab,"4/4"
+/home/ronw/data/beatles/audio/Please_Please_Me/03-Anna.wav,Anna,The Beatles,Please Please Me,01,False,/home/ronw/data/beatles/seglab/Please_Please_Me/03-Anna.lab,"4/4"
+...
+
+Annotation values which contain valid file paths will be added using
+gordon.add_annotation_from_text_file(), otherwise the values will be
+saved as a string as in gordon.Track.add_annotation().
+
+Brave souls can create tracklist files by hand (in which case it is
+especially important to check for formatting errors before passing it
+in to audio_intake_from_tracklist.py), but less adventurous folks
+should use one of the tools which make it easy to create valid
+tracklist files:
+
+ - scripts/generate_tracklist_from_regexp.py
+
+   Extracts metadata from a file's name and/or directory structure.
+   See the usage information in the script for more details.
+
+ - scripts/generate_tracklist_from_tags.py
+
+   Extracts metadata from the tags embedded in the audio files.  This
+   works like audio_intake.py, but it supports many other tagging
+   standards in addition to ID3 (depends on TagPy).
+
+
+
+== MusicBrainz integration
+
+See the script in gordon/db/mbrainz_resolver.py for resolving complete
+albums registered with Gordon against a local copy of the MusicBrainz
+database.
+
+
+
+== User management for the web application.
+
+Somebody fill me in.
