@@ -30,37 +30,29 @@ collection.
 See the instructions in INSTALL to get started.
 
 
-Usage
------
+Basic usage
+===========
 
 Once everything is set up, and some songs have been added to the
 database, a typical use case for Gordon would go something like this:
 
-In [1]: import gordon
+>>> import gordon
 model.py: intialized external connection to gordon database on something.nyu.edu
 gordon_db.py: using gordon directory /share/gordon
-
-In [2]: tracks = gordon.Track.query.filter_by(artist='Charlie Parker')
-
-In [3]: print 'Found %d tracks' % tracks.count()
+>>> tracks = gordon.Track.query.filter_by(artist='Charlie Parker')
+>>> print 'Found %d tracks' % tracks.count()
 Found 594 tracks
-
-In [4]: tracks[0].title
-Out[6]: u"7th April, 1951- They can't take That away from Me"
-
-In [5]: print tracks[0]
+>>> tracks[0].title
+u"7th April, 1951- They can't take That away from Me"
+>>> print tracks[0]
 <Track 1 7th April, 1951- They can't take That away from Me by Charlie Parker from At Birdland Volume 2 Disc 2>
-
-In [6]: # Gordon makes it easy to grab the audio:
-
-In [7]: x, fs, svals = tracks[0].audio()
-
-In [8]: # So running an experiment goes something like this:
-
-In [9]: for track in tracks:
-  ....:     print "Messing around with %s" % track
-  ....:     x, fs, svals = track.audio()
-  ....:     # Run your favorite MIR algorithm on x...
+>>> # Gordon makes it easy to grab the audio:
+>>> x, fs, svals = tracks[0].audio()
+>>> # So running an experiment goes something like this:
+>>> for track in tracks:
+...     print "Messing around with %s" % track
+...     x, fs, svals = track.audio()
+...     # Run your favorite MIR algorithm on x...
 
 You can construct queries on Tracks, Artists, or Albums.  See the
 corresponding objects in gordon.db.model for details.
