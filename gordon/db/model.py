@@ -322,7 +322,6 @@ class Track(object) :
                  **kwargs):
         """Computes features for this track using the named feature extractor.
         @raise ValueError: if no FeatureExtractor named <name> is found"""
-        import gordon.io.features as features
 
         extractor = FeatureExtractor.query.filter_by(name=unicode(name)).first()
         if not extractor:
@@ -331,7 +330,7 @@ class Track(object) :
         if read_from_cache:
             featfile = None
             try:
-                featfile = features.CachedFeatureFile(self.fn_feature, mode='r')
+                featfile = self._open_feature_cache(mode='r')
                 if featfile.has_features(extractor, kwargs):
                     features = featfile.get_features(extractor, kwargs)
                     return features
@@ -349,12 +348,42 @@ class Track(object) :
             if not os.path.exists(self.fn_feature):
                 from gordon import make_subdirs
                 make_subdirs(self.fn_feature)
-            featfile = features.CachedFeatureFile(self.fn_feature, mode='a')
+            featfile = self._open_feature_cache(mode='a')
             featfile.set_features(extractor, Y, kwargs=kwargs)
             featfile.close()
 
         return Y
-    
+
+    def list_cached_features(self):
+        """Return a list of all features already cached for this Track.
+
+        Each entry of the list contains a tuple of the form:
+        ('name', FeatureExtractor.name, 'kwarg1', val1, 'kwarg2', val2, ...)
+        I.e. the keyword arguments passed to Track.features() to
+        compute the corresponding features.
+        """
+        featfile = self._open_feature_cache(mode='r')
+        feature_list = featfile.list_all_features()
+        featfile.close()
+        return feature_list
+
+    def delete_cached_features(self, name, **kwargs):
+        """Delete cached features for this track."""
+        featfile = self._open_feature_cache(mode='a')
+        extractor = FeatureExtractor.query.filter_by(name=unicode(name)).first()
+        featfile.del_features(extractor, kwargs)
+        featfile.close()
+     
+    def clear_cached_features(self):
+        """Clear the feature cache for this track."""
+        featfile = self._open_feature_cache(mode='a')
+        featfile.del_all_features()
+        featfile.close()
+
+    def _open_feature_cache(self, mode='r'):
+        import gordon.io.features as features
+        return features.CachedFeatureFile(self.fn_feature, mode=mode)
+
     @property
     def fn_feature(self) :
         """Returns absolute path to feature file.

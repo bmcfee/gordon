@@ -137,6 +137,24 @@ class CachedFeatureFile(object):
                     raise
         return tuple(arrays)
 
+    def list_all_features(self):
+        """Return a list of all features contained in this file.
+
+        Each entry of the feature list contains a tuple of the form:
+        ('name', FeatureExtractor.name, 'kwarg1', val1, 'kwarg2', val2, ...)
+        I.e. the keyword arguments passed to Track.features() to
+        compute the corresponding features.
+        """
+        features_list = []
+        for group in self.h5file.iterNodes(self.h5file.root):
+            for array in self.h5file.iterNodes(group):
+                keylist = ['name', array.attrs.feature_extractor_name]
+                for k,v in array.attrs.kwargs.iteritems():
+                    keylist.append(k)
+                    keylist.append(v)
+                features_list.append(tuple(keylist))
+        return features_list
+
     def get_all_features(self):
         """Return a dictionary of all features contained in this file.
 
