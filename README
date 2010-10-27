@@ -46,9 +46,17 @@ Found 594 tracks
 u"7th April, 1951- They can't take That away from Me"
 >>> print tracks[0]
 <Track 1 7th April, 1951- They can't take That away from Me by Charlie Parker from At Birdland Volume 2 Disc 2>
->>> # Gordon makes it easy to grab the audio:
+
+Gordon makes it easy to grab the audio:
+
 >>> x, fs, svals = tracks[0].audio()
->>> # So running an experiment goes something like this:
+
+Or even compute (and cache) features:
+
+>>> chroma = tracks[0].features('chroma', bins_per_octave=12)
+
+So running an experiment goes something like this:
+
 >>> for track in tracks:
 ...     print "Messing around with %s" % track
 ...     x, fs, svals = track.audio()
@@ -61,4 +69,4 @@ Queries are constructed using SQLAlchemy, so you might want to have a
 look at its documentation (http://www.sqlalchemy.org/docs/) to learn
 more.
 
-See USAGE for more detailed documentation.
+See USAGE for even more detailed documentation.
