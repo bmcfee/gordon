@@ -1,5 +1,8 @@
+.. -*- restructuredtext -*-
+
+======
 Gordon
-------
+======
 
 Gordon is a database management system for working with large audio
 collections.  For the most part it is intended for research.  Gordon
@@ -34,7 +37,7 @@ Once everything is set up, and some songs have been added to the
 database, a typical use case for Gordon would go something like this:
 
 In [1]: import gordon
-model.py: intialized external connection to gordon database on mirfiles.smusic.nyu.edu
+model.py: intialized external connection to gordon database on something.nyu.edu
 gordon_db.py: using gordon directory /share/gordon
 
 In [2]: tracks = gordon.Track.query.filter_by(artist='Charlie Parker')
