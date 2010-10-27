@@ -1,12 +1,22 @@
+==============
+ Using Gordon
+==============
+:Author: Ron Weiss <ronw@nyu.edu>
+:Date: 2010-10-27
+
+
 This document describes some common tasks one might want to perform
 using the Gordon Music Database.  It reviews some of the interactive
 features within the Python shell, as well as the accompanying command
 line tools.  The web application is, for the most part, self
 explanatory so it is not documented here.
 
-== Typical interactions with gordon in the Python shell
 
-=== Querying for tracks
+Typical interactions with gordon in the Python shell
+====================================================
+
+Querying for tracks
+-------------------
 
 >>> import gordon
 >>> tracks = gordon.Track.query.filter_by(artist=u'The Beatles', album=u'Abbey Road').order_by(gordon.Track.tracknum).all()
@@ -20,6 +30,7 @@ Useful tutorial on querying using SQLAlchemy http://www.sqlalchemy.org/docs/05/o
 
 Tracks have all of the usual iTunes metadata associated with them,
 along with a few other goodies:
+
 >>> t.title
 u'Come Together'
 >>> t.artist
@@ -44,10 +55,13 @@ similar details about Artist, Album, and other tables.
 
 If you don't like the web interface, you can edit many of these fields
 directly from Python:
+
 >>> t.album = 'Abey Road'
 >>> gordon.commit()  # You need to run this function to make sure that the change gets written to the database
 
-=== Track annotations
+
+Track annotations
+-----------------
 
 Stored in the database alongside each gordon track is a set of
 arbitrary name value pairs called "annotations".  Annotations are
@@ -57,6 +71,7 @@ infrequently.
 
 The most convenient method for reading Track annotations is to use the
 Track.annotation_dict dictionary:
+
 >>> t.annotation_dict.keys()
 [u'keys', u'beats', u'segments', u'meter', u'chords']
 >>> print t.annotation_dict['keys']
@@ -71,6 +86,7 @@ Track.annotation_dict dictionary:
 254.135 260.627 Silence
 
 You can also access annotations using the Track.annotations property:
+
 >>> len(t.annotations)
 5
 >>> t.annotations[3].name
@@ -79,27 +95,35 @@ u'meter'
 u'4/4'
 
 New annotations can be added using Track.add_annotation():
+
 >>> t.add_annotation(u'release date', u'1969-10-01')
 
 For annotations stored in text files (e.g. HTK-style annotations which
 you don't want to type out by hand) use
 Track.add_annotation_from_text_file() instead:
+
 >>> t.add_annotation_from_text_file(u'chords', '/path/to/come_together-chords.lab')
 
-=== Audio
+
+Audio
+-----
 
 Track.audio() gives easy access to the audio samples corresponding to
 the track, regardless of format (assuming ffmpeg can read it):
+
 >>> x,fs,svals = t.audio()
 >>> x.shape
 (11494656, 1)
 
-=== Features extractors
+
+Features extractors
+-------------------
 
 Feature extractors (i.e. functions which take audio samples as input
 and return a set of feature values) must be registered with gordon.
 To see a list of feature extractors use
 gordon.FeatureExtrctor.describe():
+
 >>> gordon.FeatureExtractor.describe()
 Name: dpwe:chroma
 Description: Computes chroma features.
@@ -134,6 +158,7 @@ Description: Computes recurrence plot (RP) feature with multi-resolution
     Parameters
     ----------
     track : gordon Track instance
+
 
 The list of registered feature extractors can also be accessed through
 the web interface at http://gordon.host.name:port/feature_extractors
@@ -170,7 +195,9 @@ Other useful feature extraction related methods:
 >>> t.list_cached_features()
 []
 
-==== Registering new feature extractors
+
+Registering new feature extractors
+----------------------------------
 
 But how exactly does gordon know about feature extractors?  New
 feature extractors can be added using
@@ -202,7 +229,8 @@ Some example feature extractors can be found in
 examples/feature_extractors
 
 
-0.5 Collections
+Collections
+-----------
 
 In addition to grouping by albums and artists, gordon supports
 arbitrary collections of tracks.
@@ -226,11 +254,13 @@ gordon.add_to_collection():
 A more typical procedure might be to add all tracks with a particular
 "source" field (defined by the audio import process described below)
 into a collection:
+
 >>> tracks = gordon.Track.query.filter_by(source=u'ronw:2010-10-25').all()
 >>> new_collection = gordon.add_to_collection(tracks, u"Ron's favorite tracks")
 
 You can delete collections just like any other entry in the gordon
 database:
+
 >>> gordon.delete(new_collection)
 >>> gordon.commit()
 
@@ -241,7 +271,9 @@ gordon.delete_track()
 gordon.delete_album()
 gordon.delete_source()
 
-=== Regular maintenance on the database
+
+Regular database maintenance
+----------------------------
 
 gordon.gordon_validate() is an interactive function that does a lot of
 different validations to e.g. remove albums and artists containing no
@@ -250,7 +282,8 @@ It's docstring says "It is a good thing to run once a week".
 
 
 
-== Importing tracks into the database
+Importing tracks into the database
+==================================
 
 There are a couple of methods for importing new tracks into the
 database.  In all cases, the original audio files will not be touched
@@ -292,14 +325,16 @@ comments.
 
 Example tracklist:
 
-# Header:
-filepath,title,artist,album,tracknum,compilation,segments,meter
-# "segments" and "meter" are annotations.
-# Tracklist:
-/home/ronw/data/beatles/audio/Please_Please_Me/01-I_Saw_Her_Standing_There.wav,I Saw Her Standing There,The Beatles,Please Please Me,01,False,/home/ronw/data/beatles/seglab/Please_Please_Me/01-I_Saw_Her_Standing_There.lab,"4/4"
-/home/ronw/data/beatles/audio/Please_Please_Me/02-Misery.wav,Misery,The Beatles,Please Please Me,01,False,/home/ronw/data/beatles/seglab/Please_Please_Me/02-Misery.lab,"4/4"
-/home/ronw/data/beatles/audio/Please_Please_Me/03-Anna.wav,Anna,The Beatles,Please Please Me,01,False,/home/ronw/data/beatles/seglab/Please_Please_Me/03-Anna.lab,"4/4"
-...
+::
+
+  # Header:
+  filepath,title,artist,album,tracknum,compilation,segments,meter
+  # "segments" and "meter" are annotations.
+  # Tracklist:
+  /home/ronw/data/beatles/audio/Please_Please_Me/01-I_Saw_Her_Standing_There.wav,I Saw Her Standing There,The Beatles,Please Please Me,01,False,/home/ronw/data/beatles/seglab/Please_Please_Me/01-I_Saw_Her_Standing_There.lab,"4/4"
+  /home/ronw/data/beatles/audio/Please_Please_Me/02-Misery.wav,Misery,The Beatles,Please Please Me,01,False,/home/ronw/data/beatles/seglab/Please_Please_Me/02-Misery.lab,"4/4"
+  /home/ronw/data/beatles/audio/Please_Please_Me/03-Anna.wav,Anna,The Beatles,Please Please Me,01,False,/home/ronw/data/beatles/seglab/Please_Please_Me/03-Anna.lab,"4/4"
+  ...
 
 Annotation values which contain valid file paths will be added using
 gordon.add_annotation_from_text_file(), otherwise the values will be
@@ -311,20 +346,21 @@ in to audio_intake_from_tracklist.py), but less adventurous folks
 should use one of the tools which make it easy to create valid
 tracklist files:
 
- - scripts/generate_tracklist_from_regexp.py
+- scripts/generate_tracklist_from_regexp.py
 
-   Extracts metadata from a file's name and/or directory structure.
-   See the usage information in the script for more details.
+  Extracts metadata from a file's name and/or directory structure.
+  See the usage information in the script for more details.
 
- - scripts/generate_tracklist_from_tags.py
+- scripts/generate_tracklist_from_tags.py
 
-   Extracts metadata from the tags embedded in the audio files.  This
-   works like audio_intake.py, but it supports many other tagging
-   standards in addition to ID3 (depends on TagPy).
+  Extracts metadata from the tags embedded in the audio files.  This
+  works like audio_intake.py, but it supports many other tagging
+  standards in addition to ID3 (depends on TagPy).
 
 
 
-== MusicBrainz integration
+MusicBrainz integration
+=======================
 
 See the script in gordon/db/mbrainz_resolver.py for resolving complete
 albums registered with Gordon against a local copy of the MusicBrainz
@@ -332,6 +368,7 @@ database.
 
 
 
-== User management for the web application.
+User management for the web application
+=======================================
 
 Somebody fill me in.
