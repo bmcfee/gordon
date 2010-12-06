@@ -51,13 +51,13 @@ Gordon setup
 1. Copy gordon/db/config.py.default to gordon/db/config.py and fill in
    the details of your local configuration.
 
-2. Run gordon/db/gordon_initialize.py to build the database tables.
+2. Run scripts/gordon_initialize.py to build the database tables.
 
-3. Use gordon/db/audio_intake.py or gordon/db/audio_intake_from_tracklist.py
+3. Use scripts/audio_intake.py or scripts/audio_intake_from_tracklist.py
    to import music into the database.
 
 4. Create a local copy of the musicbrainz database using
-   gordon/db/mbrainz_import.py
+   scripts/mbrainz_import.py
 
    This involves checking out the mb_server SVN repository, filling in
    some configuration details, then downloading a few gigabytes of the
@@ -72,6 +72,10 @@ Gordon setup
                    liblwp-useragent-determined-perl
 
 5. Resolve metadata against musicbrainz using gordon/db/mbrainz_resolver.py
+
+6. Setup the gordon python module by: python setup.py build
+                                      sudo python setup.py install
+   (that step should come before...)
 
 
 Web app setup (optional)
