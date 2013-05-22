@@ -1,0 +1,19 @@
+syntax: glob
+*~
+*.wav
+.DS_Store
+*.o
+*.dylib*
+*.pyc
+build/*
+*egg-info/*
+dist/*
+gordon/web/dev.cfg
+gordon/web/prod.cfg
+gordon/web/active.cfg
+gordon/web/tg_gordonweb
+gordon/db/config.py
+glob:frontend/*
+glob:siplca-segmentation/*
+glob:hdf5-1.8.5-win32/*
+glob:pthreads-w32-2-8-0-release/*
