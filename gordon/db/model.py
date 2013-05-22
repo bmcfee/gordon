@@ -743,7 +743,7 @@ mapper(Track,track, extension=DeleteFileMapperExtension(),
        )
 
 mapper(Artist,artist,
-       properties={'albums':relation(Album,secondary=album_artist,order_by='Album.name'),   
+       properties={'albums':relation(Album,secondary=album_artist),   
                    'tracks':relation(Track,secondary=artist_track, order_by=Track.title, cascade='all,delete'),  #removed delete-orphan
                    }
        )
@@ -764,7 +764,7 @@ mapper(FeatureExtractor, feature_extractor)
 
 mapper(Annotation, annotation,
     properties={
-       'track': relation(Track, backref=backref('annotations', order_by='annotation.name')),
+       'track': relation(Track, backref=backref('annotations')),
     }
 )
 mapper(Collection, collection,
