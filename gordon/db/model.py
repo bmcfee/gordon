@@ -105,7 +105,7 @@ atexit.register(shutil.rmtree, TEMPDIR)
 album =  Table('album', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
     Column(u'mb_id', String(length=64, convert_unicode=False), default='', index=True),
-    Column(u'name', Unicode(length=256), default='', index=True),
+    Column(u'name', Unicode(length=256), default=u'', index=True),
     Column(u'asin', String(length=32, convert_unicode=False), default=''),
     Column(u'trackcount', Integer(), default=-1),
     )
@@ -140,7 +140,7 @@ Index('ix_annotation_tid_name', annotation.c.track_id, annotation.c.name, unique
 artist = Table('artist', metadata,
     Column(u'id', Integer(), primary_key=True, nullable=False, autoincrement=True, index=True),
     Column(u'mb_id', String(length=64, convert_unicode=False), default='', index=True),
-    Column(u'name', Unicode(length=256), default='', index=True),
+    Column(u'name', Unicode(length=256), default=u'', index=True),
     Column(u'trackcount', Integer(), default=-1),    
     )
 
