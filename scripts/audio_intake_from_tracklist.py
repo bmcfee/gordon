@@ -128,7 +128,6 @@ def add_track(trackpath, source=str(datetime.date.today()),
         track.album = album.name
         track.albums.append(album)
 
-#    commit() # save (again) the track record (this time having the track id)
     log.debug('Wrote album and artist additions to track into database')
 
     # copy the file to the Gordon audio/feature data directory
@@ -147,7 +146,7 @@ def add_track(trackpath, source=str(datetime.date.today()),
         track.annotations.append(Annotation(type='text', name=tagkey, value=tagval))
     
     if import_md:
-        #chek if file is mp3. if so:
+        #check if file is mp3. if so:
         if isValidMP3(trackpath):
             #extract all ID3 tags, store each tag value as an annotation type id3.[tagname]
             for tag in getAllTags(trackpath):
@@ -155,6 +154,8 @@ def add_track(trackpath, source=str(datetime.date.today()),
         
         #todo: work with more metadata formats (use tagpy?)
     
+    # Link the track to the collection object
+    track.collections.append(get_or_create_collection(source))
     commit() # store the annotations
 
 
@@ -307,6 +308,16 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()),
     log.debug('Updated trackcount for album %s', albumrec)
     commit()
 
+def get_or_create_collection(source):
+
+    match = Collection.query.filter_by(name = unicode(source))
+
+    if match.count() == 1:
+        log.debug(' Matched source %s in database', match[0])
+        return match[0]
+    else:
+        return Collection(name=unicode(source))
+
 
 def add_collection_from_csv_file(csvfile, source=str(datetime.date.today()),
                                  prompt_incompletes=False, doit=False,
@@ -364,7 +375,7 @@ def _die_with_usage() :
 
 
 def process_arguments():
-    parser = argparse.ArgumentParser(description='Gordon audi ointake from track list')
+    parser = argparse.ArgumentParser(description='Gordon audio intake from track list')
 
     parser.add_argument('source',
                         action  =   'store',
@@ -405,31 +416,6 @@ def process_arguments():
 if __name__ == '__main__':
 
     args = process_arguments()
-
-#     if len(sys.argv) < 3:
-#         _die_with_usage()
-
-#     prompt_incompletes=True
-#     fast_import=False
-    
-    # parse flags
-#     while True:
-#         if sys.argv[1]=='-fast' :
-#             fast_import=True
-#         elif sys.argv[1]=='-noprompt' :
-#             prompt_incompletes=False
-#         else :
-#             break
-#         sys.argv.pop(1)
-
-    # parse arguments
-#     source = unicode(sys.argv[1])
-#     csvfile = sys.argv[2]
-
-#     try: doit = True if int(sys.argv[3]) == 1 else False
-#     except: doit = False
-#     try: import_md = True if int(sys.argv[4]) == 1 else False
-#     except: import_md = False
 
     log.info('Importing audio from tracklist %s (source=%s)', args['csvfile'], args['source'])
     add_collection_from_csv_file(   args['csvfile'], 
