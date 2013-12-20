@@ -21,14 +21,16 @@
 Functions for importing music to Gordon database
 
 script usage:
-python audio_intake source dir [doit]
+python audio_intake_from_tracklist.py source csv [doit]
 <source> is a name for the collection
-<dir> is the collection physical location to browse
+<csv> is the collection physical location to browse
 <doit> is an optional parameter; if False, no actual import takes
 place, only verbose would-dos
 '''
 
 import os, collections, datetime, logging, stat, sys
+
+import argparse
 
 from csv import reader
 
@@ -36,15 +38,14 @@ from gordon.io import AudioFile
 from gordon.db.model import add, commit, Album, Artist, Track, Collection, Annotation
 from gordon.db.config import DEF_GORDON_DIR
 from gordon.db.gordon_db import get_tidfilename, make_subdirs_and_copy, is_binary
-from gordon.io.mp3_eyeD3 import isValidMP3, getAllTags, id3v2_getval
+from gordon.io.mp3_eyeD3 import isValidMP3, getAllTags
 
 
 log = logging.getLogger('gordon.audio_intake_from_tracklist')
 
-
 def add_track(trackpath, source=str(datetime.date.today()),
               gordonDir=DEF_GORDON_DIR, tag_dict=dict(), artist=None,
-              album=None, fast_import=False, all_md=False):
+              album=None, fast_import=False, import_md=False):
     """Add track with given filename <trackpath> to database
     
          @param source: audio files data source (string)
@@ -53,7 +54,7 @@ def add_track(trackpath, source=str(datetime.date.today()),
          @param artist: The artist for this track. An instance of Artist. None if not present
          @param album: The album for this track. An instance of Album. None if not present
          @param fast_import: If true, do not calculate strip_zero length. Defaults to False
-         @param all_md: use True to try to extract all metadata tags embedded in the auudio-file. Defaults to False
+         @param import_md: use True to try to extract all metadata tags embedded in the auudio-file. Defaults to False
     """
     (path, filename) = os.path.split(trackpath) 
     (fname, ext) = os.path.splitext(filename)
@@ -145,7 +146,7 @@ def add_track(trackpath, source=str(datetime.date.today()),
     for tagkey, tagval in tag_dict.iteritems(): # create remaining annotations
         track.annotations.append(Annotation(type='text', name=tagkey, value=tagval))
     
-    if all_md:
+    if import_md:
         #chek if file is mp3. if so:
         if isValidMP3(trackpath):
             #extract all ID3 tags, store each tag value as an annotation type id3.[tagname]
@@ -247,7 +248,7 @@ def _read_csv_tags(cwd, csv=None):
     return tags
 
 def add_album(album_name, tags_dicts, source=str(datetime.date.today()),
-              gordonDir=DEF_GORDON_DIR, prompt_aname=False, import_md=False):
+              gordonDir=DEF_GORDON_DIR, prompt_aname=False, import_md=False, fast_import=False):
     """Add an album from a list of metadata in <tags_dicts> v "1.0 CSV"
     """
     log.debug('Adding album "%s"', album_name)
@@ -293,9 +294,9 @@ def add_album(album_name, tags_dicts, source=str(datetime.date.today()),
 
     # Now add our tracks to album.
     for filename in sorted(tags_dicts.keys()):
-        add_track(filename, source, gordonDir, tags_dicts[filename],
-                  artist_dict[tags_dicts[filename][u'artist']], albumrec,
-                  fast_import, import_md)
+        add_track(filename, source=source, gordonDir=gordonDir, tag_dict=tags_dicts[filename],
+                  artist=artist_dict[tags_dicts[filename][u'artist']], album=albumrec,
+                  fast_import=fast_import, import_md=import_md)
         log.debug('Added "%s"', filename)
 
     #now update our track counts
@@ -361,35 +362,80 @@ def _die_with_usage() :
     print 'More options are available by using the function add_collection()'
     sys.exit(0)
 
-if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        _die_with_usage()
 
-    prompt_incompletes=True
-    fast_import=False
+def process_arguments():
+    parser = argparse.ArgumentParser(description='Gordon audi ointake from track list')
+
+    parser.add_argument('source',
+                        action  =   'store',
+                        help    =   'name for the collection')
+
+    parser.add_argument('csvfile',
+                        action  =   'store',
+                        help    =   'path to the track list CSV file')
+
+    parser.add_argument('-f', 
+                        '--fast',
+                        action  =   'store_true',
+                        dest    =   'fast',
+                        default =   False,
+                        help    =   'imports without calculating zero-stripped track times')
+
+    parser.add_argument('--no-prompt',
+                        action  =   'store_false',
+                        dest    =   'prompt_incompletes',
+                        default =   True,
+                        help    =   'Do not prompt for incomplete albums. See log for what we skipped.')
+
+    parser.add_argument('-t', 
+                        '--test',
+                        action  =   'store_false',
+                        dest    =   'doit',
+                        default =   True,
+                        help    =   'test the intake without modifying the database')
+    parser.add_argument('-m',
+                        '--metadata',
+                        action  =   'store_true',
+                        dest    =   'import_md',
+                        default =   False,
+                        help    =   'import all metadata flags from the audio file')
+
+    return vars(parser.parse_args(sys.argv[1:]))
+
+if __name__ == '__main__':
+
+    args = process_arguments()
+
+#     if len(sys.argv) < 3:
+#         _die_with_usage()
+
+#     prompt_incompletes=True
+#     fast_import=False
     
     # parse flags
-    while True:
-        if sys.argv[1]=='-fast' :
-            fast_import=True
-        elif sys.argv[1]=='-noprompt' :
-            prompt_incompletes=False
-        else :
-            break
-        sys.argv.pop(1)
+#     while True:
+#         if sys.argv[1]=='-fast' :
+#             fast_import=True
+#         elif sys.argv[1]=='-noprompt' :
+#             prompt_incompletes=False
+#         else :
+#             break
+#         sys.argv.pop(1)
 
     # parse arguments
-    source = unicode(sys.argv[1])
-    csvfile = sys.argv[2]
+#     source = unicode(sys.argv[1])
+#     csvfile = sys.argv[2]
 
-    try: doit = True if int(sys.argv[3]) == 1 else False
-    except: doit = False
-    try: import_md = True if int(sys.argv[4]) == 1 else False
-    except: import_md = False
+#     try: doit = True if int(sys.argv[3]) == 1 else False
+#     except: doit = False
+#     try: import_md = True if int(sys.argv[4]) == 1 else False
+#     except: import_md = False
 
-    log.info('Importing audio from tracklist %s (source=%s)', csvfile, source)
-    add_collection_from_csv_file(csvfile, source=source,
-                                 prompt_incompletes=prompt_incompletes,
-                                 doit=doit, fast_import=fast_import,
-                                 import_md=import_md)
+    log.info('Importing audio from tracklist %s (source=%s)', args['csvfile'], args['source'])
+    add_collection_from_csv_file(   args['csvfile'], 
+                                    source=args['source'],
+                                    prompt_incompletes=args['prompt_incompletes'],
+                                    doit=args['doit'], 
+                                    fast_import=args['fast'],
+                                    import_md=args['import_md'])
     
