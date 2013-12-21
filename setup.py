@@ -15,7 +15,7 @@ except :
 #todo: add all dependencies
 
 setup(name="Gordon",
-      version="0.5",
+      version="0.6",
       author="Douglas Eck, Ron Weiss, Jorge Orpinel",
       author_email="douglas.eck@gmail.com",
       description="Gordon Music Management System",

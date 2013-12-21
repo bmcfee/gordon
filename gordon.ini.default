@@ -1,0 +1,15 @@
+[gordon]
+DEBUG=False
+
+DEF_GORDON_DIR=/path/to/save/gordon/data
+DEF_GORDON_DIR_ON_WEBSERVER=/path/to/gordon/web/output
+
+#DEF_DBDRIVER=postgresql
+#DEF_DBHOST=localhost
+#DEF_DBNAME=gordon_db
+#DEF_DBSUPERUSER=
+#DEF_DBUSER=gordon
+#DEF_DBPASS=
+
+DEF_DBDRIVER=sqlite
+DEF_DBFILE=/path/to/gordon-sqlite.db
