@@ -529,7 +529,7 @@ class Album(object) :
     def update_trackcount(self) :
         tc = session.query(AlbumTrack).filter(AlbumTrack.album_id==self.id).count()
         if self.trackcount <> tc :
-            log.debug("Updating track count to", tc)
+            log.debug("Updating track count to %d", tc)
             self.trackcount=tc
 
 class AlbumArtist(object) : pass
